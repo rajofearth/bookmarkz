@@ -3,6 +3,7 @@
 import { BookmarkIcon, FolderIcon, StarIcon } from "lucide-react";
 import { AddFolderDialog } from "@/components/bookmarks/add-folder-dialog";
 import type { Folder } from "@/components/bookmarks/types";
+import { UserProfile } from "@/components/bookmarks/user-profile";
 import { Badge } from "@/components/ui/badge";
 import {
   Item,
@@ -79,6 +80,9 @@ export function FoldersSidebar({
           ))}
         </ItemGroup>
       </nav>
+
+      {/* User Profile Section */}
+      <UserProfile />
     </div>
   );
 }

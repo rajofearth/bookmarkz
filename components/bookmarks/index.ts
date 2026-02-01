@@ -6,3 +6,5 @@ export * from "./bookmark-card";
 export * from "./bookmarks-page";
 export * from "./folders-sidebar";
 export * from "./types";
+export * from "./user-profile";
+
