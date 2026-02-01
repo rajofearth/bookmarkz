@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { SocialButtons } from "./social-buttons";
+import { authClient } from "@/lib/auth-client";
 
 interface AuthFormProps {
     className?: string;
@@ -13,11 +14,7 @@ export function AuthForm({ className }: AuthFormProps) {
 
     const handleSocialLogin = (provider: "google" | "github") => {
         setIsLoading(true);
-        // Mock: Replace with authClient.signIn.social({ provider })
-        console.log("Social login:", provider);
-
-        // Uncomment when integrating BetterAuth:
-        // authClient.signIn.social({ provider });
+        authClient.signIn.social({ provider });
     };
 
     return (
