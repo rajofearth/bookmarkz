@@ -11,28 +11,21 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "motion/react";
 import { SettingsTabTrigger } from "./settings-tab-trigger";
 import { ProfileSettings } from "./profile-settings";
 import { AppearanceSettings } from "./appearance-settings";
 import { GeneralSettings } from "./general-settings";
 import { NotificationsSettings } from "./notifications-settings";
-import { usePrivacyStore } from "@/hooks/use-privacy-store";
-import { cn } from "@/lib/utils";
+import { UserInfoRow } from "@/components/user-info-row";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 export function SettingsPage() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState("profile");
 
-    // Mock User State - still needed for sidebar profile
-    const [user] = useState({
-        name: "John Doe",
-        email: "john@example.com",
-        avatar: "/placeholder-avatar.jpg",
-    });
-
-    const blurProfile = usePrivacyStore((state) => state.blurProfile);
+    const user = useQuery(api.auth.getCurrentUser);
 
     return (
         <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
@@ -92,20 +85,7 @@ export function SettingsPage() {
 
                     <div className="mt-auto p-4 border-t border-sidebar-border">
                         <div className="flex items-center gap-2 px-2 py-2">
-                            <Avatar className="size-7">
-                                <AvatarImage src={user.avatar} className={cn(blurProfile && "blur-sm")} />
-                                <AvatarFallback className={cn("bg-sidebar-primary/10 text-sidebar-primary text-xs font-medium", blurProfile && "blur-sm")}>
-                                    JD
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="text-sm min-w-0">
-                                <p className={cn("font-medium text-sidebar-foreground leading-tight truncate", blurProfile && "blur-sm")}>
-                                    {user.name}
-                                </p>
-                                <p className={cn("text-xs text-sidebar-foreground/60 truncate", blurProfile && "blur-sm")}>
-                                    {user.email}
-                                </p>
-                            </div>
+                            <UserInfoRow user={user} className="w-full" />
                         </div>
                     </div>
                 </aside>

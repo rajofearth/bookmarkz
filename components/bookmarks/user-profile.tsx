@@ -16,7 +16,6 @@ import { useTheme } from "next-themes";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
@@ -25,16 +24,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { usePrivacyStore } from "@/hooks/use-privacy-store";
-
+import { UserInfoRow } from "@/components/user-info-row";
 import { authClient } from "@/lib/auth-client";
-
-interface User {
-  name: string;
-  email: string;
-  avatar?: string;
-  image?: string;
-}
 
 interface UserStats {
   bookmarks: number;
@@ -63,22 +54,12 @@ export function UserProfile({
   const containerRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const blurProfile = usePrivacyStore((state) => state.blurProfile);
 
   const user = useQuery(api.auth.getCurrentUser);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const initials = user?.name
-    ? user.name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2)
-    : "??";
 
   const toggleTheme = () => {
     if (theme === "light") {
@@ -162,18 +143,11 @@ export function UserProfile({
         )}
       >
         {/* User Info Header */}
-        <div className="flex items-center gap-3 p-3">
-          <Avatar className="size-10">
-            <AvatarImage src={user.image ?? undefined} alt={user.name} className={cn(blurProfile && "blur-sm")} />
-            <AvatarFallback className={cn("bg-sidebar-accent text-sidebar-accent-foreground text-sm font-medium", blurProfile && "blur-sm")}>
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className={cn("truncate text-sm font-medium text-sidebar-foreground", blurProfile && "blur-sm")}>{user.name}</p>
-            <p className={cn("truncate text-xs text-sidebar-foreground/60", blurProfile && "blur-sm")}>{user.email}</p>
-          </div>
-        </div>
+        <UserInfoRow
+          user={user}
+          className="p-3 gap-3"
+          avatarClassName="size-10"
+        />
 
         <Separator className="bg-sidebar-border" />
 
@@ -249,18 +223,10 @@ export function UserProfile({
           isOpen && "bg-sidebar-accent text-sidebar-accent-foreground"
         )}
       >
-        <Avatar className="size-7 shrink-0">
-          <AvatarImage src={user.image ?? undefined} alt={user.name} className={cn(blurProfile && "blur-sm")} />
-          <AvatarFallback className={cn("bg-sidebar-primary/10 text-sidebar-primary text-xs font-medium", blurProfile && "blur-sm")}>
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <p className={cn("truncate text-sm font-medium leading-tight text-sidebar-foreground", blurProfile && "blur-sm")}>
-            {user.name}
-          </p>
-          <p className={cn("truncate text-xs text-sidebar-foreground/60", blurProfile && "blur-sm")}>{user.email}</p>
-        </div>
+        <UserInfoRow
+          user={user}
+          className="flex-1 px-0"
+        />
         <ChevronUp
           className={cn(
             "size-4 shrink-0 text-sidebar-foreground/50 transition-transform duration-150",
