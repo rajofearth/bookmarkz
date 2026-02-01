@@ -180,3 +180,33 @@ export const deleteBookmark = mutation({
         await ctx.db.delete(args.bookmarkId);
     },
 });
+
+// --- User Stats ---
+
+export const getUserStats = query({
+    args: {},
+    handler: async (ctx) => {
+        const user = await authComponent.getAuthUser(ctx);
+        if (!user) {
+            return {
+                bookmarks: 0,
+                folders: 0,
+            };
+        }
+
+        const bookmarks = await ctx.db
+            .query("bookmarks")
+            .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+            .collect();
+
+        const folders = await ctx.db
+            .query("folders")
+            .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+            .collect();
+
+        return {
+            bookmarks: bookmarks.length,
+            folders: folders.length,
+        };
+    },
+});

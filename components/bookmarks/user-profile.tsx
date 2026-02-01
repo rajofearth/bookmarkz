@@ -45,7 +45,7 @@ const defaultStats: UserStats = {
 };
 
 export function UserProfile({
-  stats = defaultStats,
+  stats,
   onSettings,
   onKeyboardShortcuts,
   onSignOut,
@@ -55,7 +55,11 @@ export function UserProfile({
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  const user = useQuery(api.auth.getCurrentUser);
+  const user = useQuery(api.users.getProfile);
+  const realStats = useQuery(api.bookmarks.getUserStats);
+
+  // Use real stats from database if available, otherwise use passed stats or defaults
+  const displayStats = realStats ?? stats ?? defaultStats;
 
   useEffect(() => {
     setMounted(true);
@@ -153,8 +157,8 @@ export function UserProfile({
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-1 p-2">
-          <StatItem icon={Bookmark} value={stats.bookmarks} label="Bookmarks" />
-          <StatItem icon={FolderOpen} value={stats.folders} label="Folders" />
+          <StatItem icon={Bookmark} value={displayStats.bookmarks} label="Bookmarks" />
+          <StatItem icon={FolderOpen} value={displayStats.folders} label="Folders" />
         </div>
 
         <Separator className="bg-sidebar-border" />

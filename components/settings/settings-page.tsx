@@ -25,7 +25,7 @@ export function SettingsPage() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState("profile");
 
-    const user = useQuery(api.auth.getCurrentUser);
+    const user = useQuery(api.users.getProfile);
 
     return (
         <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
