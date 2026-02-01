@@ -20,6 +20,7 @@ interface FoldersSidebarProps {
   selectedFolder: string;
   onSelectFolder: (folderId: string) => void;
   onAddFolder?: (name: string) => void;
+  onSettings?: () => void;
 }
 
 export function FoldersSidebar({
@@ -27,6 +28,7 @@ export function FoldersSidebar({
   selectedFolder,
   onSelectFolder,
   onAddFolder,
+  onSettings,
 }: FoldersSidebarProps) {
   // Get icon for folder
   const getFolderIcon = (folder: Folder) => {
@@ -82,7 +84,7 @@ export function FoldersSidebar({
       </nav>
 
       {/* User Profile Section */}
-      <UserProfile />
+      <UserProfile onSettings={onSettings} />
     </div>
   );
 }

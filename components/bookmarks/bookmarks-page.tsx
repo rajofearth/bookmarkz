@@ -7,6 +7,7 @@ import {
   SearchIcon,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { initialFolders } from "@/data/mock-data";
@@ -17,6 +18,7 @@ import { FoldersSidebar } from "./folders-sidebar";
 import type { Bookmark, Folder } from "./types";
 
 export function BookmarksPage() {
+  const router = useRouter();
   const [folders, setFolders] = useState<Folder[]>(initialFolders);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [selectedFolder, setSelectedFolder] = useState("all");
@@ -118,6 +120,7 @@ export function BookmarksPage() {
           selectedFolder={selectedFolder}
           onSelectFolder={setSelectedFolder}
           onAddFolder={handleAddFolder}
+          onSettings={() => router.push("/settings")}
         />
       </aside>
 
