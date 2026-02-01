@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn, getDomain } from "@/lib/utils";
+import { useSettings } from "@/components/settings-provider";
 import type { Bookmark } from "./types";
 
 interface BookmarkCardProps {
@@ -33,6 +34,7 @@ export function BookmarkCard({
   onDelete,
 }: BookmarkCardProps) {
   const [imageError, setImageError] = useState(false);
+  const { settings } = useSettings();
 
   return (
     <Card className="group relative gap-0 overflow-hidden py-0 transition-all hover:shadow-md">
@@ -56,29 +58,31 @@ export function BookmarkCard({
       <CardContent className="p-3">
         <div className="flex items-start gap-3">
           {/* Favicon */}
-          <div className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-md">
-            {bookmark.favicon ? (
-              <Image
-                src={bookmark.favicon}
-                alt=""
-                width={16}
-                height={16}
-                className="size-4 object-contain"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                  e.currentTarget.nextElementSibling?.classList.remove(
-                    "hidden",
-                  );
-                }}
+          {settings.showFavicons && (
+            <div className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-md">
+              {bookmark.favicon ? (
+                <Image
+                  src={bookmark.favicon}
+                  alt=""
+                  width={16}
+                  height={16}
+                  className="size-4 object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                    e.currentTarget.nextElementSibling?.classList.remove(
+                      "hidden",
+                    );
+                  }}
+                />
+              ) : null}
+              <GlobeIcon
+                className={cn(
+                  "text-muted-foreground size-4",
+                  bookmark.favicon && "hidden",
+                )}
               />
-            ) : null}
-            <GlobeIcon
-              className={cn(
-                "text-muted-foreground size-4",
-                bookmark.favicon && "hidden",
-              )}
-            />
-          </div>
+            </div>
+          )}
 
           {/* Title & URL */}
           <div className="min-w-0 flex-1">
@@ -103,8 +107,8 @@ export function BookmarkCard({
               <DropdownMenuItem asChild>
                 <a
                   href={bookmark.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  target={settings.openInNewTab ? "_blank" : "_self"}
+                  rel={settings.openInNewTab ? "noopener noreferrer" : undefined}
                 >
                   <ExternalLinkIcon className="size-4" />
                   Open

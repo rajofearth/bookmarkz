@@ -22,10 +22,12 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { useSettings } from "@/components/settings-provider";
 
 export function SettingsPage() {
     const router = useRouter();
     const { theme, setTheme } = useTheme();
+    const { settings, updateSettings } = useSettings();
 
     // Mock User State
     const [user, setUser] = useState({
@@ -181,7 +183,10 @@ export function SettingsPage() {
                                         <Label className="text-base">Open links in new tab</Label>
                                         <p className="text-sm text-muted-foreground">Always open bookmarks in a new browser tab.</p>
                                     </div>
-                                    <Switch defaultChecked />
+                                    <Switch
+                                        checked={settings.openInNewTab}
+                                        onCheckedChange={(checked) => updateSettings({ openInNewTab: checked })}
+                                    />
                                 </div>
                                 <Separator />
                                 <div className="flex items-center justify-between">
@@ -189,7 +194,10 @@ export function SettingsPage() {
                                         <Label className="text-base">Show favicons</Label>
                                         <p className="text-sm text-muted-foreground">Display website icons next to bookmark titles.</p>
                                     </div>
-                                    <Switch defaultChecked />
+                                    <Switch
+                                        checked={settings.showFavicons}
+                                        onCheckedChange={(checked) => updateSettings({ showFavicons: checked })}
+                                    />
                                 </div>
                             </div>
                         </TabsContent>
