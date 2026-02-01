@@ -23,6 +23,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { usePrivacyStore } from "@/hooks/use-privacy-store";
 
 interface User {
   name: string;
@@ -66,6 +67,7 @@ export function UserProfile({
   const containerRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const blurProfile = usePrivacyStore((state) => state.blurProfile);
 
   useEffect(() => {
     setMounted(true);
@@ -138,14 +140,14 @@ export function UserProfile({
         {/* User Info Header */}
         <div className="flex items-center gap-3 p-3">
           <Avatar className="size-10">
-            <AvatarImage src={user.avatar} alt={user.name} />
-            <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-sm font-medium">
+            <AvatarImage src={user.avatar} alt={user.name} className={cn(blurProfile && "blur-sm")} />
+            <AvatarFallback className={cn("bg-sidebar-accent text-sidebar-accent-foreground text-sm font-medium", blurProfile && "blur-sm")}>
               {initials}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="truncate text-sm font-medium text-sidebar-foreground">{user.name}</p>
-            <p className="truncate text-xs text-sidebar-foreground/60">{user.email}</p>
+            <p className={cn("truncate text-sm font-medium text-sidebar-foreground", blurProfile && "blur-sm")}>{user.name}</p>
+            <p className={cn("truncate text-xs text-sidebar-foreground/60", blurProfile && "blur-sm")}>{user.email}</p>
           </div>
         </div>
 
@@ -227,16 +229,16 @@ export function UserProfile({
         )}
       >
         <Avatar className="size-7 shrink-0">
-          <AvatarImage src={user.avatar} alt={user.name} />
-          <AvatarFallback className="bg-sidebar-primary/10 text-sidebar-primary text-xs font-medium">
+          <AvatarImage src={user.avatar} alt={user.name} className={cn(blurProfile && "blur-sm")} />
+          <AvatarFallback className={cn("bg-sidebar-primary/10 text-sidebar-primary text-xs font-medium", blurProfile && "blur-sm")}>
             {initials}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <p className="truncate text-sm font-medium leading-tight text-sidebar-foreground">
+          <p className={cn("truncate text-sm font-medium leading-tight text-sidebar-foreground", blurProfile && "blur-sm")}>
             {user.name}
           </p>
-          <p className="truncate text-xs text-sidebar-foreground/60">{user.email}</p>
+          <p className={cn("truncate text-xs text-sidebar-foreground/60", blurProfile && "blur-sm")}>{user.email}</p>
         </div>
         <ChevronUp
           className={cn(

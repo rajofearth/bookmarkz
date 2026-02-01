@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Camera } from "lucide-react";
 import { SectionHeader } from "./section-header";
+import { Switch } from "@/components/ui/switch";
+import { usePrivacyStore } from "@/hooks/use-privacy-store";
 
 export function ProfileSettings() {
     const [user, setUser] = useState({
@@ -64,6 +66,22 @@ export function ProfileSettings() {
                     </div>
                     <div className="pt-2">
                         <Button>Save Changes</Button>
+                    </div>
+
+                    <div className="border-t border-sidebar-border/50 pt-6 mt-2">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="blur-profile">Privacy Mode</Label>
+                                <p className="text-sm text-muted-foreground">
+                                    Blur your name and email in the sidebar and other public areas.
+                                </p>
+                            </div>
+                            <Switch
+                                id="blur-profile"
+                                checked={usePrivacyStore((state) => state.blurProfile)}
+                                onCheckedChange={usePrivacyStore((state) => state.setBlurProfile)}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
