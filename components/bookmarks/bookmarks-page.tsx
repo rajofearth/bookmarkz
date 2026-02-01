@@ -18,6 +18,7 @@ import { AddBookmarkDialog } from "./add-bookmark-dialog";
 import { EditBookmarkDialog } from "./edit-bookmark-dialog";
 import { BookmarkCard } from "./bookmark-card";
 import { FoldersSidebar } from "./folders-sidebar";
+import { MetadataFetcher } from "./metadata-fetcher";
 import type { Bookmark, Folder } from "./types";
 import type { Id } from "@/convex/_generated/dataModel";
 
@@ -301,6 +302,7 @@ export function BookmarksPage() {
         onOpenChange={(open) => !open && setEditingBookmark(null)}
         onSubmit={handleEditBookmark}
       />
+      <MetadataFetcher />
     </div>
   );
 }

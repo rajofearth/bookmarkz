@@ -39,7 +39,7 @@ export function BookmarkCard({
   return (
     <Card className="group relative gap-0 overflow-hidden py-0 transition-all hover:shadow-md">
       {/* OG Image Preview */}
-      {bookmark.ogImage && !imageError ? (
+      {bookmark.ogImage && !imageError && bookmark.ogImage.startsWith("http") ? (
         <div className="relative aspect-[1.91/1] w-full overflow-hidden bg-muted">
           <Image
             src={bookmark.ogImage}
@@ -60,7 +60,7 @@ export function BookmarkCard({
           {/* Favicon */}
           {showFavicons && (
             <div className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-md">
-              {bookmark.favicon ? (
+              {bookmark.favicon && bookmark.favicon.startsWith("http") ? (
                 <Image
                   src={bookmark.favicon}
                   alt=""

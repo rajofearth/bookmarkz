@@ -21,6 +21,7 @@ export default defineSchema({
         ogImage: v.optional(v.string()),
         folderId: v.optional(v.id("folders")),
         createdAt: v.number(),
+        metadataStatus: v.optional(v.union(v.literal("pending"), v.literal("completed"), v.literal("failed"))),
     })
         .index("by_user_id", ["userId"])
         .index("by_folder_id", ["folderId"]),

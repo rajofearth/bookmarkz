@@ -1,28 +1,79 @@
-document.getElementById('exportBtn').addEventListener('click', async () => {
-    const statusEl = document.getElementById('status');
-    statusEl.textContent = 'Exporting...';
+const API_BASE_URL = 'http://localhost:3000';
+
+// UI Elements
+const authStatusEl = document.getElementById('authStatus');
+const loginPromptEl = document.getElementById('loginPrompt');
+const exportSectionEl = document.getElementById('exportSection');
+const exportBtn = document.getElementById('exportBtn');
+const recheckBtn = document.getElementById('recheckBtn');
+const progressEl = document.getElementById('progress');
+const importProgressEl = document.getElementById('importProgress');
+const statusEl = document.getElementById('status');
+
+// Check authentication on popup load
+checkAuthentication();
+
+// Event listeners
+exportBtn.addEventListener('click', handleExport);
+recheckBtn.addEventListener('click', checkAuthentication);
+
+async function checkAuthentication() {
+    authStatusEl.textContent = 'Checking authentication...';
+    authStatusEl.style.display = 'block';
+    loginPromptEl.style.display = 'none';
+    exportSectionEl.style.display = 'none';
+    statusEl.textContent = '';
     statusEl.className = '';
 
     try {
-        // Get the entire bookmark tree
-        const tree = await chrome.bookmarks.getTree();
+        const response = await fetch(`${API_BASE_URL}/api/import`, {
+            method: 'GET',
+            credentials: 'include', // Important: include cookies
+        });
 
-        // Flatten and format bookmarks
+        if (!response.ok) {
+            throw new Error('Failed to check authentication');
+        }
+
+        const data = await response.json();
+
+        if (data.authenticated) {
+            authStatusEl.style.display = 'none';
+            exportSectionEl.style.display = 'block';
+        } else {
+            authStatusEl.style.display = 'none';
+            loginPromptEl.style.display = 'block';
+        }
+    } catch (err) {
+        console.error('Auth check error:', err);
+        authStatusEl.textContent = 'Error checking authentication. Is the app running?';
+        authStatusEl.className = 'error';
+    }
+}
+
+async function handleExport() {
+    statusEl.textContent = 'Extracting bookmarks from browser...';
+    statusEl.className = '';
+    exportBtn.disabled = true;
+    progressEl.style.display = 'block';
+    importProgressEl.textContent = '';
+    importProgressEl.className = '';
+
+    try {
+        // Step 1: Get bookmarks from browser
+        const tree = await chrome.bookmarks.getTree();
         const bookmarks = [];
 
-        function processNode(node) {
+        function processNode(node, path = '') {
             if (node.url) {
                 bookmarks.push({
-                    id: node.id, // Use browser ID or maybe prefix it?
-                    title: node.title,
+                    title: node.title || 'Untitled',
                     url: node.url,
-                    folderId: 'all', // For now, put everything in 'all' or mapped ID? 
-                    // Note: The app expects 'favicon' and 'ogImage' but those are optional.
-                    createdAt: node.dateAdded ? new Date(node.dateAdded).toISOString() : new Date().toISOString()
+                    // We'll skip folder mapping for now and add all to root
                 });
             }
             if (node.children) {
-                node.children.forEach(processNode);
+                node.children.forEach(child => processNode(child, path));
             }
         }
 
@@ -30,28 +81,49 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
 
         if (bookmarks.length === 0) {
             statusEl.textContent = 'No bookmarks found to export.';
+            exportBtn.disabled = false;
+            progressEl.style.display = 'none';
             return;
         }
 
-        // Send to API
-        const response = await fetch('http://localhost:3000/api/bookmarks', {
+        // Step 2: Import bookmarks to server
+        importProgressEl.textContent = `Importing ${bookmarks.length} bookmarks...`;
+        statusEl.textContent = `Found ${bookmarks.length} bookmarks. Importing...`;
+
+        const importResponse = await fetch(`${API_BASE_URL}/api/import`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
+            credentials: 'include', // Important: include cookies
             body: JSON.stringify({ bookmarks }),
         });
 
-        if (response.ok) {
-            const result = await response.json();
-            statusEl.textContent = `Success! Exported ${result.count} bookmarks.`;
-            statusEl.className = 'success';
-        } else {
-            throw new Error('Server responded with error');
+        if (!importResponse.ok) {
+            if (importResponse.status === 401) {
+                throw new Error('Authentication expired. Please log in again.');
+            }
+            throw new Error('Failed to import bookmarks');
         }
+
+        const importResult = await importResponse.json();
+
+        statusEl.textContent = `✓ Successfully imported ${importResult.count} bookmarks!`;
+        statusEl.className = 'success';
+        importProgressEl.textContent = 'Check the website to see metadata enrichment in progress.';
+
+        // Optional: Open website to show progress
+        setTimeout(() => {
+            chrome.tabs.create({ url: `${API_BASE_URL}/bookmarks` });
+        }, 1500);
+
+        exportBtn.disabled = false;
+
     } catch (err) {
-        console.error(err);
-        statusEl.textContent = 'Failed to export. Is the app running?';
+        console.error('Export error:', err);
+        statusEl.textContent = `Error: ${err.message}`;
         statusEl.className = 'error';
+        exportBtn.disabled = false;
+        progressEl.style.display = 'none';
     }
-});
+}

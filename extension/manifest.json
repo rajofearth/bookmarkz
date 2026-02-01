@@ -4,7 +4,8 @@
     "version": "1.0",
     "description": "Export your browser bookmarks to the Bookmarks App",
     "permissions": [
-        "bookmarks"
+        "bookmarks",
+        "cookies"
     ],
     "host_permissions": [
         "http://localhost:3000/*"

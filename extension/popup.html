@@ -1,44 +1,165 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <style>
+    :root {
+      --background: #1a1a1a;
+      --foreground: #ffffff;
+      --primary: #3b82f6;
+      --success: #10b981;
+      --error: #ef4444;
+      --border: #333333;
+    }
+
     body {
-      width: 300px;
+      width: 350px;
+      padding: 0;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--background);
+      color: var(--foreground);
+    }
+
+    .container {
       padding: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
-    h2 {
-      margin-top: 0;
-      color: #333;
+
+    h1 {
+      font-size: 18px;
+      margin: 0;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
+
+    .card {
+      background: #262626;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
     button {
-      background-color: #0070f3;
-      color: white;
+      width: 100%;
+      padding: 10px;
       border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
+      border-radius: 6px;
+      font-weight: 500;
       cursor: pointer;
-      font-size: 16px;
-      transition: background-color 0.2s;
+      transition: opacity 0.2s;
     }
-    button:hover {
-      background-color: #0051a2;
+
+    button.primary {
+      background-color: var(--primary);
+      color: white;
     }
-    #status {
-      margin-top: 15px;
-      font-size: 14px;
-      color: #666;
+
+    button.secondary {
+      background-color: transparent;
+      color: var(--foreground);
+      border: 1px solid var(--border);
+      margin-top: 8px;
     }
-    .success { color: green; }
-    .error { color: red; }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .success {
+      color: var(--success);
+    }
+
+    .error {
+      color: var(--error);
+    }
+
+    #progress {
+      display: none;
+      margin-top: 10px;
+    }
+
+    .progress-bar {
+      height: 4px;
+      background: #333;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      animation: indeterminate 1.5s infinite linear;
+      width: 50%;
+    }
+
+    @keyframes indeterminate {
+      0% {
+        transform: translateX(-100%);
+        width: 20%;
+      }
+
+      50% {
+        width: 60%;
+      }
+
+      100% {
+        transform: translateX(200%);
+        width: 20%;
+      }
+    }
   </style>
 </head>
+
 <body>
-  <h2>Bookmark Exporter</h2>
-  <p>Export your browser bookmarks to the local app.</p>
-  <button id="exportBtn">Export Bookmarks</button>
-  <div id="status"></div>
+  <div class="container">
+    <h1>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+      </svg>
+      Bookmark Importer
+    </h1>
+
+    <div id="loading" style="display: none;">Loading...</div>
+
+    <div id="authStatus" class="card">
+      Initializing...
+    </div>
+
+    <div id="loginPrompt" style="display: none;" class="card">
+      <p style="margin: 0 0 10px 0; font-size: 14px;">You need to be logged in to import bookmarks.</p>
+      <button class="primary" onclick="window.open('http://localhost:3000/auth', '_blank')">Login to Website</button>
+      <button id="recheckBtn" class="secondary">Check Again</button>
+    </div>
+
+    <div id="exportSection" style="display: none;">
+      <p style="margin: 0 0 12px 0; font-size: 14px; opacity: 0.8;">
+        Import your browser bookmarks to your account.
+      </p>
+      <button id="exportBtn" class="primary">Import Bookmarks</button>
+
+      <div id="progress">
+        <div class="progress-bar">
+          <div class="progress-fill"></div>
+        </div>
+      </div>
+
+      <div id="status" class="status"></div>
+      <div id="importProgress" class="status"></div>
+    </div>
+  </div>
   <script src="popup.js"></script>
 </body>
+
 </html>

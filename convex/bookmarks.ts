@@ -113,8 +113,43 @@ export const createBookmark = mutation({
             favicon: args.favicon,
             ogImage: args.ogImage,
             createdAt: Date.now(),
+            metadataStatus: (args.favicon && args.ogImage) ? "completed" : "pending",
         });
         return bookmarkId;
+    },
+});
+
+export const batchCreateBookmarks = mutation({
+    args: {
+        bookmarks: v.array(v.object({
+            title: v.string(),
+            url: v.string(),
+            folderId: v.optional(v.id("folders")),
+            favicon: v.optional(v.string()),
+            ogImage: v.optional(v.string()),
+        })),
+    },
+    handler: async (ctx, args) => {
+        const user = await authComponent.getAuthUser(ctx);
+        if (!user) {
+            throw new Error("Not authenticated");
+        }
+
+        const bookmarkIds = [];
+        for (const bookmark of args.bookmarks) {
+            const bookmarkId = await ctx.db.insert("bookmarks", {
+                userId: user._id,
+                title: bookmark.title,
+                url: bookmark.url,
+                folderId: bookmark.folderId,
+                favicon: bookmark.favicon,
+                ogImage: bookmark.ogImage,
+                createdAt: Date.now(),
+                metadataStatus: (bookmark.favicon && bookmark.ogImage) ? "completed" : "pending",
+            });
+            bookmarkIds.push(bookmarkId);
+        }
+        return bookmarkIds;
     },
 });
 
@@ -125,10 +160,39 @@ export const getBookmarks = query({
         if (!user) {
             return [];
         }
-        return await ctx.db
+        const bookmarks = await ctx.db
             .query("bookmarks")
             .withIndex("by_user_id", (q) => q.eq("userId", user._id))
             .collect();
+
+        return bookmarks.sort((a, b) => b.createdAt - a.createdAt);
+    },
+});
+
+export const updateBookmarkMetadata = mutation({
+    args: {
+        bookmarkId: v.id("bookmarks"),
+        favicon: v.optional(v.string()),
+        ogImage: v.optional(v.string()),
+        title: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        const user = await authComponent.getAuthUser(ctx);
+        if (!user) {
+            throw new Error("Not authenticated");
+        }
+
+        const bookmark = await ctx.db.get(args.bookmarkId);
+        if (!bookmark || bookmark.userId !== user._id) {
+            throw new Error("Bookmark not found or unauthorized");
+        }
+
+        await ctx.db.patch(args.bookmarkId, {
+            favicon: args.favicon || bookmark.favicon,
+            ogImage: args.ogImage || bookmark.ogImage,
+            title: args.title || bookmark.title,
+            metadataStatus: "completed",
+        });
     },
 });
 
