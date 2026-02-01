@@ -13,6 +13,8 @@ import {
   Sun,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -25,10 +27,13 @@ import {
 import { cn } from "@/lib/utils";
 import { usePrivacyStore } from "@/hooks/use-privacy-store";
 
+import { authClient } from "@/lib/auth-client";
+
 interface User {
   name: string;
   email: string;
   avatar?: string;
+  image?: string;
 }
 
 interface UserStats {
@@ -37,19 +42,11 @@ interface UserStats {
 }
 
 interface UserProfileProps {
-  user?: User;
   stats?: UserStats;
   onSettings?: () => void;
   onKeyboardShortcuts?: () => void;
   onSignOut?: () => void;
 }
-
-// Default mock user - replace with actual auth data
-const defaultUser: User = {
-  name: "John Doe",
-  email: "john@example.com",
-  avatar: undefined,
-};
 
 const defaultStats: UserStats = {
   bookmarks: 128,
@@ -57,7 +54,6 @@ const defaultStats: UserStats = {
 };
 
 export function UserProfile({
-  user = defaultUser,
   stats = defaultStats,
   onSettings,
   onKeyboardShortcuts,
@@ -65,20 +61,24 @@ export function UserProfile({
 }: UserProfileProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const blurProfile = usePrivacyStore((state) => state.blurProfile);
+
+  const user = useQuery(api.auth.getCurrentUser);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const initials = user.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+  const initials = user?.name
+    ? user.name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
+    : "??";
 
   const toggleTheme = () => {
     if (theme === "light") {
@@ -88,6 +88,16 @@ export function UserProfile({
     } else {
       setTheme("light");
     }
+  };
+
+  const handleSignOut = async () => {
+    if (onSignOut) {
+      onSignOut();
+    } else {
+      await authClient.signOut();
+      window.location.reload();
+    }
+    setIsOpen(false);
   };
 
   // Close on click outside
@@ -124,6 +134,20 @@ export function UserProfile({
     };
   }, [isOpen]);
 
+  if (!user) {
+    return (
+      <div className="p-2">
+        <div className="flex w-full items-center gap-2 rounded-md p-2 bg-sidebar-accent/10 animate-pulse">
+          <div className="size-7 rounded-full bg-sidebar-accent/20" />
+          <div className="flex-1 space-y-1">
+            <div className="h-3 w-20 rounded bg-sidebar-accent/20" />
+            <div className="h-2 w-32 rounded bg-sidebar-accent/20" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div ref={containerRef} className="relative border-t border-sidebar-border p-2">
       {/* Dropdown Menu - appears above the button */}
@@ -140,7 +164,7 @@ export function UserProfile({
         {/* User Info Header */}
         <div className="flex items-center gap-3 p-3">
           <Avatar className="size-10">
-            <AvatarImage src={user.avatar} alt={user.name} className={cn(blurProfile && "blur-sm")} />
+            <AvatarImage src={user.image ?? undefined} alt={user.name} className={cn(blurProfile && "blur-sm")} />
             <AvatarFallback className={cn("bg-sidebar-accent text-sidebar-accent-foreground text-sm font-medium", blurProfile && "blur-sm")}>
               {initials}
             </AvatarFallback>
@@ -207,10 +231,7 @@ export function UserProfile({
               icon={LogOut}
               label="Sign out"
               variant="destructive"
-              onClick={() => {
-                onSignOut?.();
-                setIsOpen(false);
-              }}
+              onClick={handleSignOut}
             />
           </TooltipProvider>
         </div>
@@ -229,7 +250,7 @@ export function UserProfile({
         )}
       >
         <Avatar className="size-7 shrink-0">
-          <AvatarImage src={user.avatar} alt={user.name} className={cn(blurProfile && "blur-sm")} />
+          <AvatarImage src={user.image ?? undefined} alt={user.name} className={cn(blurProfile && "blur-sm")} />
           <AvatarFallback className={cn("bg-sidebar-primary/10 text-sidebar-primary text-xs font-medium", blurProfile && "blur-sm")}>
             {initials}
           </AvatarFallback>

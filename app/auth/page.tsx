@@ -1,9 +1,23 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { AuthForm } from "@/components/auth";
+import { authClient } from "@/lib/auth-client";
 
 export default function AuthPage() {
+    const router = useRouter();
+    const { data: session, isPending } = authClient.useSession();
+
+    useEffect(() => {
+        if (!isPending && session) {
+            router.push("/bookmarks");
+        }
+    }, [session, isPending, router]);
+
+    if (isPending || session) return null;
+
     return (
         <div className="flex min-h-svh w-full flex-1 flex-col items-center justify-center bg-background px-6 py-12">
             <motion.div
