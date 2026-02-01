@@ -1,42 +1,33 @@
 "use client"
 
-import * as React from "react"
+import { useState, useMemo } from "react"
 import {
     BookmarkIcon,
     SearchIcon,
     ChevronRightIcon,
     FolderIcon,
-    StarIcon,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { initialFolders } from "@/data/mock-data"
 
 import { BookmarkCard } from "./bookmark-card"
 import { FoldersSidebar } from "./folders-sidebar"
 import { AddBookmarkDialog } from "./add-bookmark-dialog"
 import type { Folder, Bookmark } from "./types"
 
-// Mock data
-const initialFolders: Folder[] = [
-    { id: "all", name: "All Bookmarks", count: 8, icon: <BookmarkIcon className="size-4" /> },
-    { id: "favorites", name: "Favorites", count: 2, icon: <StarIcon className="size-4" /> },
-    { id: "dev", name: "Development", count: 4 },
-    { id: "design", name: "Design", count: 2 },
-    { id: "news", name: "News & Articles", count: 0 },
-]
-
 
 export function BookmarksPage() {
-    const [folders, setFolders] = React.useState(initialFolders)
-    const [bookmarks, setBookmarks] = React.useState<Bookmark[]>([])
-    const [selectedFolder, setSelectedFolder] = React.useState("all")
-    const [searchQuery, setSearchQuery] = React.useState("")
-    const [sidebarOpen, setSidebarOpen] = React.useState(true)
+    const [folders, setFolders] = useState<Folder[]>(initialFolders)
+    const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
+    const [selectedFolder, setSelectedFolder] = useState("all")
+    const [searchQuery, setSearchQuery] = useState("")
+    const [sidebarOpen, setSidebarOpen] = useState(true)
 
     // Filter bookmarks based on folder and search
-    const filteredBookmarks = React.useMemo(() => {
+    const filteredBookmarks = useMemo(() => {
         let result = bookmarks
 
         if (selectedFolder !== "all") {
@@ -142,7 +133,11 @@ export function BookmarksPage() {
                     </Button>
 
                     <div className="flex items-center gap-2">
-                        {currentFolder?.icon || <FolderIcon className="text-muted-foreground size-4" />}
+                        {currentFolder?.icon ? (
+                            <currentFolder.icon className="text-muted-foreground size-4" />
+                        ) : (
+                            <FolderIcon className="text-muted-foreground size-4" />
+                        )}
                         <h1 className="text-sm font-medium">{currentFolder?.name}</h1>
                     </div>
 

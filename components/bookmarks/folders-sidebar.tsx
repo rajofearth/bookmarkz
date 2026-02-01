@@ -32,7 +32,11 @@ export function FoldersSidebar({
     const getFolderIcon = (folder: Folder) => {
         if (folder.id === "all") return <BookmarkIcon className="size-4" />
         if (folder.id === "favorites") return <StarIcon className="size-4" />
-        return folder.icon || <FolderIcon className="size-4" />
+        if (folder.icon) {
+            const Icon = folder.icon
+            return <Icon className="size-4" />
+        }
+        return <FolderIcon className="size-4" />
     }
 
     return (

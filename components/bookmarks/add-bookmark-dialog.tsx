@@ -1,6 +1,6 @@
 "use client"
 
-import * as React from "react"
+import { useState, useEffect } from "react"
 import { PlusIcon, Loader2Icon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -17,62 +17,38 @@ import {
 import { Input } from "@/components/ui/input"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
-import type { Folder, UrlMetadata } from "./types"
+import { useUrlMetadata } from "@/hooks/use-url-metadata"
+import type { Folder } from "./types"
 
 interface AddBookmarkDialogProps {
     folders: Folder[]
-    onSubmit?: (data: { url: string; title: string; favicon: string | null; ogImage: string | null; folderId: string }) => void
+    onSubmit?: (data: {
+        url: string
+        title: string
+        favicon: string | null
+        ogImage: string | null
+        folderId: string
+    }) => void
 }
 
 export function AddBookmarkDialog({ folders, onSubmit }: AddBookmarkDialogProps) {
-    const [open, setOpen] = React.useState(false)
-    const [url, setUrl] = React.useState("")
-    const [title, setTitle] = React.useState("")
-    const [favicon, setFavicon] = React.useState<string | null>(null)
-    const [ogImage, setOgImage] = React.useState<string | null>(null)
-    const [folderId, setFolderId] = React.useState("")
-    const [loading, setLoading] = React.useState(false)
-    const debounceRef = React.useRef<NodeJS.Timeout | null>(null)
+    const [open, setOpen] = useState(false)
+    const [url, setUrl] = useState("")
+    const [title, setTitle] = useState("")
+    const [folderId, setFolderId] = useState("")
 
-    // Auto-fetch metadata when URL changes
+    const { metadata, isLoading, fetchMetadata, reset } = useUrlMetadata()
+
+    // Auto-populate title when metadata is fetched
+    useEffect(() => {
+        if (metadata?.title && !title) {
+            setTitle(metadata.title)
+        }
+    }, [metadata, title])
+
     const handleUrlChange = (newUrl: string) => {
         setUrl(newUrl)
-
-        // Clear previous debounce
-        if (debounceRef.current) {
-            clearTimeout(debounceRef.current)
-        }
-
-        // Validate URL format
-        try {
-            new URL(newUrl)
-        } catch {
-            return // Invalid URL, don't fetch
-        }
-
-        // Debounce the fetch
-        debounceRef.current = setTimeout(async () => {
-            setLoading(true)
-            try {
-                const response = await fetch(`/api/metadata?url=${encodeURIComponent(newUrl)}`)
-                if (response.ok) {
-                    const data: UrlMetadata = await response.json()
-                    if (data.title && !title) {
-                        setTitle(data.title)
-                    }
-                    if (data.favicon) {
-                        setFavicon(data.favicon)
-                    }
-                    if (data.ogImage) {
-                        setOgImage(data.ogImage)
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to fetch metadata:", error)
-            } finally {
-                setLoading(false)
-            }
-        }, 500)
+        fetchMetadata(newUrl)
     }
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -81,30 +57,26 @@ export function AddBookmarkDialog({ folders, onSubmit }: AddBookmarkDialogProps)
             onSubmit?.({
                 url: url.trim(),
                 title: title.trim() || url.trim(),
-                favicon,
-                ogImage,
+                favicon: metadata?.favicon ?? null,
+                ogImage: metadata?.ogImage ?? null,
                 folderId,
             })
-            // Reset form
-            setUrl("")
-            setTitle("")
-            setFavicon(null)
-            setOgImage(null)
-            setFolderId("")
+            handleReset()
             setOpen(false)
         }
+    }
+
+    const handleReset = () => {
+        setUrl("")
+        setTitle("")
+        setFolderId("")
+        reset()
     }
 
     const handleOpenChange = (isOpen: boolean) => {
         setOpen(isOpen)
         if (!isOpen) {
-            // Reset on close
-            setUrl("")
-            setTitle("")
-            setFavicon(null)
-            setOgImage(null)
-            setFolderId("")
-            setLoading(false)
+            handleReset()
         }
     }
 
@@ -136,7 +108,7 @@ export function AddBookmarkDialog({ folders, onSubmit }: AddBookmarkDialogProps)
                                     onChange={(e) => handleUrlChange(e.target.value)}
                                     required
                                 />
-                                {loading && (
+                                {isLoading && (
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                         <Loader2Icon className="text-muted-foreground size-4 animate-spin" />
                                     </div>
@@ -146,8 +118,12 @@ export function AddBookmarkDialog({ folders, onSubmit }: AddBookmarkDialogProps)
                         <Field>
                             <FieldLabel htmlFor="bookmark-title">
                                 Title
-                                {favicon && (
-                                    <img src={favicon} alt="" className="ml-2 inline-block size-4" />
+                                {metadata?.favicon && (
+                                    <img
+                                        src={metadata.favicon}
+                                        alt=""
+                                        className="ml-2 inline-block size-4"
+                                    />
                                 )}
                             </FieldLabel>
                             <Input
@@ -179,7 +155,7 @@ export function AddBookmarkDialog({ folders, onSubmit }: AddBookmarkDialogProps)
                     <DialogClose asChild>
                         <Button variant="outline">Cancel</Button>
                     </DialogClose>
-                    <Button type="submit" form="add-bookmark-form" disabled={loading}>
+                    <Button type="submit" form="add-bookmark-form" disabled={isLoading}>
                         Save Bookmark
                     </Button>
                 </DialogFooter>
@@ -187,3 +163,4 @@ export function AddBookmarkDialog({ folders, onSubmit }: AddBookmarkDialogProps)
         </Dialog>
     )
 }
+

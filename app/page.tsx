@@ -1,5 +1,6 @@
-import { VercelBlock } from "@/components/vercel";
+import { redirect } from "next/navigation"
 
 export default function Page() {
-  return <VercelBlock />
+  redirect("/bookmarks")
 }
+

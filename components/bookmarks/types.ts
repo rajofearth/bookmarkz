@@ -1,10 +1,11 @@
 // Bookmark types
+import type { LucideIcon } from "lucide-react"
 
 export interface Folder {
     id: string
     name: string
     count: number
-    icon?: React.ReactNode
+    icon?: LucideIcon
 }
 
 export interface Bookmark {
@@ -23,3 +24,4 @@ export interface UrlMetadata {
     ogImage: string | null
     description?: string
 }
+

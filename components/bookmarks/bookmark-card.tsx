@@ -1,9 +1,15 @@
 "use client"
 
-import * as React from "react"
-import { GlobeIcon, MoreHorizontalIcon, ExternalLinkIcon, PencilIcon, TrashIcon } from "lucide-react"
+import { useState } from "react"
+import {
+    GlobeIcon,
+    MoreHorizontalIcon,
+    ExternalLinkIcon,
+    PencilIcon,
+    TrashIcon,
+} from "lucide-react"
 
-import { cn } from "@/lib/utils"
+import { cn, getDomain } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -15,14 +21,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import type { Bookmark } from "./types"
 
-function getDomain(url: string): string {
-    try {
-        return new URL(url).hostname.replace("www.", "")
-    } catch {
-        return url
-    }
-}
-
 interface BookmarkCardProps {
     bookmark: Bookmark
     onEdit?: (bookmark: Bookmark) => void
@@ -30,7 +28,7 @@ interface BookmarkCardProps {
 }
 
 export function BookmarkCard({ bookmark, onEdit, onDelete }: BookmarkCardProps) {
-    const [imageError, setImageError] = React.useState(false)
+    const [imageError, setImageError] = useState(false)
 
     return (
         <Card className="group relative gap-0 overflow-hidden py-0 transition-all hover:shadow-md">
