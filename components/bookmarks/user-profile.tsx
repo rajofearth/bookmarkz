@@ -8,6 +8,7 @@ import {
   Keyboard,
   LogOut,
   Moon,
+  Monitor,
   Settings,
   Sun,
 } from "lucide-react";
@@ -63,7 +64,12 @@ export function UserProfile({
 }: UserProfileProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const initials = user.name
     .split(" ")
@@ -73,7 +79,13 @@ export function UserProfile({
     .slice(0, 2);
 
   const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
+    if (theme === "light") {
+      setTheme("dark");
+    } else if (theme === "dark") {
+      setTheme("system");
+    } else {
+      setTheme("light");
+    }
   };
 
   // Close on click outside
@@ -167,11 +179,25 @@ export function UserProfile({
                 setIsOpen(false);
               }}
             />
-            <MenuItem
-              icon={theme === "dark" ? Sun : Moon}
-              label={theme === "dark" ? "Light mode" : "Dark mode"}
-              onClick={toggleTheme}
-            />
+            {mounted && (
+              <MenuItem
+                icon={
+                  theme === "system"
+                    ? Monitor
+                    : theme === "dark"
+                      ? Moon
+                      : Sun
+                }
+                label={
+                  theme === "system"
+                    ? "System theme"
+                    : theme === "dark"
+                      ? "Dark mode"
+                      : "Light mode"
+                }
+                onClick={toggleTheme}
+              />
+            )}
 
             <Separator className="my-1 bg-sidebar-border" />
 
