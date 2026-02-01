@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Camera } from "lucide-react";
+
+import { toast } from "sonner";
+import { ProfileImageUpload } from "./profile-image-upload";
 import { SectionHeader } from "./section-header";
 import { Switch } from "@/components/ui/switch";
 import { usePrivacyStore } from "@/hooks/use-privacy-store";
@@ -24,17 +26,15 @@ export function ProfileSettings() {
             />
 
             <div className="flex flex-col sm:flex-row gap-8 items-start">
-                <div className="relative group shrink-0">
-                    <Avatar className="size-32 border-4 border-sidebar-border/50">
-                        <AvatarImage src={user.avatar} />
-                        <AvatarFallback className="text-4xl bg-sidebar-accent text-sidebar-accent-foreground">
-                            JD
-                        </AvatarFallback>
-                    </Avatar>
-                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                        <Camera className="text-white size-8" />
-                    </div>
-                </div>
+                <ProfileImageUpload
+                    currentAvatar={user.avatar}
+                    onImageChange={(file) => {
+                        const url = URL.createObjectURL(file);
+                        setUser({ ...user, avatar: url });
+                        toast.success("Profile image updated");
+                    }}
+                    fallbackText="JD"
+                />
 
                 <div className="grid gap-5 flex-1 w-full max-w-lg">
                     <div className="grid gap-2">

@@ -20,6 +20,7 @@
     "hooks": "@/hooks"
   },
   "registries": {
-    "@pacekit": "https://ui.pacekit.dev/r/{name}.json"
+    "@pacekit": "https://ui.pacekit.dev/r/{name}.json",
+    "@diceui": "https://diceui.com/r/{name}.json"
   }
 }
