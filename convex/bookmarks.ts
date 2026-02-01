@@ -97,6 +97,7 @@ export const createBookmark = mutation({
         url: v.string(),
         folderId: v.optional(v.id("folders")),
         favicon: v.optional(v.string()),
+        ogImage: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const user = await authComponent.getAuthUser(ctx);
@@ -110,6 +111,7 @@ export const createBookmark = mutation({
             url: args.url,
             folderId: args.folderId,
             favicon: args.favicon,
+            ogImage: args.ogImage,
             createdAt: Date.now(),
         });
         return bookmarkId;
@@ -137,6 +139,7 @@ export const updateBookmark = mutation({
         url: v.optional(v.string()),
         folderId: v.optional(v.id("folders")),
         favicon: v.optional(v.string()),
+        ogImage: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const user = await authComponent.getAuthUser(ctx);
@@ -154,6 +157,7 @@ export const updateBookmark = mutation({
             url: args.url,
             folderId: args.folderId,
             favicon: args.favicon,
+            ogImage: args.ogImage,
         });
     },
 });

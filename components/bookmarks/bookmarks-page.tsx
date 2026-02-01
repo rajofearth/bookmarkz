@@ -5,52 +5,103 @@ import {
   ChevronRightIcon,
   FolderIcon,
   SearchIcon,
+  StarIcon,
 } from "lucide-react";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { initialFolders } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { AddBookmarkDialog } from "./add-bookmark-dialog";
 import { BookmarkCard } from "./bookmark-card";
 import { FoldersSidebar } from "./folders-sidebar";
 import type { Bookmark, Folder } from "./types";
+import type { Id } from "@/convex/_generated/dataModel";
 
 export function BookmarksPage() {
   const router = useRouter();
-  const [folders, setFolders] = useState<Folder[]>(initialFolders);
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [selectedFolder, setSelectedFolder] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Fetch bookmarks from API
-  useEffect(() => {
-    const fetchBookmarks = async () => {
-      try {
-        const response = await fetch("/api/bookmarks");
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setBookmarks((prev) => {
-            const existingIds = new Set(prev.map((b) => b.id));
-            const newBookmarks = data.filter((b: any) => !existingIds.has(b.id));
-            return [...prev, ...newBookmarks];
-          });
-        }
-      } catch (error) {
-        console.error("Failed to fetch bookmarks:", error);
-      }
-    };
+  // Convex hooks
+  const convexFolders = useQuery(api.bookmarks.getFolders);
+  const convexBookmarks = useQuery(api.bookmarks.getBookmarks);
 
-    fetchBookmarks();
-  }, []);
+  const createBookmarkMutation = useMutation(api.bookmarks.createBookmark);
+  const deleteBookmarkMutation = useMutation(api.bookmarks.deleteBookmark);
+  const createFolderMutation = useMutation(api.bookmarks.createFolder);
+  // const updateFolderMutation = useMutation(api.bookmarks.updateFolder);
+  const deleteFolderMutation = useMutation(api.bookmarks.deleteFolder);
+
+  // Transform Convex data to frontend types
+  const bookmarks: Bookmark[] = useMemo(() => {
+    if (!convexBookmarks) return [];
+    return convexBookmarks.map((b) => ({
+      id: b._id,
+      title: b.title,
+      url: b.url,
+      favicon: b.favicon,
+      ogImage: b.ogImage,
+      folderId: b.folderId ?? "all",
+      createdAt: new Date(b.createdAt),
+    }));
+  }, [convexBookmarks]);
+
+  const folders: Folder[] = useMemo(() => {
+    const staticFolders: Folder[] = [
+      { id: "all", name: "All Bookmarks", count: 0, icon: BookmarkIcon },
+      { id: "favorites", name: "Favorites", count: 0, icon: StarIcon },
+    ];
+
+    if (!convexFolders) return staticFolders;
+
+    const dynamicFolders = convexFolders.map((f) => ({
+      id: f._id,
+      name: f.name,
+      count: 0, // Will be calculated below
+    }));
+
+    const allFolders = [...staticFolders, ...dynamicFolders];
+
+    // Calculate counts
+    if (convexBookmarks) {
+      const counts: Record<string, number> = {};
+      convexBookmarks.forEach((b) => {
+        // Count for "All Bookmarks"
+        counts["all"] = (counts["all"] || 0) + 1;
+
+        // Count for specific folder
+        if (b.folderId) {
+          counts[b.folderId] = (counts[b.folderId] || 0) + 1;
+        }
+
+        // Logic for favorites - currently based on folderId="favorites" in the old code,
+        // but typically favorites is a flag. The old code used folderId="favorites".
+        // If we want to support that legacy way:
+        if (b.folderId === "favorites") {
+          counts["favorites"] = (counts["favorites"] || 0) + 1;
+        }
+      });
+
+      return allFolders.map(f => ({
+        ...f,
+        count: counts[f.id] || 0
+      }));
+    }
+
+    return allFolders;
+  }, [convexFolders, convexBookmarks]);
+
 
   // Filter bookmarks based on folder and search
   const filteredBookmarks = useMemo(() => {
     let result = bookmarks;
 
     if (selectedFolder !== "all") {
+      // For favorites, if we use folderId strategy
       if (selectedFolder === "favorites") {
         result = bookmarks.filter((b) => b.folderId === "favorites");
       } else {
@@ -71,60 +122,52 @@ export function BookmarksPage() {
   }, [bookmarks, selectedFolder, searchQuery]);
 
   const currentFolder = folders.find((f) => f.id === selectedFolder);
+
+  // Folders available for selection when adding a bookmark
+  // Exclude "all" and "favorites" from the dropdown list for now unless we want to allow moving to favorites directly
   const editableFolders = folders.filter(
     (f) => f.id !== "all" && f.id !== "favorites",
   );
 
   // Add new bookmark
-  const handleAddBookmark = (data: {
+  const handleAddBookmark = async (data: {
     url: string;
     title: string;
     favicon: string | null;
     ogImage: string | null;
     folderId: string;
   }) => {
-    const newBookmark: Bookmark = {
-      id: Date.now().toString(),
-      title: data.title,
-      url: data.url,
-      favicon: data.favicon || undefined,
-      ogImage: data.ogImage || undefined,
-      folderId: data.folderId || "all",
-      createdAt: new Date(),
-    };
-    setBookmarks((prev) => [newBookmark, ...prev]);
-
-    // Update folder count
-    if (data.folderId) {
-      setFolders((prev) =>
-        prev.map((f) =>
-          f.id === data.folderId ? { ...f, count: f.count + 1 } : f,
-        ),
-      );
+    try {
+      await createBookmarkMutation({
+        url: data.url,
+        title: data.title,
+        favicon: data.favicon ?? undefined,
+        ogImage: data.ogImage ?? undefined,
+        folderId: data.folderId && data.folderId !== "all" && data.folderId !== "favorites"
+          ? (data.folderId as Id<"folders">)
+          : undefined,
+      });
+    } catch (error) {
+      console.error("Failed to create bookmark:", error);
     }
   };
 
   // Add new folder
-  const handleAddFolder = (name: string) => {
-    const newFolder: Folder = {
-      id: Date.now().toString(),
-      name,
-      count: 0,
-    };
-    setFolders((prev) => [...prev, newFolder]);
+  const handleAddFolder = async (name: string) => {
+    try {
+      await createFolderMutation({ name });
+    } catch (error) {
+      console.error("Failed to create folder:", error);
+    }
   };
 
   // Delete bookmark
-  const handleDeleteBookmark = (bookmark: Bookmark) => {
-    setBookmarks((prev) => prev.filter((b) => b.id !== bookmark.id));
-    // Update folder count
-    setFolders((prev) =>
-      prev.map((f) =>
-        f.id === bookmark.folderId
-          ? { ...f, count: Math.max(0, f.count - 1) }
-          : f,
-      ),
-    );
+  const handleDeleteBookmark = async (bookmark: Bookmark) => {
+    try {
+      await deleteBookmarkMutation({ bookmarkId: bookmark.id as Id<"bookmarks"> });
+    } catch (error) {
+      console.error("Failed to delete bookmark:", error);
+    }
   };
 
   return (
