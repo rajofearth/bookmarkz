@@ -6,7 +6,7 @@ import {
   FolderIcon,
   SearchIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,27 @@ export function BookmarksPage() {
   const [selectedFolder, setSelectedFolder] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Fetch bookmarks from API
+  useEffect(() => {
+    const fetchBookmarks = async () => {
+      try {
+        const response = await fetch("/api/bookmarks");
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setBookmarks((prev) => {
+            const existingIds = new Set(prev.map((b) => b.id));
+            const newBookmarks = data.filter((b: any) => !existingIds.has(b.id));
+            return [...prev, ...newBookmarks];
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch bookmarks:", error);
+      }
+    };
+
+    fetchBookmarks();
+  }, []);
 
   // Filter bookmarks based on folder and search
   const filteredBookmarks = useMemo(() => {

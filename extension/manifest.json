@@ -1,0 +1,15 @@
+{
+    "manifest_version": 3,
+    "name": "Bookmark Exporter",
+    "version": "1.0",
+    "description": "Export your browser bookmarks to the Bookmarks App",
+    "permissions": [
+        "bookmarks"
+    ],
+    "host_permissions": [
+        "http://localhost:3000/*"
+    ],
+    "action": {
+        "default_popup": "popup.html"
+    }
+}

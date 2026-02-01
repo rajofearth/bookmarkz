@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      width: 300px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      text-align: center;
+    }
+    h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    button {
+      background-color: #0070f3;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      background-color: #0051a2;
+    }
+    #status {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #666;
+    }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h2>Bookmark Exporter</h2>
+  <p>Export your browser bookmarks to the local app.</p>
+  <button id="exportBtn">Export Bookmarks</button>
+  <div id="status"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
