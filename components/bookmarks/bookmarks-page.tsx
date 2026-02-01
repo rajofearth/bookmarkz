@@ -2,133 +2,108 @@
 
 import * as React from "react"
 import {
-    FolderIcon,
     BookmarkIcon,
-    PlusIcon,
     SearchIcon,
-    MoreHorizontalIcon,
-    ExternalLinkIcon,
-    PencilIcon,
-    TrashIcon,
     ChevronRightIcon,
-    FolderPlusIcon,
+    FolderIcon,
     StarIcon,
-    GlobeIcon,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import {
-    Card,
-    CardContent,
-} from "@/components/ui/card"
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import {
-    Item,
-    ItemActions,
-    ItemContent,
-    ItemGroup,
-    ItemMedia,
-    ItemTitle,
-    ItemDescription,
-} from "@/components/ui/item"
-import { Badge } from "@/components/ui/badge"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 
-// Types
-interface Folder {
-    id: string
-    name: string
-    count: number
-    icon?: React.ReactNode
-}
-
-interface Bookmark {
-    id: string
-    title: string
-    url: string
-    favicon?: string
-    folderId: string
-    createdAt: Date
-}
+import { BookmarkCard } from "./bookmark-card"
+import { FoldersSidebar } from "./folders-sidebar"
+import { AddBookmarkDialog } from "./add-bookmark-dialog"
+import type { Folder, Bookmark } from "./types"
 
 // Mock data
-const mockFolders: Folder[] = [
-    { id: "all", name: "All Bookmarks", count: 12, icon: <BookmarkIcon className="size-4" /> },
-    { id: "favorites", name: "Favorites", count: 5, icon: <StarIcon className="size-4" /> },
+const initialFolders: Folder[] = [
+    { id: "all", name: "All Bookmarks", count: 8, icon: <BookmarkIcon className="size-4" /> },
+    { id: "favorites", name: "Favorites", count: 2, icon: <StarIcon className="size-4" /> },
     { id: "dev", name: "Development", count: 4 },
-    { id: "design", name: "Design", count: 3 },
+    { id: "design", name: "Design", count: 2 },
     { id: "news", name: "News & Articles", count: 0 },
 ]
 
-const mockBookmarks: Bookmark[] = [
-    { id: "1", title: "GitHub", url: "https://github.com", favicon: "https://github.com/favicon.ico", folderId: "dev", createdAt: new Date() },
-    { id: "2", title: "Vercel", url: "https://vercel.com", favicon: "https://vercel.com/favicon.ico", folderId: "dev", createdAt: new Date() },
-    { id: "3", title: "Tailwind CSS", url: "https://tailwindcss.com", favicon: "https://tailwindcss.com/favicons/favicon.ico", folderId: "dev", createdAt: new Date() },
-    { id: "4", title: "Figma", url: "https://figma.com", favicon: "https://figma.com/favicon.ico", folderId: "design", createdAt: new Date() },
-    { id: "5", title: "Dribbble", url: "https://dribbble.com", favicon: "https://dribbble.com/favicon.ico", folderId: "design", createdAt: new Date() },
-    { id: "6", title: "Next.js Documentation", url: "https://nextjs.org/docs", favicon: "https://nextjs.org/favicon.ico", folderId: "dev", createdAt: new Date() },
-    { id: "7", title: "React", url: "https://react.dev", favicon: "https://react.dev/favicon.ico", folderId: "favorites", createdAt: new Date() },
-    { id: "8", title: "MDN Web Docs", url: "https://developer.mozilla.org", folderId: "favorites", createdAt: new Date() },
-]
 
-// Helper to get domain from URL
-function getDomain(url: string): string {
-    try {
-        return new URL(url).hostname.replace("www.", "")
-    } catch {
-        return url
-    }
-}
-
-// Main Bookmarks Page Component
 export function BookmarksPage() {
+    const [folders, setFolders] = React.useState(initialFolders)
+    const [bookmarks, setBookmarks] = React.useState<Bookmark[]>([])
     const [selectedFolder, setSelectedFolder] = React.useState("all")
     const [searchQuery, setSearchQuery] = React.useState("")
     const [sidebarOpen, setSidebarOpen] = React.useState(true)
 
+    // Filter bookmarks based on folder and search
     const filteredBookmarks = React.useMemo(() => {
-        let bookmarks = mockBookmarks
+        let result = bookmarks
 
         if (selectedFolder !== "all") {
             if (selectedFolder === "favorites") {
-                bookmarks = bookmarks.slice(0, 5) // Mock favorites
+                result = bookmarks.filter((b) => b.folderId === "favorites")
             } else {
-                bookmarks = bookmarks.filter((b) => b.folderId === selectedFolder)
+                result = bookmarks.filter((b) => b.folderId === selectedFolder)
             }
         }
 
         if (searchQuery) {
             const query = searchQuery.toLowerCase()
-            bookmarks = bookmarks.filter(
+            result = result.filter(
                 (b) =>
                     b.title.toLowerCase().includes(query) ||
                     b.url.toLowerCase().includes(query)
             )
         }
 
-        return bookmarks
-    }, [selectedFolder, searchQuery])
+        return result
+    }, [bookmarks, selectedFolder, searchQuery])
 
-    const currentFolder = mockFolders.find((f) => f.id === selectedFolder)
+    const currentFolder = folders.find((f) => f.id === selectedFolder)
+    const editableFolders = folders.filter((f) => f.id !== "all" && f.id !== "favorites")
+
+    // Add new bookmark
+    const handleAddBookmark = (data: { url: string; title: string; favicon: string | null; folderId: string }) => {
+        const newBookmark: Bookmark = {
+            id: Date.now().toString(),
+            title: data.title,
+            url: data.url,
+            favicon: data.favicon || undefined,
+            folderId: data.folderId || "all",
+            createdAt: new Date(),
+        }
+        setBookmarks((prev) => [newBookmark, ...prev])
+
+        // Update folder count
+        if (data.folderId) {
+            setFolders((prev) =>
+                prev.map((f) =>
+                    f.id === data.folderId ? { ...f, count: f.count + 1 } : f
+                )
+            )
+        }
+    }
+
+    // Add new folder
+    const handleAddFolder = (name: string) => {
+        const newFolder: Folder = {
+            id: Date.now().toString(),
+            name,
+            count: 0,
+        }
+        setFolders((prev) => [...prev, newFolder])
+    }
+
+    // Delete bookmark
+    const handleDeleteBookmark = (bookmark: Bookmark) => {
+        setBookmarks((prev) => prev.filter((b) => b.id !== bookmark.id))
+        // Update folder count
+        setFolders((prev) =>
+            prev.map((f) =>
+                f.id === bookmark.folderId ? { ...f, count: Math.max(0, f.count - 1) } : f
+            )
+        )
+    }
 
     return (
         <div className="bg-background text-foreground flex h-screen w-full">
@@ -139,45 +114,12 @@ export function BookmarksPage() {
                     sidebarOpen ? "w-64" : "w-0 overflow-hidden"
                 )}
             >
-                <div className="flex items-center justify-between p-4">
-                    <h2 className="text-sm font-medium">Folders</h2>
-                    <AddFolderDialog />
-                </div>
-                <nav className="flex-1 overflow-y-auto px-2">
-                    <ItemGroup className="gap-0.5">
-                        {mockFolders.map((folder) => (
-                            <Item
-                                key={folder.id}
-                                size="xs"
-                                asChild
-                                className={cn(
-                                    "cursor-pointer rounded-md px-2",
-                                    selectedFolder === folder.id && "bg-accent"
-                                )}
-                            >
-                                <button
-                                    type="button"
-                                    onClick={() => setSelectedFolder(folder.id)}
-                                    className="w-full"
-                                >
-                                    <ItemMedia className="text-muted-foreground">
-                                        {folder.icon || <FolderIcon className="size-4" />}
-                                    </ItemMedia>
-                                    <ItemContent className="min-w-0">
-                                        <ItemTitle className="truncate text-sm font-normal">
-                                            {folder.name}
-                                        </ItemTitle>
-                                    </ItemContent>
-                                    <ItemActions>
-                                        <Badge variant="secondary" className="text-xs tabular-nums">
-                                            {folder.count}
-                                        </Badge>
-                                    </ItemActions>
-                                </button>
-                            </Item>
-                        ))}
-                    </ItemGroup>
-                </nav>
+                <FoldersSidebar
+                    folders={folders}
+                    selectedFolder={selectedFolder}
+                    onSelectFolder={setSelectedFolder}
+                    onAddFolder={handleAddFolder}
+                />
             </aside>
 
             {/* Main Content */}
@@ -214,7 +156,7 @@ export function BookmarksPage() {
                         />
                     </div>
 
-                    <AddBookmarkDialog folders={mockFolders.filter((f) => f.id !== "all" && f.id !== "favorites")} />
+                    <AddBookmarkDialog folders={editableFolders} onSubmit={handleAddBookmark} />
                 </header>
 
                 {/* Bookmarks Grid */}
@@ -236,192 +178,16 @@ export function BookmarksPage() {
                     ) : (
                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {filteredBookmarks.map((bookmark) => (
-                                <BookmarkCard key={bookmark.id} bookmark={bookmark} />
+                                <BookmarkCard
+                                    key={bookmark.id}
+                                    bookmark={bookmark}
+                                    onDelete={handleDeleteBookmark}
+                                />
                             ))}
                         </div>
                     )}
                 </div>
             </main>
         </div>
-    )
-}
-
-// Bookmark Card Component
-function BookmarkCard({ bookmark }: { bookmark: Bookmark }) {
-    return (
-        <Card className="group relative gap-0 py-0 transition-all hover:shadow-md">
-            <CardContent className="p-3">
-                <div className="flex items-start gap-3">
-                    <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-md">
-                        {bookmark.favicon ? (
-                            <img
-                                src={bookmark.favicon}
-                                alt=""
-                                className="size-5 object-contain"
-                                onError={(e) => {
-                                    e.currentTarget.style.display = "none"
-                                    e.currentTarget.nextElementSibling?.classList.remove("hidden")
-                                }}
-                            />
-                        ) : null}
-                        <GlobeIcon className={cn("text-muted-foreground size-5", bookmark.favicon && "hidden")} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{bookmark.title}</p>
-                        <p className="text-muted-foreground truncate text-xs">
-                            {getDomain(bookmark.url)}
-                        </p>
-                    </div>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="icon-xs"
-                                className="opacity-0 transition-opacity group-hover:opacity-100"
-                            >
-                                <MoreHorizontalIcon className="size-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                                <a href={bookmark.url} target="_blank" rel="noopener noreferrer">
-                                    <ExternalLinkIcon className="size-4" />
-                                    Open
-                                </a>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                                <PencilIcon className="size-4" />
-                                Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive">
-                                <TrashIcon className="size-4" />
-                                Delete
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            </CardContent>
-        </Card>
-    )
-}
-
-// Add Bookmark Dialog
-function AddBookmarkDialog({ folders }: { folders: Folder[] }) {
-    const [open, setOpen] = React.useState(false)
-
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button size="sm">
-                    <PlusIcon className="size-4" />
-                    Add Bookmark
-                </Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Add Bookmark</DialogTitle>
-                    <DialogDescription>
-                        Save a link to your bookmarks collection.
-                    </DialogDescription>
-                </DialogHeader>
-                <form
-                    id="add-bookmark-form"
-                    onSubmit={(e) => {
-                        e.preventDefault()
-                        setOpen(false)
-                    }}
-                >
-                    <FieldGroup>
-                        <Field>
-                            <FieldLabel htmlFor="bookmark-url">URL</FieldLabel>
-                            <Input
-                                id="bookmark-url"
-                                type="url"
-                                placeholder="https://example.com"
-                                required
-                            />
-                        </Field>
-                        <Field>
-                            <FieldLabel htmlFor="bookmark-title">Title</FieldLabel>
-                            <Input
-                                id="bookmark-title"
-                                type="text"
-                                placeholder="My Bookmark"
-                            />
-                        </Field>
-                        <Field>
-                            <FieldLabel htmlFor="bookmark-folder">Folder</FieldLabel>
-                            <NativeSelect id="bookmark-folder">
-                                <NativeSelectOption value="">Select a folder</NativeSelectOption>
-                                {folders.map((folder) => (
-                                    <NativeSelectOption key={folder.id} value={folder.id}>
-                                        {folder.name}
-                                    </NativeSelectOption>
-                                ))}
-                            </NativeSelect>
-                        </Field>
-                    </FieldGroup>
-                </form>
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button variant="outline">Cancel</Button>
-                    </DialogClose>
-                    <Button type="submit" form="add-bookmark-form">
-                        Save Bookmark
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    )
-}
-
-// Add Folder Dialog
-function AddFolderDialog() {
-    const [open, setOpen] = React.useState(false)
-
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button variant="ghost" size="icon-xs">
-                    <FolderPlusIcon className="size-4" />
-                </Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Create Folder</DialogTitle>
-                    <DialogDescription>
-                        Organize your bookmarks into folders.
-                    </DialogDescription>
-                </DialogHeader>
-                <form
-                    id="add-folder-form"
-                    onSubmit={(e) => {
-                        e.preventDefault()
-                        setOpen(false)
-                    }}
-                >
-                    <FieldGroup>
-                        <Field>
-                            <FieldLabel htmlFor="folder-name">Folder Name</FieldLabel>
-                            <Input
-                                id="folder-name"
-                                type="text"
-                                placeholder="My Folder"
-                                required
-                            />
-                        </Field>
-                    </FieldGroup>
-                </form>
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button variant="outline">Cancel</Button>
-                    </DialogClose>
-                    <Button type="submit" form="add-folder-form">
-                        Create Folder
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
     )
 }
