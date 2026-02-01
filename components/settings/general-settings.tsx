@@ -1,11 +1,11 @@
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { useSettings } from "@/components/settings-provider";
+import { useGeneralStore } from "@/hooks/use-general-store";
 import { SectionHeader } from "./section-header";
 
 export function GeneralSettings() {
-    const { settings, updateSettings } = useSettings();
+    const { openInNewTab, showFavicons, updateSettings } = useGeneralStore();
 
     return (
         <>
@@ -23,7 +23,7 @@ export function GeneralSettings() {
                         </p>
                     </div>
                     <Switch
-                        checked={settings.openInNewTab}
+                        checked={openInNewTab}
                         onCheckedChange={(checked) =>
                             updateSettings({ openInNewTab: checked })
                         }
@@ -38,7 +38,7 @@ export function GeneralSettings() {
                         </p>
                     </div>
                     <Switch
-                        checked={settings.showFavicons}
+                        checked={showFavicons}
                         onCheckedChange={(checked) =>
                             updateSettings({ showFavicons: checked })
                         }

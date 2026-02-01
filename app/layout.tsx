@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { SettingsProvider } from "@/components/settings-provider";
+
 
 const fontSans = JetBrains_Mono({
   subsets: ["latin"],
@@ -34,9 +34,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SettingsProvider>
-            {children}
-          </SettingsProvider>
+          {children}
         </ThemeProvider>
       </body>
     </html>
