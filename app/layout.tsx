@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ConvexClientProvider } from "@/app/ConvexClientProvider";
 
 
 const fontSans = JetBrains_Mono({
@@ -28,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={fontSans.variable} suppressHydrationWarning>
       <body className="antialiased">
+        <ConvexClientProvider>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -36,6 +38,7 @@ export default function RootLayout({
         >
           {children}
         </ThemeProvider>
+        </ConvexClientProvider>
       </body>
     </html>
   );
