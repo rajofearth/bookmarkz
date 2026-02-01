@@ -63,12 +63,13 @@ export function BookmarksPage() {
     const editableFolders = folders.filter((f) => f.id !== "all" && f.id !== "favorites")
 
     // Add new bookmark
-    const handleAddBookmark = (data: { url: string; title: string; favicon: string | null; folderId: string }) => {
+    const handleAddBookmark = (data: { url: string; title: string; favicon: string | null; ogImage: string | null; folderId: string }) => {
         const newBookmark: Bookmark = {
             id: Date.now().toString(),
             title: data.title,
             url: data.url,
             favicon: data.favicon || undefined,
+            ogImage: data.ogImage || undefined,
             folderId: data.folderId || "all",
             createdAt: new Date(),
         }

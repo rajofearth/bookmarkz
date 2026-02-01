@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { GlobeIcon, MoreHorizontalIcon, ExternalLinkIcon, PencilIcon, TrashIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -29,30 +30,53 @@ interface BookmarkCardProps {
 }
 
 export function BookmarkCard({ bookmark, onEdit, onDelete }: BookmarkCardProps) {
+    const [imageError, setImageError] = React.useState(false)
+
     return (
-        <Card className="group relative gap-0 py-0 transition-all hover:shadow-md">
+        <Card className="group relative gap-0 overflow-hidden py-0 transition-all hover:shadow-md">
+            {/* OG Image Preview */}
+            {bookmark.ogImage && !imageError ? (
+                <div className="relative aspect-[1.91/1] w-full overflow-hidden bg-muted">
+                    <img
+                        src={bookmark.ogImage}
+                        alt=""
+                        className="size-full object-cover transition-transform group-hover:scale-105"
+                        onError={() => setImageError(true)}
+                    />
+                </div>
+            ) : (
+                <div className="bg-muted/50 flex aspect-[1.91/1] w-full items-center justify-center">
+                    <GlobeIcon className="text-muted-foreground/50 size-8" />
+                </div>
+            )}
+
             <CardContent className="p-3">
                 <div className="flex items-start gap-3">
-                    <div className="bg-muted flex size-10 shrink-0 items-center justify-center rounded-md">
+                    {/* Favicon */}
+                    <div className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-md">
                         {bookmark.favicon ? (
                             <img
                                 src={bookmark.favicon}
                                 alt=""
-                                className="size-5 object-contain"
+                                className="size-4 object-contain"
                                 onError={(e) => {
                                     e.currentTarget.style.display = "none"
                                     e.currentTarget.nextElementSibling?.classList.remove("hidden")
                                 }}
                             />
                         ) : null}
-                        <GlobeIcon className={cn("text-muted-foreground size-5", bookmark.favicon && "hidden")} />
+                        <GlobeIcon className={cn("text-muted-foreground size-4", bookmark.favicon && "hidden")} />
                     </div>
+
+                    {/* Title & URL */}
                     <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{bookmark.title}</p>
                         <p className="text-muted-foreground truncate text-xs">
                             {getDomain(bookmark.url)}
                         </p>
                     </div>
+
+                    {/* Actions */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button

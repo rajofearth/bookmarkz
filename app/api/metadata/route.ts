@@ -78,6 +78,29 @@ export async function GET(request: NextRequest) {
             favicon = `${parsedUrl.origin}/${favicon}`
         }
 
+        // Extract og:image (social preview)
+        let ogImage: string | null = null
+        const ogImagePatterns = [
+            /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i,
+            /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i,
+            /<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i,
+        ]
+
+        for (const pattern of ogImagePatterns) {
+            const match = html.match(pattern)
+            if (match) {
+                ogImage = match[1]
+                break
+            }
+        }
+
+        // Make og:image URL absolute if needed
+        if (ogImage && ogImage.startsWith("/")) {
+            ogImage = `${parsedUrl.origin}${ogImage}`
+        } else if (ogImage && !ogImage.startsWith("http")) {
+            ogImage = `${parsedUrl.origin}/${ogImage}`
+        }
+
         // Extract description (optional)
         let description = ""
         const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i)
@@ -88,6 +111,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
             title: title || parsedUrl.hostname,
             favicon,
+            ogImage,
             description,
         })
     } catch (error) {

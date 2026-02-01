@@ -21,7 +21,7 @@ import type { Folder, UrlMetadata } from "./types"
 
 interface AddBookmarkDialogProps {
     folders: Folder[]
-    onSubmit?: (data: { url: string; title: string; favicon: string | null; folderId: string }) => void
+    onSubmit?: (data: { url: string; title: string; favicon: string | null; ogImage: string | null; folderId: string }) => void
 }
 
 export function AddBookmarkDialog({ folders, onSubmit }: AddBookmarkDialogProps) {
@@ -29,6 +29,7 @@ export function AddBookmarkDialog({ folders, onSubmit }: AddBookmarkDialogProps)
     const [url, setUrl] = React.useState("")
     const [title, setTitle] = React.useState("")
     const [favicon, setFavicon] = React.useState<string | null>(null)
+    const [ogImage, setOgImage] = React.useState<string | null>(null)
     const [folderId, setFolderId] = React.useState("")
     const [loading, setLoading] = React.useState(false)
     const debounceRef = React.useRef<NodeJS.Timeout | null>(null)
@@ -62,6 +63,9 @@ export function AddBookmarkDialog({ folders, onSubmit }: AddBookmarkDialogProps)
                     if (data.favicon) {
                         setFavicon(data.favicon)
                     }
+                    if (data.ogImage) {
+                        setOgImage(data.ogImage)
+                    }
                 }
             } catch (error) {
                 console.error("Failed to fetch metadata:", error)
@@ -78,12 +82,14 @@ export function AddBookmarkDialog({ folders, onSubmit }: AddBookmarkDialogProps)
                 url: url.trim(),
                 title: title.trim() || url.trim(),
                 favicon,
+                ogImage,
                 folderId,
             })
             // Reset form
             setUrl("")
             setTitle("")
             setFavicon(null)
+            setOgImage(null)
             setFolderId("")
             setOpen(false)
         }
@@ -96,6 +102,7 @@ export function AddBookmarkDialog({ folders, onSubmit }: AddBookmarkDialogProps)
             setUrl("")
             setTitle("")
             setFavicon(null)
+            setOgImage(null)
             setFolderId("")
             setLoading(false)
         }

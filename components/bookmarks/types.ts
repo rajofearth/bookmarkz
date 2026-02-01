@@ -12,6 +12,7 @@ export interface Bookmark {
     title: string
     url: string
     favicon?: string
+    ogImage?: string
     folderId: string
     createdAt: Date
 }
@@ -19,5 +20,6 @@ export interface Bookmark {
 export interface UrlMetadata {
     title: string
     favicon: string | null
+    ogImage: string | null
     description?: string
 }
