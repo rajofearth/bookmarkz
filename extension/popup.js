@@ -112,11 +112,6 @@ async function handleExport() {
         statusEl.className = 'success';
         importProgressEl.textContent = 'Check the website to see metadata enrichment in progress.';
 
-        // Optional: Open website to show progress
-        setTimeout(() => {
-            chrome.tabs.create({ url: `${API_BASE_URL}/bookmarks` });
-        }, 1500);
-
         exportBtn.disabled = false;
 
     } catch (err) {

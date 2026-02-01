@@ -21,10 +21,11 @@ export default defineSchema({
         ogImage: v.optional(v.string()),
         folderId: v.optional(v.id("folders")),
         createdAt: v.number(),
-        metadataStatus: v.optional(v.union(v.literal("pending"), v.literal("completed"), v.literal("failed"))),
+        metadataStatus: v.optional(v.union(v.literal("pending"), v.literal("fetching"), v.literal("completed"), v.literal("failed"))),
     })
         .index("by_user_id", ["userId"])
-        .index("by_folder_id", ["folderId"]),
+        .index("by_folder_id", ["folderId"])
+        .index("by_user_url", ["userId", "url"]),
 
     folders: defineTable({
         userId: v.string(), // Owner (Auth User ID)

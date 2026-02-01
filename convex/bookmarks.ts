@@ -105,6 +105,18 @@ export const createBookmark = mutation({
             throw new Error("Not authenticated");
         }
 
+        // Check for duplicate
+        const existing = await ctx.db
+            .query("bookmarks")
+            .withIndex("by_user_url", (q) => q.eq("userId", user._id).eq("url", args.url))
+            .first();
+
+        if (existing) {
+            // Return existing ID if duplicate found (idempotent behavior)
+            // or throw error? For import logic, idempotent is better.
+            return existing._id;
+        }
+
         const bookmarkId = await ctx.db.insert("bookmarks", {
             userId: user._id,
             title: args.title,
@@ -137,6 +149,17 @@ export const batchCreateBookmarks = mutation({
 
         const bookmarkIds = [];
         for (const bookmark of args.bookmarks) {
+            // Check for duplicate
+            const existing = await ctx.db
+                .query("bookmarks")
+                .withIndex("by_user_url", (q) => q.eq("userId", user._id).eq("url", bookmark.url))
+                .first();
+
+            if (existing) {
+                // Skip duplicates
+                continue;
+            }
+
             const bookmarkId = await ctx.db.insert("bookmarks", {
                 userId: user._id,
                 title: bookmark.title,
