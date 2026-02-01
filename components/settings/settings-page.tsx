@@ -23,12 +23,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/components/settings-provider";
+import { motion, AnimatePresence } from "motion/react";
 
 export function SettingsPage() {
     const router = useRouter();
     const { theme, setTheme } = useTheme();
     const { settings, updateSettings } = useSettings();
 
+    const [activeTab, setActiveTab] = useState("profile");
     // Mock User State
     const [user, setUser] = useState({
         name: "John Doe",
@@ -58,10 +60,10 @@ export function SettingsPage() {
                             Settings
                         </div>
                         <TabsList className="flex flex-col h-auto w-full bg-transparent p-0 gap-1">
-                            <SettingsTabTrigger value="profile" icon={User} label="Profile" />
-                            <SettingsTabTrigger value="appearance" icon={Palette} label="Appearance" />
-                            <SettingsTabTrigger value="general" icon={SettingsIcon} label="General" />
-                            <SettingsTabTrigger value="notifications" icon={Bell} label="Notifications" />
+                            <SettingsTabTrigger value="profile" icon={User} label="Profile" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
+                            <SettingsTabTrigger value="appearance" icon={Palette} label="Appearance" active={activeTab === 'appearance'} onClick={() => setActiveTab('appearance')} />
+                            <SettingsTabTrigger value="general" icon={SettingsIcon} label="General" active={activeTab === 'general'} onClick={() => setActiveTab('general')} />
+                            <SettingsTabTrigger value="notifications" icon={Bell} label="Notifications" active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} />
                         </TabsList>
                     </div>
 
@@ -82,136 +84,146 @@ export function SettingsPage() {
                 {/* Main Content */}
                 <main className="flex-1 overflow-y-auto bg-background">
                     <div className="max-w-4xl mx-auto p-8 lg:p-12">
-                        <TabsContent value="profile" className="mt-0 space-y-8 outline-none animate-in fade-in-50 duration-300 slide-in-from-bottom-2">
-                            <SectionHeader title="Profile" description="Manage your public profile and personal details." />
+                        <AnimatePresence mode="wait">
+                            {activeTab === 'profile' && (
+                                <TabContentWrapper key="profile" value="profile">
+                                    <SectionHeader title="Profile" description="Manage your public profile and personal details." />
 
-                            <div className="flex flex-col sm:flex-row gap-8 items-start">
-                                <div className="relative group shrink-0">
-                                    <Avatar className="size-32 border-4 border-sidebar-border/50">
-                                        <AvatarImage src={user.avatar} />
-                                        <AvatarFallback className="text-4xl bg-sidebar-accent text-sidebar-accent-foreground">JD</AvatarFallback>
-                                    </Avatar>
-                                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                                        <Camera className="text-white size-8" />
+                                    <div className="flex flex-col sm:flex-row gap-8 items-start">
+                                        <div className="relative group shrink-0">
+                                            <Avatar className="size-32 border-4 border-sidebar-border/50">
+                                                <AvatarImage src={user.avatar} />
+                                                <AvatarFallback className="text-4xl bg-sidebar-accent text-sidebar-accent-foreground">JD</AvatarFallback>
+                                            </Avatar>
+                                            <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                                <Camera className="text-white size-8" />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid gap-5 flex-1 w-full max-w-lg">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="name">Display Name</Label>
+                                                <Input
+                                                    id="name"
+                                                    value={user.name}
+                                                    onChange={(e) => setUser({ ...user, name: e.target.value })}
+                                                    className="max-w-md"
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="email">Email</Label>
+                                                <Input
+                                                    id="email"
+                                                    type="email"
+                                                    value={user.email}
+                                                    onChange={(e) => setUser({ ...user, email: e.target.value })}
+                                                    className="max-w-md"
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="bio">Bio</Label>
+                                                <Input
+                                                    id="bio"
+                                                    value={user.bio}
+                                                    onChange={(e) => setUser({ ...user, bio: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="pt-2">
+                                                <Button>Save Changes</Button>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+                                </TabContentWrapper>
+                            )}
 
-                                <div className="grid gap-5 flex-1 w-full max-w-lg">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="name">Display Name</Label>
-                                        <Input
-                                            id="name"
-                                            value={user.name}
-                                            onChange={(e) => setUser({ ...user, name: e.target.value })}
-                                            className="max-w-md"
-                                        />
+                            {activeTab === 'appearance' && (
+                                <TabContentWrapper key="appearance" value="appearance">
+                                    <SectionHeader title="Appearance" description="Customize the look and feel of the application." />
+
+                                    <div className="space-y-4">
+                                        <Label className="text-base">Theme</Label>
+                                        <div className="grid grid-cols-3 gap-4 max-w-lg">
+                                            <ThemeCard
+                                                theme="light"
+                                                active={theme === 'light'}
+                                                onClick={() => setTheme('light')}
+                                                icon={Sun}
+                                                label="Light"
+                                            />
+                                            <ThemeCard
+                                                theme="dark"
+                                                active={theme === 'dark'}
+                                                onClick={() => setTheme('dark')}
+                                                icon={Moon}
+                                                label="Dark"
+                                            />
+                                            <ThemeCard
+                                                theme="system"
+                                                active={theme === 'system'}
+                                                onClick={() => setTheme('system')}
+                                                icon={Monitor}
+                                                label="System"
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="email">Email</Label>
-                                        <Input
-                                            id="email"
-                                            type="email"
-                                            value={user.email}
-                                            onChange={(e) => setUser({ ...user, email: e.target.value })}
-                                            className="max-w-md"
-                                        />
+
+                                    <Separator />
+
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between max-w-2xl">
+                                            <div className="space-y-0.5">
+                                                <Label className="text-base">Reduced Motion</Label>
+                                                <p className="text-sm text-muted-foreground">Reduce the amount of animations in the interface.</p>
+                                            </div>
+                                            <Switch />
+                                        </div>
                                     </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="bio">Bio</Label>
-                                        <Input
-                                            id="bio"
-                                            value={user.bio}
-                                            onChange={(e) => setUser({ ...user, bio: e.target.value })}
-                                        />
+                                </TabContentWrapper>
+                            )}
+
+                            {activeTab === 'general' && (
+                                <TabContentWrapper key="general" value="general">
+                                    <SectionHeader title="General" description="Configure general application settings." />
+
+                                    <div className="space-y-6 max-w-2xl">
+                                        <div className="flex items-center justify-between">
+                                            <div className="space-y-0.5">
+                                                <Label className="text-base">Open links in new tab</Label>
+                                                <p className="text-sm text-muted-foreground">Always open bookmarks in a new browser tab.</p>
+                                            </div>
+                                            <Switch
+                                                checked={settings.openInNewTab}
+                                                onCheckedChange={(checked) => updateSettings({ openInNewTab: checked })}
+                                            />
+                                        </div>
+                                        <Separator />
+                                        <div className="flex items-center justify-between">
+                                            <div className="space-y-0.5">
+                                                <Label className="text-base">Show favicons</Label>
+                                                <p className="text-sm text-muted-foreground">Display website icons next to bookmark titles.</p>
+                                            </div>
+                                            <Switch
+                                                checked={settings.showFavicons}
+                                                onCheckedChange={(checked) => updateSettings({ showFavicons: checked })}
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="pt-2">
-                                        <Button>Save Changes</Button>
+                                </TabContentWrapper>
+                            )}
+
+                            {activeTab === 'notifications' && (
+                                <TabContentWrapper key="notifications" value="notifications">
+                                    <SectionHeader title="Notifications" description="Manage how you receive notifications." />
+                                    <div className="p-12 text-center border-2 border-dashed rounded-lg bg-muted/20">
+                                        <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                                            <Bell className="size-6 text-muted-foreground" />
+                                        </div>
+                                        <h3 className="text-lg font-medium">No notifications yet</h3>
+                                        <p className="text-muted-foreground mt-2 max-w-sm mx-auto">We'll let you know when something important happens with your bookmarks or account.</p>
                                     </div>
-                                </div>
-                            </div>
-                        </TabsContent>
-
-                        <TabsContent value="appearance" className="mt-0 space-y-8 outline-none animate-in fade-in-50 duration-300 slide-in-from-bottom-2">
-                            <SectionHeader title="Appearance" description="Customize the look and feel of the application." />
-
-                            <div className="space-y-4">
-                                <Label className="text-base">Theme</Label>
-                                <div className="grid grid-cols-3 gap-4 max-w-lg">
-                                    <ThemeCard
-                                        theme="light"
-                                        active={theme === 'light'}
-                                        onClick={() => setTheme('light')}
-                                        icon={Sun}
-                                        label="Light"
-                                    />
-                                    <ThemeCard
-                                        theme="dark"
-                                        active={theme === 'dark'}
-                                        onClick={() => setTheme('dark')}
-                                        icon={Moon}
-                                        label="Dark"
-                                    />
-                                    <ThemeCard
-                                        theme="system"
-                                        active={theme === 'system'}
-                                        onClick={() => setTheme('system')}
-                                        icon={Monitor}
-                                        label="System"
-                                    />
-                                </div>
-                            </div>
-
-                            <Separator />
-
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between max-w-2xl">
-                                    <div className="space-y-0.5">
-                                        <Label className="text-base">Reduced Motion</Label>
-                                        <p className="text-sm text-muted-foreground">Reduce the amount of animations in the interface.</p>
-                                    </div>
-                                    <Switch />
-                                </div>
-                            </div>
-                        </TabsContent>
-
-                        <TabsContent value="general" className="mt-0 space-y-8 outline-none animate-in fade-in-50 duration-300 slide-in-from-bottom-2">
-                            <SectionHeader title="General" description="Configure general application settings." />
-
-                            <div className="space-y-6 max-w-2xl">
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                        <Label className="text-base">Open links in new tab</Label>
-                                        <p className="text-sm text-muted-foreground">Always open bookmarks in a new browser tab.</p>
-                                    </div>
-                                    <Switch
-                                        checked={settings.openInNewTab}
-                                        onCheckedChange={(checked) => updateSettings({ openInNewTab: checked })}
-                                    />
-                                </div>
-                                <Separator />
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                        <Label className="text-base">Show favicons</Label>
-                                        <p className="text-sm text-muted-foreground">Display website icons next to bookmark titles.</p>
-                                    </div>
-                                    <Switch
-                                        checked={settings.showFavicons}
-                                        onCheckedChange={(checked) => updateSettings({ showFavicons: checked })}
-                                    />
-                                </div>
-                            </div>
-                        </TabsContent>
-
-                        <TabsContent value="notifications" className="mt-0 space-y-8 outline-none animate-in fade-in-50 duration-300 slide-in-from-bottom-2">
-                            <SectionHeader title="Notifications" description="Manage how you receive notifications." />
-                            <div className="p-12 text-center border-2 border-dashed rounded-lg bg-muted/20">
-                                <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                                    <Bell className="size-6 text-muted-foreground" />
-                                </div>
-                                <h3 className="text-lg font-medium">No notifications yet</h3>
-                                <p className="text-muted-foreground mt-2 max-w-sm mx-auto">We'll let you know when something important happens with your bookmarks or account.</p>
-                            </div>
-                        </TabsContent>
+                                </TabContentWrapper>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </main>
             </Tabs>
@@ -229,15 +241,33 @@ function SectionHeader({ title, description }: { title: string, description: str
     );
 }
 
-function SettingsTabTrigger({ value, icon: Icon, label }: { value: string, icon: any, label: string }) {
+function SettingsTabTrigger({ value, icon: Icon, label, active, onClick }: { value: string, icon: any, label: string, active?: boolean, onClick?: () => void }) {
     return (
-        <TabsTrigger
-            value={value}
-            className="w-full justify-start gap-3 px-3 py-2 data-[state=active]:bg-sidebar-accent data-[state=active]:text-sidebar-accent-foreground text-sidebar-foreground/70 dark:text-sidebar-foreground/60 h-9 rounded-md transition-all font-medium"
+        <Button
+            variant="ghost"
+            onClick={onClick}
+            className={cn(
+                "w-full justify-start gap-3 px-3 py-2 h-9 rounded-md transition-all font-medium",
+                active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/70 dark:text-sidebar-foreground/60 hover:bg-sidebar-accent/50"
+            )}
         >
             <Icon className="size-4" />
             {label}
-        </TabsTrigger>
+        </Button>
+    );
+}
+
+function TabContentWrapper({ children, value }: { children: React.ReactNode, value: string }) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.98 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="space-y-8 outline-none"
+        >
+            {children}
+        </motion.div>
     );
 }
 
