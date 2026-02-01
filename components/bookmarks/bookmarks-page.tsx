@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { AddBookmarkDialog } from "./add-bookmark-dialog";
+import { EditBookmarkDialog } from "./edit-bookmark-dialog";
 import { BookmarkCard } from "./bookmark-card";
 import { FoldersSidebar } from "./folders-sidebar";
 import type { Bookmark, Folder } from "./types";
@@ -25,12 +26,14 @@ export function BookmarksPage() {
   const [selectedFolder, setSelectedFolder] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
 
   // Convex hooks
   const convexFolders = useQuery(api.bookmarks.getFolders);
   const convexBookmarks = useQuery(api.bookmarks.getBookmarks);
 
   const createBookmarkMutation = useMutation(api.bookmarks.createBookmark);
+  const updateBookmarkMutation = useMutation(api.bookmarks.updateBookmark);
   const deleteBookmarkMutation = useMutation(api.bookmarks.deleteBookmark);
   const createFolderMutation = useMutation(api.bookmarks.createFolder);
   // const updateFolderMutation = useMutation(api.bookmarks.updateFolder);
@@ -161,6 +164,33 @@ export function BookmarksPage() {
     }
   };
 
+  // Edit bookmark
+  const handleEditBookmark = async (
+    bookmarkId: string,
+    data: {
+      url: string;
+      title: string;
+      favicon: string | null;
+      ogImage: string | null;
+      folderId: string;
+    },
+  ) => {
+    try {
+      await updateBookmarkMutation({
+        bookmarkId: bookmarkId as Id<"bookmarks">,
+        url: data.url,
+        title: data.title,
+        favicon: data.favicon ?? undefined,
+        ogImage: data.ogImage ?? undefined,
+        folderId: data.folderId && data.folderId !== "all" && data.folderId !== "favorites"
+          ? (data.folderId as Id<"folders">)
+          : undefined,
+      });
+    } catch (error) {
+      console.error("Failed to update bookmark:", error);
+    }
+  };
+
   // Delete bookmark
   const handleDeleteBookmark = async (bookmark: Bookmark) => {
     try {
@@ -254,6 +284,7 @@ export function BookmarksPage() {
                 <BookmarkCard
                   key={bookmark.id}
                   bookmark={bookmark}
+                  onEdit={setEditingBookmark}
                   onDelete={handleDeleteBookmark}
                 />
               ))}
@@ -261,6 +292,15 @@ export function BookmarksPage() {
           )}
         </div>
       </main>
+
+      {/* Edit Bookmark Dialog */}
+      <EditBookmarkDialog
+        bookmark={editingBookmark}
+        folders={editableFolders}
+        open={editingBookmark !== null}
+        onOpenChange={(open) => !open && setEditingBookmark(null)}
+        onSubmit={handleEditBookmark}
+      />
     </div>
   );
 }
