@@ -1,20 +1,26 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import {
-  ChevronsUpDownIcon,
-  LogOutIcon,
-  SettingsIcon,
-  UserIcon,
+  Bookmark,
+  ChevronUp,
+  FolderOpen,
+  Keyboard,
+  LogOut,
+  Moon,
+  Settings,
+  Sun,
 } from "lucide-react";
+import { useTheme } from "next-themes";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 interface User {
@@ -23,9 +29,17 @@ interface User {
   avatar?: string;
 }
 
+interface UserStats {
+  bookmarks: number;
+  folders: number;
+}
+
 interface UserProfileProps {
   user?: User;
-  className?: string;
+  stats?: UserStats;
+  onSettings?: () => void;
+  onKeyboardShortcuts?: () => void;
+  onSignOut?: () => void;
 }
 
 // Default mock user - replace with actual auth data
@@ -35,10 +49,22 @@ const defaultUser: User = {
   avatar: undefined,
 };
 
+const defaultStats: UserStats = {
+  bookmarks: 128,
+  folders: 12,
+};
+
 export function UserProfile({
   user = defaultUser,
-  className,
+  stats = defaultStats,
+  onSettings,
+  onKeyboardShortcuts,
+  onSignOut,
 }: UserProfileProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { theme, setTheme } = useTheme();
+
   const initials = user.name
     .split(" ")
     .map((n) => n[0])
@@ -46,59 +72,217 @@ export function UserProfile({
     .toUpperCase()
     .slice(0, 2);
 
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
+
+  // Close on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  // Close on escape key
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("keydown", handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isOpen]);
+
   return (
-    <div className={cn("border-t border-border p-2", className)}>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Avatar className="size-8 shrink-0">
-              <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 overflow-hidden">
-              <p className="truncate text-sm font-medium leading-tight">
-                {user.name}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {user.email}
-              </p>
-            </div>
-            <ChevronsUpDownIcon className="size-4 shrink-0 text-muted-foreground" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="start"
-          side="top"
-          className="w-56"
-          sideOffset={8}
-        >
-          <DropdownMenuLabel className="font-normal">
-            <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium">{user.name}</p>
-              <p className="text-xs text-muted-foreground">{user.email}</p>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <UserIcon className="mr-2 size-4" />
-            Profile
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <SettingsIcon className="mr-2 size-4" />
-            Settings
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem className="text-destructive focus:text-destructive">
-            <LogOutIcon className="mr-2 size-4" />
-            Sign out
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <div ref={containerRef} className="relative border-t border-sidebar-border p-2">
+      {/* Dropdown Menu - appears above the button */}
+      <div
+        className={cn(
+          "absolute bottom-full left-2 right-2 mb-2 origin-bottom",
+          "rounded-lg border border-sidebar-border bg-sidebar shadow-lg",
+          "transition-all duration-150 ease-out",
+          isOpen
+            ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
+            : "pointer-events-none translate-y-1 scale-[0.98] opacity-0"
+        )}
+      >
+        {/* User Info Header */}
+        <div className="flex items-center gap-3 p-3">
+          <Avatar className="size-10">
+            <AvatarImage src={user.avatar} alt={user.name} />
+            <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-sm font-medium">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="truncate text-sm font-medium text-sidebar-foreground">{user.name}</p>
+            <p className="truncate text-xs text-sidebar-foreground/60">{user.email}</p>
+          </div>
+        </div>
+
+        <Separator className="bg-sidebar-border" />
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 gap-1 p-2">
+          <StatItem icon={Bookmark} value={stats.bookmarks} label="Bookmarks" />
+          <StatItem icon={FolderOpen} value={stats.folders} label="Folders" />
+        </div>
+
+        <Separator className="bg-sidebar-border" />
+
+        {/* Quick Actions */}
+        <div className="p-1">
+          <TooltipProvider delayDuration={300}>
+            <MenuItem
+              icon={Settings}
+              label="Settings"
+              onClick={() => {
+                onSettings?.();
+                setIsOpen(false);
+              }}
+            />
+            <MenuItem
+              icon={Keyboard}
+              label="Keyboard shortcuts"
+              shortcut="?"
+              onClick={() => {
+                onKeyboardShortcuts?.();
+                setIsOpen(false);
+              }}
+            />
+            <MenuItem
+              icon={theme === "dark" ? Sun : Moon}
+              label={theme === "dark" ? "Light mode" : "Dark mode"}
+              onClick={toggleTheme}
+            />
+
+            <Separator className="my-1 bg-sidebar-border" />
+
+            <MenuItem
+              icon={LogOut}
+              label="Sign out"
+              variant="destructive"
+              onClick={() => {
+                onSignOut?.();
+                setIsOpen(false);
+              }}
+            />
+          </TooltipProvider>
+        </div>
+      </div>
+
+      {/* Trigger Button - styled like SidebarMenuButton */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          "flex w-full items-center gap-2 rounded-md p-2 text-left text-sm",
+          "ring-sidebar-ring transition-colors duration-100",
+          "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          "focus-visible:outline-none focus-visible:ring-2",
+          isOpen && "bg-sidebar-accent text-sidebar-accent-foreground"
+        )}
+      >
+        <Avatar className="size-7 shrink-0">
+          <AvatarImage src={user.avatar} alt={user.name} />
+          <AvatarFallback className="bg-sidebar-primary/10 text-sidebar-primary text-xs font-medium">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <p className="truncate text-sm font-medium leading-tight text-sidebar-foreground">
+            {user.name}
+          </p>
+          <p className="truncate text-xs text-sidebar-foreground/60">{user.email}</p>
+        </div>
+        <ChevronUp
+          className={cn(
+            "size-4 shrink-0 text-sidebar-foreground/50 transition-transform duration-150",
+            isOpen ? "rotate-0" : "rotate-180"
+          )}
+        />
+      </button>
     </div>
+  );
+}
+
+// Stat item sub-component
+interface StatItemProps {
+  icon: React.ComponentType<{ className?: string }>;
+  value: number;
+  label: string;
+}
+
+function StatItem({ icon: Icon, value, label }: StatItemProps) {
+  return (
+    <div className="flex items-center gap-2 rounded-md px-3 py-2 bg-sidebar-accent/50">
+      <Icon className="size-4 text-sidebar-foreground/50" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold tabular-nums text-sidebar-foreground">{value}</p>
+        <p className="text-[10px] text-sidebar-foreground/50">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+// Menu item sub-component - styled like SidebarMenuButton
+interface MenuItemProps {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  shortcut?: string;
+  onClick?: () => void;
+  variant?: "default" | "destructive";
+}
+
+function MenuItem({ icon: Icon, label, shortcut, onClick, variant = "default" }: MenuItemProps) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={onClick}
+          className={cn(
+            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm",
+            "transition-colors duration-100",
+            variant === "default" && [
+              "text-sidebar-foreground",
+              "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            ],
+            variant === "destructive" && [
+              "text-destructive",
+              "hover:bg-destructive/10",
+            ]
+          )}
+        >
+          <Icon className="size-4 shrink-0" />
+          <span className="flex-1 text-left">{label}</span>
+          {shortcut && (
+            <kbd className="ml-auto rounded bg-sidebar-accent px-1.5 py-0.5 text-[10px] font-medium text-sidebar-foreground/60">
+              {shortcut}
+            </kbd>
+          )}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right" className="text-xs">
+        {label}
+      </TooltipContent>
+    </Tooltip>
   );
 }
