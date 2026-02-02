@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
     ArrowLeft,
     User,
@@ -23,9 +24,20 @@ import { api } from "@/convex/_generated/api";
 
 export function SettingsPage() {
     const router = useRouter();
+    const isMobile = useIsMobile();
     const [activeTab, setActiveTab] = useState("profile");
 
     const user = useQuery(api.users.getProfile);
+
+    useEffect(() => {
+        if (isMobile) {
+            router.replace("/bookmarks?tab=profile");
+        }
+    }, [isMobile, router]);
+
+    if (isMobile) {
+        return null;
+    }
 
     return (
         <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">

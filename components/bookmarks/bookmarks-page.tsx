@@ -7,8 +7,8 @@ import {
   SearchIcon,
   StarIcon,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import dynamic from "next/dynamic";
 import {
@@ -45,6 +45,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 
 export function BookmarksPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isMobile = useIsMobile();
   const [selectedFolder, setSelectedFolder] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -56,6 +57,13 @@ export function BookmarksPage() {
   const [activeTab, setActiveTab] = useState<"home" | "folders" | "profile">("home");
   const [mobileSelectedFolder, setMobileSelectedFolder] = useState<string | null>(null);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("tab") === "profile") {
+      setActiveTab("profile");
+      router.replace("/bookmarks", { scroll: false });
+    }
+  }, [searchParams, router]);
 
   // Convex hooks
   const convexFolders = useQuery(api.bookmarks.getFolders);
@@ -166,6 +174,22 @@ export function BookmarksPage() {
   }, [bookmarks, selectedFolder, searchQuery]);
 
   const currentFolder = folders.find((f) => f.id === selectedFolder);
+
+  // On mobile home tab, always show "All Bookmarks"; on desktop use selected folder
+  const effectiveSelectedFolder = isMobile ? "all" : selectedFolder;
+  const effectiveFilteredBookmarks = useMemo(() => {
+    if (isMobile) {
+      if (!searchQuery) return bookmarks;
+      const query = searchQuery.toLowerCase();
+      return bookmarks.filter(
+        (b) =>
+          b.title.toLowerCase().includes(query) ||
+          b.url.toLowerCase().includes(query),
+      );
+    }
+    return filteredBookmarks;
+  }, [isMobile, bookmarks, searchQuery, filteredBookmarks]);
+  const effectiveCurrentFolder = folders.find((f) => f.id === effectiveSelectedFolder);
 
   // Folders available for selection when adding a bookmark
   // Exclude "all" and "favorites" from the dropdown list for now unless we want to allow moving to favorites directly
@@ -344,12 +368,12 @@ export function BookmarksPage() {
           )}
 
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            {currentFolder?.icon ? (
-              <currentFolder.icon className="text-muted-foreground size-4 shrink-0" />
+            {effectiveCurrentFolder?.icon ? (
+              <effectiveCurrentFolder.icon className="text-muted-foreground size-4 shrink-0" />
             ) : (
               <FolderIcon className="text-muted-foreground size-4 shrink-0" />
             )}
-            <h1 className="text-sm font-medium truncate">{currentFolder?.name}</h1>
+            <h1 className="text-sm font-medium truncate">{effectiveCurrentFolder?.name}</h1>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -422,7 +446,7 @@ export function BookmarksPage() {
           </div>
         ) : (
           <div className="relative h-full">
-            {filteredBookmarks.length === 0 && (
+            {effectiveFilteredBookmarks.length === 0 && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 text-center">
                 <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
                   <BookmarkIcon className="text-muted-foreground size-6" />
@@ -438,12 +462,12 @@ export function BookmarksPage() {
               </div>
             )}
             <FlipReveal 
-              keys={filteredBookmarks.map((b) => String(b.id))} 
+              keys={effectiveFilteredBookmarks.map((b) => String(b.id))} 
               showClass="block" 
               hideClass="hidden"
             >
               <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {filteredBookmarks.map((bookmark, index) => (
+                {effectiveFilteredBookmarks.map((bookmark, index) => (
                   <FlipRevealItem key={bookmark.id} flipKey={String(bookmark.id)}>
                     <BookmarkCard
                       bookmark={bookmark}
