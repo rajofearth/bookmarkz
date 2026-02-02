@@ -13,11 +13,13 @@ import { useQuery, useMutation } from "convex/react";
 import dynamic from "next/dynamic";
 import {
   DndContext,
-  PointerSensor,
+  DragOverlay,
   KeyboardSensor,
+  PointerSensor,
+  type DragEndEvent,
+  type DragStartEvent,
   useSensor,
   useSensors,
-  type DragEndEvent,
 } from "@dnd-kit/core";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -51,6 +53,7 @@ export function BookmarksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
+  const [activeBookmarkId, setActiveBookmarkId] = useState<string | null>(null);
 
   // Convex hooks
   const convexFolders = useQuery(api.bookmarks.getFolders);
@@ -237,6 +240,17 @@ export function BookmarksPage() {
   };
 
   // Handle drag end for moving bookmarks to folders
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      const activeData = event.active.data.current as DragData | null;
+
+      if (!activeData || activeData.type !== "bookmark") return;
+
+      setActiveBookmarkId(activeData.bookmarkId);
+    },
+    [],
+  );
+
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event;
@@ -274,12 +288,28 @@ export function BookmarksPage() {
       } catch (error) {
         console.error("Failed to move bookmark:", error);
       }
+
+      setActiveBookmarkId(null);
     },
     [bookmarks, updateBookmarkMutation],
   );
 
+  const handleDragCancel = useCallback(() => {
+    setActiveBookmarkId(null);
+  }, []);
+
+  const activeBookmark = useMemo(
+    () => bookmarks.find((b) => b.id === activeBookmarkId) ?? null,
+    [bookmarks, activeBookmarkId],
+  );
+
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
       <div className="bg-background text-foreground flex h-screen w-full">
         {/* Sidebar */}
         <aside
@@ -385,6 +415,16 @@ export function BookmarksPage() {
         onSubmit={handleEditBookmark}
       />
       <MetadataFetcher />
+
+      <DragOverlay>
+        {activeBookmark ? (
+          <BookmarkCard
+            bookmark={activeBookmark}
+            onEdit={setEditingBookmark}
+            onDelete={handleDeleteBookmark}
+          />
+        ) : null}
+      </DragOverlay>
       </div>
     </DndContext>
   );

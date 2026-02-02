@@ -2,7 +2,7 @@
 
 import { BookmarkIcon, FolderIcon, StarIcon } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useDroppable } from "@dnd-kit/core";
+import { useDndContext, useDroppable } from "@dnd-kit/core";
 import type { ReactNode } from "react";
 import type { Folder } from "@/components/bookmarks/types";
 import type { DragData } from "./bookmarks-page";
@@ -44,6 +44,9 @@ function DroppableFolderItem({
   onSelectFolder,
   getFolderIcon,
 }: DroppableFolderItemProps) {
+  const { active } = useDndContext();
+  const activeData = active?.data.current as DragData | null;
+  const isDraggingBookmark = activeData?.type === "bookmark";
   const droppable = folder.id !== "all" && folder.id !== "favorites";
   const { setNodeRef, isOver } = useDroppable<DragData>({
     id: folder.id,
@@ -61,9 +64,14 @@ function DroppableFolderItem({
       asChild
       ref={droppable ? setNodeRef : undefined}
       className={cn(
-        "cursor-pointer rounded-md px-2 transition-colors",
+        "cursor-pointer rounded-md px-2 transition-all",
         selectedFolder === folder.id && "bg-accent",
-        droppable && isOver && "bg-accent/80 ring-2 ring-primary ring-offset-2",
+        droppable &&
+          isDraggingBookmark &&
+          "border border-dashed border-border/60 bg-accent/40",
+        droppable &&
+          isOver &&
+          "bg-accent/80 ring-2 ring-primary ring-offset-2 ring-offset-background",
       )}
     >
       <button

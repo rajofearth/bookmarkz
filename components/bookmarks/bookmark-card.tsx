@@ -65,9 +65,10 @@ export function BookmarkCard({
       {...listeners}
       {...attributes}
       className={cn(
-        "group relative gap-0 overflow-hidden py-0 transition-all hover:shadow-md",
-        "cursor-grab active:cursor-grabbing",
-        isDragging && "opacity-50",
+        "group relative gap-0 overflow-hidden py-0 transition-all duration-150",
+        "cursor-grab active:cursor-grabbing hover:shadow-md",
+        isDragging &&
+          "pointer-events-none z-20 scale-[1.02] opacity-0 shadow-lg ring-2 ring-primary/40",
       )}
     >
       {/* OG Image Preview */}
