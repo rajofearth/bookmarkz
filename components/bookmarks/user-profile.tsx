@@ -123,16 +123,10 @@ export function UserProfile({
 
   if (!user) {
     return (
-      <div className="p-2">
-        <div className="flex w-full items-center gap-2 rounded-md p-2 bg-sidebar-accent/10 animate-pulse">
-          <div className="size-7 rounded-full bg-sidebar-accent/20" />
-          <div className="flex-1 space-y-1">
-            <div className="h-3 w-20 rounded bg-sidebar-accent/20" />
-            <div className="h-2 w-32 rounded bg-sidebar-accent/20" />
-          </div>
-        </div>
+      <div className="relative border-t border-sidebar-border p-2 text-xs text-sidebar-foreground/60">
+        Loading profile...
       </div>
-    )
+    );
   }
 
   return (

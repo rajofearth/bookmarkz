@@ -38,6 +38,8 @@ export function BookmarksPage() {
   const convexFolders = useQuery(api.bookmarks.getFolders);
   const convexBookmarks = useQuery(api.bookmarks.getBookmarks);
 
+  const isLoading = convexFolders === undefined || convexBookmarks === undefined;
+
   const createBookmarkMutation = useMutation(api.bookmarks.createBookmark);
   const updateBookmarkMutation = useMutation(api.bookmarks.updateBookmark);
   const deleteBookmarkMutation = useMutation(api.bookmarks.deleteBookmark);
@@ -270,7 +272,11 @@ export function BookmarksPage() {
 
         {/* Bookmarks Grid */}
         <div className="flex-1 overflow-y-auto p-4">
-          {filteredBookmarks.length === 0 ? (
+          {isLoading ? (
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              Loading your bookmarks...
+            </div>
+          ) : filteredBookmarks.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
               <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
                 <BookmarkIcon className="text-muted-foreground size-6" />
