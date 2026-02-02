@@ -21,8 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn, getDomain } from "@/lib/utils";
 import { useGeneralStore } from "@/hooks/use-general-store";
-import type { Bookmark } from "./types";
-import type { DragData } from "./bookmarks-page";
+import type { Bookmark, DragData } from "./types";
 
 interface BookmarkCardProps {
   bookmark: Bookmark;
@@ -47,12 +46,12 @@ export function BookmarkCard({
     setNodeRef,
     transform,
     isDragging,
-  } = useDraggable<DragData>({
+  } = useDraggable({
     id: bookmark.id,
     data: {
       type: "bookmark",
       bookmarkId: bookmark.id,
-    },
+    } satisfies DragData,
   });
 
   const style = transform

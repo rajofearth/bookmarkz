@@ -40,18 +40,8 @@ import { BookmarkCard } from "./bookmark-card";
 import { FoldersSidebar } from "./folders-sidebar";
 import { MetadataFetcher } from "./metadata-fetcher";
 import { FlipReveal, FlipRevealItem } from "@/components/gsap/flip-reveal";
-import type { Bookmark, Folder } from "./types";
+import type { Bookmark, Folder, DragData } from "./types";
 import type { Id } from "@/convex/_generated/dataModel";
-
-type DragData =
-  | {
-      type: "bookmark";
-      bookmarkId: string;
-    }
-  | {
-      type: "folder";
-      folderId: string;
-    };
 
 export function BookmarksPage() {
   const router = useRouter();

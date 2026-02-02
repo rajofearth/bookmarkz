@@ -100,52 +100,77 @@ export function ProfileTab() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
-      {/* Compact Header */}
-      <div className="px-4 pt-6 pb-4 border-b border-border bg-background">
-        <div className="flex items-center gap-3 mb-4">
-          <Avatar className={cn("size-12 ring-2 ring-border", blurProfile && "blur-sm")}>
-            <AvatarImage src={imageUrl} />
-            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
+      {/* Enhanced Profile Header */}
+      <div className="relative px-4 pt-5 pb-4 border-b border-border bg-background overflow-hidden">
+        {/* Gradient Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-primary/3 to-transparent pointer-events-none" />
+        
+        <div className="relative flex items-center gap-3 mb-4">
+          {/* Avatar with Enhanced Styling */}
+          <div className="relative">
+            <Avatar className={cn(
+              "size-14 ring-2 ring-background shadow-md",
+              blurProfile && "blur-sm"
+            )}>
+              <AvatarImage src={imageUrl} />
+              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-base">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+          
+          {/* User Info */}
           <div className="flex-1 min-w-0">
-            <h2 className={cn("text-base font-semibold truncate", blurProfile && "blur-sm")}>
+            <h2 className={cn(
+              "text-base font-semibold truncate",
+              blurProfile && "blur-sm"
+            )}>
               {user?.name || "User"}
             </h2>
             {user?.email && (
-              <p className={cn("text-xs text-muted-foreground truncate", blurProfile && "blur-sm")}>
+              <p className={cn(
+                "text-xs text-muted-foreground truncate",
+                blurProfile && "blur-sm"
+              )}>
                 {user.email}
               </p>
             )}
           </div>
         </div>
 
-        {/* Stats - Horizontal Cards */}
+        {/* Enhanced Stats Cards */}
         {stats && (
-          <div className="flex gap-2">
-            <Card className="flex-1 border-border/50">
+          <div className="relative flex gap-2">
+            <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all duration-200 hover:shadow-md hover:scale-[1.01]">
               <CardContent className="p-3">
-                <div className="flex items-center gap-2">
-                  <div className="bg-primary/10 p-1.5 rounded-md">
-                    <Bookmark className="size-3.5 text-primary" />
+                <div className="flex items-center gap-2.5">
+                  <div className="bg-gradient-to-br from-primary/20 to-primary/10 p-2 rounded-lg ring-1 ring-primary/10">
+                    <Bookmark className="size-4 text-primary" />
                   </div>
                   <div>
-                    <p className="text-lg font-bold tabular-nums">{stats.bookmarks}</p>
-                    <p className="text-[10px] text-muted-foreground">Bookmarks</p>
+                    <p className="text-xl font-bold tabular-nums tracking-tight">
+                      {stats.bookmarks}
+                    </p>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                      Bookmarks
+                    </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="flex-1 border-border/50">
+            <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all duration-200 hover:shadow-md hover:scale-[1.01]">
               <CardContent className="p-3">
-                <div className="flex items-center gap-2">
-                  <div className="bg-primary/10 p-1.5 rounded-md">
-                    <FolderOpen className="size-3.5 text-primary" />
+                <div className="flex items-center gap-2.5">
+                  <div className="bg-gradient-to-br from-primary/20 to-primary/10 p-2 rounded-lg ring-1 ring-primary/10">
+                    <FolderOpen className="size-4 text-primary" />
                   </div>
                   <div>
-                    <p className="text-lg font-bold tabular-nums">{stats.folders}</p>
-                    <p className="text-[10px] text-muted-foreground">Folders</p>
+                    <p className="text-xl font-bold tabular-nums tracking-tight">
+                      {stats.folders}
+                    </p>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                      Folders
+                    </p>
                   </div>
                 </div>
               </CardContent>
