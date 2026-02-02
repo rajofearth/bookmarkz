@@ -116,7 +116,7 @@ export function FoldersSidebar({
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="hidden md:flex h-full flex-col">
       <div className="flex items-center justify-between p-4">
         <h2 className="text-sm font-medium">Folders</h2>
         <AddFolderDialog onSubmit={onAddFolder} />

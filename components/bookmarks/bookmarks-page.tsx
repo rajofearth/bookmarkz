@@ -26,6 +26,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { EditBookmarkDialog } from "./edit-bookmark-dialog";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileLayout } from "./mobile-layout";
+import { FoldersListView } from "./folders-list-view";
+import { FolderDetailView } from "./folder-detail-view";
+import { ProfileTab } from "./profile-tab";
 
 const AddBookmarkDialog = dynamic(
   () => import("./add-bookmark-dialog").then((mod) => ({ default: mod.AddBookmarkDialog })),
@@ -50,11 +55,17 @@ type DragData =
 
 export function BookmarksPage() {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [selectedFolder, setSelectedFolder] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
   const [activeBookmarkId, setActiveBookmarkId] = useState<string | null>(null);
+  
+  // Mobile tab state
+  const [activeTab, setActiveTab] = useState<"home" | "folders" | "profile">("home");
+  const [mobileSelectedFolder, setMobileSelectedFolder] = useState<string | null>(null);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   // Convex hooks
   const convexFolders = useQuery(api.bookmarks.getFolders);
@@ -304,6 +315,186 @@ export function BookmarksPage() {
     [bookmarks, activeBookmarkId],
   );
 
+  // Mobile: Filter bookmarks for selected folder
+  const mobileFolderBookmarks = useMemo(() => {
+    if (!mobileSelectedFolder) return [];
+    if (mobileSelectedFolder === "all") return bookmarks;
+    if (mobileSelectedFolder === "favorites") {
+      return bookmarks.filter((b) => b.folderId === "favorites");
+    }
+    return bookmarks.filter((b) => b.folderId === mobileSelectedFolder);
+  }, [bookmarks, mobileSelectedFolder]);
+
+  const mobileSelectedFolderData = useMemo(() => {
+    if (!mobileSelectedFolder) return null;
+    return folders.find((f) => f.id === mobileSelectedFolder) ?? null;
+  }, [folders, mobileSelectedFolder]);
+
+  // Render main content (used for both desktop and mobile home tab)
+  const renderMainContent = () => (
+    <main className="flex flex-1 flex-col overflow-hidden">
+      {/* Header */}
+      <header className="border-border border-b bg-background">
+        {/* Top Row: Folder name and actions */}
+        <div className="flex items-center gap-2 px-4 py-3">
+          {!isMobile && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="shrink-0"
+            >
+              <ChevronRightIcon
+                className={cn(
+                  "size-4 transition-transform",
+                  sidebarOpen && "rotate-180",
+                )}
+              />
+            </Button>
+          )}
+
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {currentFolder?.icon ? (
+              <currentFolder.icon className="text-muted-foreground size-4 shrink-0" />
+            ) : (
+              <FolderIcon className="text-muted-foreground size-4 shrink-0" />
+            )}
+            <h1 className="text-sm font-medium truncate">{currentFolder?.name}</h1>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Search button for mobile - opens search bar */}
+            {isMobile && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setShowMobileSearch(!showMobileSearch)}
+                className="md:hidden"
+              >
+                <SearchIcon className="size-4" />
+              </Button>
+            )}
+            <AddBookmarkDialog
+              folders={editableFolders}
+              onSubmit={handleAddBookmark}
+            />
+          </div>
+        </div>
+
+        {/* Search Bar - Desktop always visible, mobile when toggled */}
+        {(showMobileSearch || !isMobile) && (
+          <div className="px-4 pb-3 border-t border-border/50 md:border-t-0">
+            <div className="relative">
+              <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+              <Input
+                id="search-input"
+                type="search"
+                placeholder="Search bookmarks..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value === "") {
+                    setShowMobileSearch(false);
+                  }
+                }}
+                className="h-9 pl-9 text-sm w-full"
+                autoFocus={isMobile && showMobileSearch}
+              />
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Bookmarks Grid */}
+      <div 
+        className="flex-1 overflow-y-auto p-4 pb-20 md:pb-4" 
+        style={{ 
+          paddingBottom: isMobile ? "calc(5rem + env(safe-area-inset-bottom))" : undefined 
+        }}
+      >
+        {isLoading ? (
+          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            Loading your bookmarks...
+          </div>
+        ) : bookmarks.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+            <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
+              <BookmarkIcon className="text-muted-foreground size-6" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">No bookmarks found</p>
+              <p className="text-muted-foreground text-sm">
+                {searchQuery
+                  ? "Try a different search term"
+                  : "Add your first bookmark to get started"}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="relative h-full">
+            {filteredBookmarks.length === 0 && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 text-center">
+                <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
+                  <BookmarkIcon className="text-muted-foreground size-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">No bookmarks found</p>
+                  <p className="text-muted-foreground text-sm">
+                    {searchQuery
+                      ? "Try a different search term"
+                      : "Add your first bookmark to get started"}
+                  </p>
+                </div>
+              </div>
+            )}
+            <FlipReveal 
+              keys={filteredBookmarks.map((b) => String(b.id))} 
+              showClass="block" 
+              hideClass="hidden"
+            >
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {filteredBookmarks.map((bookmark, index) => (
+                  <FlipRevealItem key={bookmark.id} flipKey={String(bookmark.id)}>
+                    <BookmarkCard
+                      bookmark={bookmark}
+                      onEdit={setEditingBookmark}
+                      onDelete={handleDeleteBookmark}
+                      priority={index === 0}
+                    />
+                  </FlipRevealItem>
+                ))}
+              </div>
+            </FlipReveal>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+
+  // Mobile folders content
+  const renderMobileFoldersContent = () => {
+    if (mobileSelectedFolder && mobileSelectedFolderData) {
+      return (
+        <FolderDetailView
+          folder={mobileSelectedFolderData}
+          bookmarks={mobileFolderBookmarks}
+          editableFolders={editableFolders}
+          onBack={() => setMobileSelectedFolder(null)}
+          onEditBookmark={setEditingBookmark}
+          onDeleteBookmark={handleDeleteBookmark}
+          onAddBookmark={handleAddBookmark}
+        />
+      );
+    }
+    return (
+      <FoldersListView
+        folders={folders}
+        onSelectFolder={(folderId) => setMobileSelectedFolder(folderId)}
+        onAddFolder={handleAddFolder}
+      />
+    );
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -311,7 +502,17 @@ export function BookmarksPage() {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="bg-background text-foreground flex h-screen w-full">
+      {/* Mobile Layout */}
+      <MobileLayout
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        homeContent={renderMainContent()}
+        foldersContent={renderMobileFoldersContent()}
+        profileContent={<ProfileTab />}
+      />
+
+      {/* Desktop Layout */}
+      <div className="bg-background text-foreground hidden md:flex h-screen w-full">
         {/* Sidebar */}
         <aside
           className={cn(
@@ -328,108 +529,9 @@ export function BookmarksPage() {
           />
         </aside>
 
-      {/* Main Content */}
-      <main className="flex flex-1 flex-col overflow-hidden">
-        {/* Header */}
-        <header className="border-border flex items-center gap-3 border-b px-4 py-3">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="shrink-0"
-          >
-            <ChevronRightIcon
-              className={cn(
-                "size-4 transition-transform",
-                sidebarOpen && "rotate-180",
-              )}
-            />
-          </Button>
-
-          <div className="flex items-center gap-2">
-            {currentFolder?.icon ? (
-              <currentFolder.icon className="text-muted-foreground size-4" />
-            ) : (
-              <FolderIcon className="text-muted-foreground size-4" />
-            )}
-            <h1 className="text-sm font-medium">{currentFolder?.name}</h1>
-          </div>
-
-          <div className="relative ml-auto max-w-xs flex-1">
-            <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
-            <Input
-              type="search"
-              placeholder="Search bookmarks..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-8 pl-9 text-sm"
-            />
-          </div>
-
-          <AddBookmarkDialog
-            folders={editableFolders}
-            onSubmit={handleAddBookmark}
-          />
-        </header>
-
-        {/* Bookmarks Grid */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {isLoading ? (
-            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              Loading your bookmarks...
-            </div>
-          ) : bookmarks.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-              <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
-                <BookmarkIcon className="text-muted-foreground size-6" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">No bookmarks found</p>
-                <p className="text-muted-foreground text-sm">
-                  {searchQuery
-                    ? "Try a different search term"
-                    : "Add your first bookmark to get started"}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="relative h-full">
-              {filteredBookmarks.length === 0 && (
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 text-center">
-                  <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
-                    <BookmarkIcon className="text-muted-foreground size-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">No bookmarks found</p>
-                    <p className="text-muted-foreground text-sm">
-                      {searchQuery
-                        ? "Try a different search term"
-                        : "Add your first bookmark to get started"}
-                    </p>
-                  </div>
-                </div>
-              )}
-              <FlipReveal 
-                keys={filteredBookmarks.map((b) => String(b.id))} 
-                showClass="block" 
-                hideClass="hidden"
-              >
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {bookmarks.map((bookmark) => (
-                    <FlipRevealItem key={bookmark.id} flipKey={String(bookmark.id)}>
-                      <BookmarkCard
-                        bookmark={bookmark}
-                        onEdit={setEditingBookmark}
-                        onDelete={handleDeleteBookmark}
-                      />
-                    </FlipRevealItem>
-                  ))}
-                </div>
-              </FlipReveal>
-            </div>
-          )}
-        </div>
-      </main>
+        {/* Main Content */}
+        {renderMainContent()}
+      </div>
 
       {/* Edit Bookmark Dialog */}
       <EditBookmarkDialog
@@ -450,7 +552,6 @@ export function BookmarksPage() {
           />
         ) : null}
       </DragOverlay>
-      </div>
     </DndContext>
   );
 }

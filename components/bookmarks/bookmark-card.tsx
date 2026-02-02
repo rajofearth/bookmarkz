@@ -28,12 +28,15 @@ interface BookmarkCardProps {
   bookmark: Bookmark;
   onEdit?: (bookmark: Bookmark) => void;
   onDelete?: (bookmark: Bookmark) => void;
+  /** Set for the first card in the list to improve LCP (Largest Contentful Paint) */
+  priority?: boolean;
 }
 
 export function BookmarkCard({
   bookmark,
   onEdit,
   onDelete,
+  priority = false,
 }: BookmarkCardProps) {
   const [imageError, setImageError] = useState(false);
   const { openInNewTab, showFavicons } = useGeneralStore();
@@ -67,6 +70,7 @@ export function BookmarkCard({
       className={cn(
         "group relative gap-0 overflow-hidden py-0 transition-all duration-150",
         "cursor-grab active:cursor-grabbing hover:shadow-md",
+        "w-full",
         isDragging &&
           "pointer-events-none z-20 scale-[1.02] opacity-0 shadow-lg ring-2 ring-primary/40",
       )}
@@ -80,26 +84,28 @@ export function BookmarkCard({
             fill
             className="object-cover transition-transform group-hover:scale-105"
             onError={() => setImageError(true)}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+            priority={priority}
           />
         </div>
       ) : (
         <div className="bg-muted/50 flex aspect-[1.91/1] w-full items-center justify-center">
-          <GlobeIcon className="text-muted-foreground/50 size-8" />
+          <GlobeIcon className="text-muted-foreground/50 size-6 sm:size-8" />
         </div>
       )}
 
-      <CardContent className="p-3">
-        <div className="flex items-start gap-3">
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex items-start gap-2 sm:gap-3">
           {/* Favicon */}
           {showFavicons && (
-            <div className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-md">
+            <div className="bg-muted flex size-7 sm:size-8 shrink-0 items-center justify-center rounded-md">
               {bookmark.favicon && bookmark.favicon.startsWith("http") ? (
                 <Image
                   src={bookmark.favicon}
                   alt=""
                   width={16}
                   height={16}
-                  className="size-4 object-contain"
+                  className="size-3 sm:size-4 object-contain"
                   onError={(e) => {
                     e.currentTarget.style.display = "none";
                     e.currentTarget.nextElementSibling?.classList.remove(
@@ -110,7 +116,7 @@ export function BookmarkCard({
               ) : null}
               <GlobeIcon
                 className={cn(
-                  "text-muted-foreground size-4",
+                  "text-muted-foreground size-3 sm:size-4",
                   bookmark.favicon && "hidden",
                 )}
               />
@@ -119,8 +125,10 @@ export function BookmarkCard({
 
           {/* Title & URL */}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{bookmark.title}</p>
-            <p className="text-muted-foreground truncate text-xs">
+            <p className="truncate text-sm sm:text-base font-medium leading-tight mb-1">
+              {bookmark.title}
+            </p>
+            <p className="text-muted-foreground truncate text-xs sm:text-sm">
               {getDomain(bookmark.url)}
             </p>
           </div>
@@ -131,7 +139,7 @@ export function BookmarkCard({
               <Button
                 variant="ghost"
                 size="icon-xs"
-                className="opacity-0 transition-opacity group-hover:opacity-100"
+                className="opacity-0 sm:opacity-0 transition-opacity group-hover:opacity-100 active:opacity-100 shrink-0"
               >
                 <MoreHorizontalIcon className="size-4" />
               </Button>
