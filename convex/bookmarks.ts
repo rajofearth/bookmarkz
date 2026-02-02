@@ -239,13 +239,14 @@ export const updateBookmark = mutation({
             throw new Error("Bookmark not found or unauthorized");
         }
 
-        await ctx.db.patch(args.bookmarkId, {
-            title: args.title,
-            url: args.url,
-            folderId: args.folderId,
-            favicon: args.favicon,
-            ogImage: args.ogImage,
-        });
+        // Only patch fields that were actually provided so we don't
+        // accidentally clear required fields like `title` and `url`.
+        const { bookmarkId, ...rest } = args;
+        const patch = Object.fromEntries(
+            Object.entries(rest).filter(([, value]) => value !== undefined),
+        ) as Record<string, unknown>;
+
+        await ctx.db.patch(bookmarkId, patch);
     },
 });
 

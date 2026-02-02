@@ -7,10 +7,18 @@ import {
   SearchIcon,
   StarIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import dynamic from "next/dynamic";
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +34,16 @@ import { FoldersSidebar } from "./folders-sidebar";
 import { MetadataFetcher } from "./metadata-fetcher";
 import type { Bookmark, Folder } from "./types";
 import type { Id } from "@/convex/_generated/dataModel";
+
+type DragData =
+  | {
+      type: "bookmark";
+      bookmarkId: string;
+    }
+  | {
+      type: "folder";
+      folderId: string;
+    };
 
 export function BookmarksPage() {
   const router = useRouter();
@@ -46,6 +64,16 @@ export function BookmarksPage() {
   const createFolderMutation = useMutation(api.bookmarks.createFolder);
   // const updateFolderMutation = useMutation(api.bookmarks.updateFolder);
   const deleteFolderMutation = useMutation(api.bookmarks.deleteFolder);
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor),
+  );
 
   // Transform Convex data to frontend types
   const bookmarks: Bookmark[] = useMemo(() => {
@@ -208,23 +236,66 @@ export function BookmarksPage() {
     }
   };
 
+  // Handle drag end for moving bookmarks to folders
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
+
+      if (!over) return;
+
+      const activeData = active.data.current as DragData | null;
+      const overData = over.data.current as DragData | null;
+
+      if (!activeData || !overData) return;
+
+      if (activeData.type !== "bookmark" || overData.type !== "folder") {
+        return;
+      }
+
+      const bookmarkId = activeData.bookmarkId;
+      const folderId = overData.folderId;
+
+      // Validate that target is a user-created folder (not "all" or "favorites")
+      if (folderId === "all" || folderId === "favorites") {
+        return;
+      }
+
+      // Check if bookmark is already in this folder
+      const bookmark = bookmarks.find((b) => b.id === bookmarkId);
+      if (bookmark && bookmark.folderId === folderId) {
+        return;
+      }
+
+      try {
+        await updateBookmarkMutation({
+          bookmarkId: bookmarkId as Id<"bookmarks">,
+          folderId: folderId as Id<"folders">,
+        });
+      } catch (error) {
+        console.error("Failed to move bookmark:", error);
+      }
+    },
+    [bookmarks, updateBookmarkMutation],
+  );
+
   return (
-    <div className="bg-background text-foreground flex h-screen w-full">
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "border-border bg-card flex h-full flex-col border-r transition-all duration-200",
-          sidebarOpen ? "w-64" : "w-0 overflow-hidden",
-        )}
-      >
-        <FoldersSidebar
-          folders={folders}
-          selectedFolder={selectedFolder}
-          onSelectFolder={setSelectedFolder}
-          onAddFolder={handleAddFolder}
-          onSettings={() => router.push("/settings")}
-        />
-      </aside>
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <div className="bg-background text-foreground flex h-screen w-full">
+        {/* Sidebar */}
+        <aside
+          className={cn(
+            "border-border bg-card flex h-full flex-col border-r transition-all duration-200",
+            sidebarOpen ? "w-64" : "w-0 overflow-hidden",
+          )}
+        >
+          <FoldersSidebar
+            folders={folders}
+            selectedFolder={selectedFolder}
+            onSelectFolder={setSelectedFolder}
+            onAddFolder={handleAddFolder}
+            onSettings={() => router.push("/settings")}
+          />
+        </aside>
 
       {/* Main Content */}
       <main className="flex flex-1 flex-col overflow-hidden">
@@ -314,6 +385,7 @@ export function BookmarksPage() {
         onSubmit={handleEditBookmark}
       />
       <MetadataFetcher />
-    </div>
+      </div>
+    </DndContext>
   );
 }

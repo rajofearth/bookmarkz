@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
+import { useDraggable } from "@dnd-kit/core";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -21,6 +22,7 @@ import {
 import { cn, getDomain } from "@/lib/utils";
 import { useGeneralStore } from "@/hooks/use-general-store";
 import type { Bookmark } from "./types";
+import type { DragData } from "./bookmarks-page";
 
 interface BookmarkCardProps {
   bookmark: Bookmark;
@@ -36,8 +38,38 @@ export function BookmarkCard({
   const [imageError, setImageError] = useState(false);
   const { openInNewTab, showFavicons } = useGeneralStore();
 
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    isDragging,
+  } = useDraggable<DragData>({
+    id: bookmark.id,
+    data: {
+      type: "bookmark",
+      bookmarkId: bookmark.id,
+    },
+  });
+
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+      }
+    : undefined;
+
   return (
-    <Card className="group relative gap-0 overflow-hidden py-0 transition-all hover:shadow-md">
+    <Card
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={cn(
+        "group relative gap-0 overflow-hidden py-0 transition-all hover:shadow-md",
+        "cursor-grab active:cursor-grabbing",
+        isDragging && "opacity-50",
+      )}
+    >
       {/* OG Image Preview */}
       {bookmark.ogImage && !imageError && bookmark.ogImage.startsWith("http") ? (
         <div className="relative aspect-[1.91/1] w-full overflow-hidden bg-muted">
