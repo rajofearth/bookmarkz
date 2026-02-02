@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { authComponent } from "./auth";
+import { authComponent, getOptionalAuthUser } from "./auth";
 
 // --- Folders ---
 
@@ -27,7 +27,7 @@ export const createFolder = mutation({
 export const getFolders = query({
     args: {},
     handler: async (ctx) => {
-        const user = await authComponent.getAuthUser(ctx);
+        const user = await getOptionalAuthUser(ctx);
         if (!user) {
             return [];
         }
@@ -179,7 +179,7 @@ export const batchCreateBookmarks = mutation({
 export const getBookmarks = query({
     args: {},
     handler: async (ctx) => {
-        const user = await authComponent.getAuthUser(ctx);
+        const user = await getOptionalAuthUser(ctx);
         if (!user) {
             return [];
         }
@@ -273,7 +273,7 @@ export const deleteBookmark = mutation({
 export const getUserStats = query({
     args: {},
     handler: async (ctx) => {
-        const user = await authComponent.getAuthUser(ctx);
+        const user = await getOptionalAuthUser(ctx);
         if (!user) {
             return {
                 bookmarks: 0,

@@ -3,6 +3,7 @@ import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ConvexClientProvider } from "@/app/ConvexClientProvider";
+import { getToken } from "@/lib/auth-server";
 
 
 const fontSans = JetBrains_Mono({
@@ -21,15 +22,17 @@ export const viewport: Viewport = {
   themeColor: "#000000",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const token = await getToken();
+
   return (
     <html lang="en" className={fontSans.variable} suppressHydrationWarning>
       <body className="antialiased">
-        <ConvexClientProvider>
+        <ConvexClientProvider initialToken={token}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

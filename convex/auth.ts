@@ -41,3 +41,15 @@ export const getCurrentUser = query({
     return authComponent.getAuthUser(ctx);
   },
 });
+
+// Helper that treats unauthenticated requests as "no user" for read-only queries.
+export async function getOptionalAuthUser(ctx: GenericCtx<DataModel>) {
+  try {
+    const user = await authComponent.getAuthUser(ctx);
+    return user ?? null;
+  } catch (_error) {
+    // For read-only queries we don't want unauthenticated access to throw;
+    // callers should interpret `null` as "no authenticated user".
+    return null;
+  }
+}

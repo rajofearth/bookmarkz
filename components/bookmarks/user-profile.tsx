@@ -26,6 +26,7 @@ import {
 import { cn } from "@/lib/utils";
 import { UserInfoRow } from "@/components/user-info-row";
 import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 interface UserStats {
   bookmarks: number;
@@ -50,6 +51,7 @@ export function UserProfile({
   onKeyboardShortcuts,
   onSignOut,
 }: UserProfileProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
@@ -76,13 +78,13 @@ export function UserProfile({
   };
 
   const handleSignOut = async () => {
-    if (onSignOut) {
-      onSignOut();
-    } else {
+    try {
       await authClient.signOut();
-      window.location.reload();
+    } finally {
+      onSignOut?.();
+      setIsOpen(false);
+      router.push("/auth");
     }
-    setIsOpen(false);
   };
 
   // Close on click outside

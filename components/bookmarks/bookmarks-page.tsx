@@ -10,12 +10,17 @@ import {
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
+import dynamic from "next/dynamic";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { AddBookmarkDialog } from "./add-bookmark-dialog";
 import { EditBookmarkDialog } from "./edit-bookmark-dialog";
+
+const AddBookmarkDialog = dynamic(
+  () => import("./add-bookmark-dialog").then((mod) => ({ default: mod.AddBookmarkDialog })),
+  { ssr: false }
+);
 import { BookmarkCard } from "./bookmark-card";
 import { FoldersSidebar } from "./folders-sidebar";
 import { MetadataFetcher } from "./metadata-fetcher";

@@ -1,8 +1,13 @@
 "use client";
 
 import { BookmarkIcon, FolderIcon, StarIcon } from "lucide-react";
-import { AddFolderDialog } from "@/components/bookmarks/add-folder-dialog";
+import dynamic from "next/dynamic";
 import type { Folder } from "@/components/bookmarks/types";
+
+const AddFolderDialog = dynamic(
+  () => import("@/components/bookmarks/add-folder-dialog").then((mod) => ({ default: mod.AddFolderDialog })),
+  { ssr: false }
+);
 import { UserProfile } from "@/components/bookmarks/user-profile";
 import { Badge } from "@/components/ui/badge";
 import {
