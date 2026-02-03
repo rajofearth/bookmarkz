@@ -349,9 +349,62 @@ export function BookmarksPage() {
     <main className="flex flex-1 flex-col overflow-hidden">
       {/* Header */}
       <header className="border-border border-b bg-background">
-        {/* Top Row: Folder name and actions */}
-        <div className="flex items-center gap-2 px-4 py-3">
-          {!isMobile && (
+        {isMobile ? (
+          <>
+            {/* Top Row: Folder name and actions (mobile) */}
+            <div className="flex items-center gap-2 px-4 py-3">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                {effectiveCurrentFolder?.icon ? (
+                  <effectiveCurrentFolder.icon className="text-muted-foreground size-4 shrink-0" />
+                ) : (
+                  <FolderIcon className="text-muted-foreground size-4 shrink-0" />
+                )}
+                <h1 className="text-sm font-medium truncate">
+                  {effectiveCurrentFolder?.name}
+                </h1>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                {/* Search button for mobile - opens search bar */}
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setShowMobileSearch(!showMobileSearch)}
+                >
+                  <SearchIcon className="size-4" />
+                </Button>
+                <AddBookmarkDialog
+                  folders={editableFolders}
+                  onSubmit={handleAddBookmark}
+                />
+              </div>
+            </div>
+
+            {/* Search bar for mobile */}
+            {showMobileSearch && (
+              <div className="px-4 pb-3 border-t border-border/50">
+                <div className="relative">
+                  <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+                  <Input
+                    id="search-input"
+                    type="search"
+                    placeholder="Search bookmarks..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      if (e.target.value === "") {
+                        setShowMobileSearch(false);
+                      }
+                    }}
+                    className="h-9 pl-9 text-sm w-full"
+                    autoFocus={showMobileSearch}
+                  />
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex items-center gap-3 px-4 py-3">
             <Button
               variant="ghost"
               size="icon-sm"
@@ -365,56 +418,34 @@ export function BookmarksPage() {
                 )}
               />
             </Button>
-          )}
 
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            {effectiveCurrentFolder?.icon ? (
-              <effectiveCurrentFolder.icon className="text-muted-foreground size-4 shrink-0" />
-            ) : (
-              <FolderIcon className="text-muted-foreground size-4 shrink-0" />
-            )}
-            <h1 className="text-sm font-medium truncate">{effectiveCurrentFolder?.name}</h1>
-          </div>
+            <div className="flex items-center gap-2 min-w-0">
+              {effectiveCurrentFolder?.icon ? (
+                <effectiveCurrentFolder.icon className="text-muted-foreground size-4" />
+              ) : (
+                <FolderIcon className="text-muted-foreground size-4" />
+              )}
+              <h1 className="text-sm font-medium truncate">
+                {effectiveCurrentFolder?.name}
+              </h1>
+            </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Search button for mobile - opens search bar */}
-            {isMobile && (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => setShowMobileSearch(!showMobileSearch)}
-                className="md:hidden"
-              >
-                <SearchIcon className="size-4" />
-              </Button>
-            )}
+            <div className="relative ml-auto max-w-xs flex-1">
+              <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+              <Input
+                id="search-input-desktop"
+                type="search"
+                placeholder="Search bookmarks..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-8 pl-9 text-sm"
+              />
+            </div>
+
             <AddBookmarkDialog
               folders={editableFolders}
               onSubmit={handleAddBookmark}
             />
-          </div>
-        </div>
-
-        {/* Search Bar - Desktop always visible, mobile when toggled */}
-        {(showMobileSearch || !isMobile) && (
-          <div className="px-4 pb-3 border-t border-border/50 md:border-t-0">
-            <div className="relative">
-              <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
-              <Input
-                id="search-input"
-                type="search"
-                placeholder="Search bookmarks..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  if (e.target.value === "") {
-                    setShowMobileSearch(false);
-                  }
-                }}
-                className="h-9 pl-9 text-sm w-full"
-                autoFocus={isMobile && showMobileSearch}
-              />
-            </div>
           </div>
         )}
       </header>
