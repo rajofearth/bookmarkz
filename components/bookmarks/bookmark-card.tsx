@@ -2,6 +2,7 @@
 
 import {
   ExternalLinkIcon,
+  FolderIcon,
   GlobeIcon,
   MoreHorizontalIcon,
   PencilIcon,
@@ -21,12 +22,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn, getDomain } from "@/lib/utils";
 import { useGeneralStore } from "@/hooks/use-general-store";
-import type { Bookmark, DragData } from "./types";
+import type { Bookmark, DragData, Folder } from "./types";
+import { MoveBookmarkDialog } from "./move-bookmark-dialog";
 
 interface BookmarkCardProps {
   bookmark: Bookmark;
   onEdit?: (bookmark: Bookmark) => void;
   onDelete?: (bookmark: Bookmark) => void;
+  onMove?: (bookmarkId: string, folderId: string) => Promise<void> | void;
+  folders?: Folder[];
   /** Set for the first card in the list to improve LCP (Largest Contentful Paint) */
   priority?: boolean;
 }
@@ -35,9 +39,12 @@ export function BookmarkCard({
   bookmark,
   onEdit,
   onDelete,
+  onMove,
+  folders,
   priority = false,
 }: BookmarkCardProps) {
   const [imageError, setImageError] = useState(false);
+  const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
   const { openInNewTab, showFavicons } = useGeneralStore();
 
   const {
@@ -138,7 +145,7 @@ export function BookmarkCard({
               <Button
                 variant="ghost"
                 size="icon-xs"
-                className="opacity-0 sm:opacity-0 transition-opacity group-hover:opacity-100 active:opacity-100 shrink-0"
+                className="opacity-100 md:opacity-0 transition-opacity md:group-hover:opacity-100 active:opacity-100 shrink-0"
               >
                 <MoreHorizontalIcon className="size-4" />
               </Button>
@@ -158,6 +165,12 @@ export function BookmarkCard({
                 <PencilIcon className="size-4" />
                 Edit
               </DropdownMenuItem>
+              {onMove && folders && folders.length > 0 && (
+                <DropdownMenuItem onClick={() => setIsMoveDialogOpen(true)}>
+                  <FolderIcon className="size-4" />
+                  Move to folder
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive"
@@ -170,6 +183,15 @@ export function BookmarkCard({
           </DropdownMenu>
         </div>
       </CardContent>
+      {onMove && folders && folders.length > 0 && (
+        <MoveBookmarkDialog
+          bookmark={bookmark}
+          folders={folders}
+          open={isMoveDialogOpen}
+          onOpenChange={setIsMoveDialogOpen}
+          onMove={onMove}
+        />
+      )}
     </Card>
   );
 }

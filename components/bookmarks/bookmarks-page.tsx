@@ -197,6 +197,19 @@ export function BookmarksPage() {
     (f) => f.id !== "all" && f.id !== "favorites",
   );
 
+  const handleMoveBookmark = async (bookmarkId: string, folderId: string) => {
+    if (!folderId) return;
+
+    try {
+      await updateBookmarkMutation({
+        bookmarkId: bookmarkId as Id<"bookmarks">,
+        folderId: folderId as Id<"folders">,
+      });
+    } catch (error) {
+      console.error("Failed to move bookmark:", error);
+    }
+  };
+
   // Add new bookmark
   const handleAddBookmark = async (data: {
     url: string;
@@ -504,6 +517,8 @@ export function BookmarksPage() {
                       bookmark={bookmark}
                       onEdit={setEditingBookmark}
                       onDelete={handleDeleteBookmark}
+                      onMove={handleMoveBookmark}
+                      folders={editableFolders}
                       priority={index === 0}
                     />
                   </FlipRevealItem>
