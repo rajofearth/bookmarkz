@@ -1,11 +1,12 @@
 {
     "manifest_version": 3,
-    "name": "Bookmark Exporter",
+    "name": "Bookmarks App – Import & save",
     "version": "1.0",
-    "description": "Export your browser bookmarks to the Bookmarks App",
+    "description": "Import browser bookmarks and save the current page to the Bookmarks App.",
     "permissions": [
         "bookmarks",
-        "cookies"
+        "cookies",
+        "activeTab"
     ],
     "host_permissions": [
         "http://localhost:3000/*"
