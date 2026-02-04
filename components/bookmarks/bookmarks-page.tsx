@@ -511,7 +511,7 @@ export function BookmarksPage() {
               hideClass="hidden"
             >
               <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {effectiveFilteredBookmarks.map((bookmark, index) => (
+                {bookmarks.map((bookmark) => (
                   <FlipRevealItem key={bookmark.id} flipKey={String(bookmark.id)}>
                     <BookmarkCard
                       bookmark={bookmark}
@@ -519,7 +519,7 @@ export function BookmarksPage() {
                       onDelete={handleDeleteBookmark}
                       onMove={handleMoveBookmark}
                       folders={editableFolders}
-                      priority={index === 0}
+                      priority={effectiveFilteredBookmarks[0]?.id === bookmark.id}
                     />
                   </FlipRevealItem>
                 ))}

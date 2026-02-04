@@ -129,33 +129,34 @@ export function FolderDetailView({
               </p>
             </div>
           </div>
-        ) : filteredBookmarks.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-            <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
-              <BookmarkIcon className="text-muted-foreground size-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">No bookmarks found</p>
-              <p className="text-muted-foreground text-sm">
-                Try a different search term
-              </p>
-            </div>
-          </div>
         ) : (
           <div className="relative h-full">
+            {filteredBookmarks.length === 0 && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 text-center">
+                <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
+                  <BookmarkIcon className="text-muted-foreground size-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">No bookmarks found</p>
+                  <p className="text-muted-foreground text-sm">
+                    Try a different search term
+                  </p>
+                </div>
+              </div>
+            )}
             <FlipReveal
               keys={filteredBookmarks.map((b) => String(b.id))}
               showClass="block"
               hideClass="hidden"
             >
               <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {filteredBookmarks.map((bookmark, index) => (
+                {bookmarks.map((bookmark) => (
                   <FlipRevealItem key={bookmark.id} flipKey={String(bookmark.id)}>
                     <BookmarkCard
                       bookmark={bookmark}
                       onEdit={onEditBookmark}
                       onDelete={onDeleteBookmark}
-                      priority={index === 0}
+                      priority={filteredBookmarks[0]?.id === bookmark.id}
                     />
                   </FlipRevealItem>
                 ))}
