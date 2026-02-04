@@ -131,12 +131,14 @@ export function BookmarkCard({
 
           {/* Title & URL */}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm sm:text-base font-medium leading-tight mb-1">
-              {bookmark.title}
-            </p>
-            <p className="text-muted-foreground truncate text-xs sm:text-sm">
-              {getDomain(bookmark.url)}
-            </p>
+            <a href={bookmark.url} target="_blank" rel="noopener noreferrer">
+              <p className="truncate text-sm sm:text-base font-medium leading-tight mb-1">
+                {bookmark.title}
+              </p>
+              <p className="text-muted-foreground truncate text-xs sm:text-sm">
+                {getDomain(bookmark.url)}
+              </p>
+            </a>
           </div>
 
           {/* Actions */}
