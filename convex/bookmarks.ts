@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { authComponent, getOptionalAuthUser } from "./auth";
 
@@ -147,7 +148,8 @@ export const batchCreateBookmarks = mutation({
             throw new Error("Not authenticated");
         }
 
-        const bookmarkIds = [];
+        const createdIds: Id<"bookmarks">[] = [];
+        let movedCount = 0;
         for (const bookmark of args.bookmarks) {
             // Check for duplicate
             const existing = await ctx.db
@@ -156,7 +158,14 @@ export const batchCreateBookmarks = mutation({
                 .first();
 
             if (existing) {
-                // Skip duplicates
+                if (bookmark.folderId) {
+                    if (existing.folderId !== bookmark.folderId) {
+                        await ctx.db.patch(existing._id, {
+                            folderId: bookmark.folderId,
+                        });
+                        movedCount += 1;
+                    }
+                }
                 continue;
             }
 
@@ -170,9 +179,9 @@ export const batchCreateBookmarks = mutation({
                 createdAt: Date.now(),
                 metadataStatus: (bookmark.favicon && bookmark.ogImage) ? "completed" : "pending",
             });
-            bookmarkIds.push(bookmarkId);
+            createdIds.push(bookmarkId);
         }
-        return bookmarkIds;
+        return { createdIds, movedCount };
     },
 });
 

@@ -1,5 +1,5 @@
 import type { Id } from "@/convex/_generated/dataModel";
-import { fetchAuthMutation, isAuthenticated } from "@/lib/auth-server";
+import { fetchAuthMutation, fetchAuthQuery, isAuthenticated } from "@/lib/auth-server";
 import { type NextRequest, NextResponse } from "next/server";
 import { api } from "@/convex/_generated/api";
 
@@ -48,7 +48,8 @@ function isFolderLike(obj: unknown): obj is FolderInput {
         obj !== null &&
         typeof obj === "object" &&
         "id" in obj &&
-        typeof (obj as FolderInput).id === "string" &&
+        (typeof (obj as FolderInput).id === "string" ||
+            typeof (obj as FolderInput).id === "number") &&
         "name" in obj &&
         typeof (obj as FolderInput).name === "string"
     );
@@ -57,9 +58,12 @@ function isFolderLike(obj: unknown): obj is FolderInput {
 function parseFolders(raw: unknown): FolderInput[] {
     if (!Array.isArray(raw)) return [];
     return raw.filter(isFolderLike).map((f) => ({
-        id: f.id,
+        id: String(f.id),
         name: f.name,
-        parentId: f.parentId ?? null,
+        parentId:
+            f.parentId === undefined || f.parentId === null
+                ? null
+                : String(f.parentId),
     }));
 }
 
@@ -76,7 +80,24 @@ function parseBookmarks(raw: unknown): BookmarkInput[] | null {
         ) {
             return null;
         }
-        out.push(b as BookmarkInput);
+        const folderIdRaw = (b as BookmarkInput).folderId;
+        const folderId =
+            typeof folderIdRaw === "string" || typeof folderIdRaw === "number"
+                ? String(folderIdRaw)
+                : undefined;
+        out.push({
+            title: (b as BookmarkInput).title,
+            url: (b as BookmarkInput).url,
+            folderId,
+            favicon:
+                typeof (b as BookmarkInput).favicon === "string"
+                    ? (b as BookmarkInput).favicon
+                    : undefined,
+            ogImage:
+                typeof (b as BookmarkInput).ogImage === "string"
+                    ? (b as BookmarkInput).ogImage
+                    : undefined,
+        });
     }
     return out;
 }
@@ -104,8 +125,28 @@ function sortFoldersTopologically(
     return sorted;
 }
 
+function folderKey(
+    parentId: Id<"folders"> | undefined | null,
+    name: string
+): string {
+    return `${parentId ?? "root"}::${name}`;
+}
+
+async function buildExistingFolderLookup(): Promise<Map<string, Id<"folders">>> {
+    const existingFolders = await fetchAuthQuery(api.bookmarks.getFolders);
+    const lookup = new Map<string, Id<"folders">>();
+    for (const folder of existingFolders) {
+        const key = folderKey(folder.parentId, folder.name);
+        if (!lookup.has(key)) {
+            lookup.set(key, folder._id);
+        }
+    }
+    return lookup;
+}
+
 async function createFolderMap(
-    folders: FolderInput[]
+    folders: FolderInput[],
+    existingFolderLookup: Map<string, Id<"folders">>
 ): Promise<Map<string, Id<"folders">>> {
     const map = new Map<string, Id<"folders">>();
     if (folders.length === 0) return map;
@@ -115,11 +156,19 @@ async function createFolderMap(
         const appParentId = folder.parentId
             ? map.get(folder.parentId)
             : undefined;
+        const key = folderKey(appParentId, folder.name);
+        const existingId = existingFolderLookup.get(key);
+        if (existingId) {
+            map.set(folder.id, existingId);
+            continue;
+        }
+
         const appFolderId = await fetchAuthMutation(api.bookmarks.createFolder, {
             name: folder.name,
             parentId: appParentId,
         });
         map.set(folder.id, appFolderId);
+        existingFolderLookup.set(key, appFolderId);
     }
     return map;
 }
@@ -132,12 +181,15 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-    if (!(await isAuthenticated())) {
-        return res.unauthorized();
-    }
-
     try {
-        const body = (await request.json()) as ImportRequestBody;
+        const authPromise = isAuthenticated();
+        const bodyPromise = request.json() as Promise<ImportRequestBody>;
+        const authenticated = await authPromise;
+        if (!authenticated) {
+            return res.unauthorized();
+        }
+
+        const body = await bodyPromise;
         const raw = body.bookmarks;
 
         if (!Array.isArray(raw)) {
@@ -155,9 +207,24 @@ export async function POST(request: NextRequest) {
         }
 
         const folders = parseFolders(body.folders);
-        const chromeFolderIdToAppId = await createFolderMap(folders);
+        const existingFolderLookup = folders.length > 0
+            ? await buildExistingFolderLookup()
+            : new Map<string, Id<"folders">>();
+        const chromeFolderIdToAppId = await createFolderMap(
+            folders,
+            existingFolderLookup
+        );
 
-        const bookmarkIds = await fetchAuthMutation(
+        // Validate that every bookmark folderId can be mapped
+        for (const b of bookmarks) {
+            if (b.folderId && !chromeFolderIdToAppId.has(b.folderId)) {
+                return res.badRequest(
+                    `Unknown folder reference for bookmark "${b.title}".`
+                );
+            }
+        }
+
+        const importResult = await fetchAuthMutation(
             api.bookmarks.batchCreateBookmarks,
             {
                 bookmarks: bookmarks.map((b) => ({
@@ -171,11 +238,23 @@ export async function POST(request: NextRequest) {
                 })),
             }
         );
+        const createdIds = Array.isArray(importResult)
+            ? importResult
+            : (importResult?.createdIds ?? []);
+        const movedCount = Array.isArray(importResult)
+            ? 0
+            : (importResult?.movedCount ?? 0);
+
+        console.log("Import result", {
+            createdCount: createdIds.length,
+            movedCount,
+        });
 
         return NextResponse.json({
             success: true,
-            count: bookmarkIds.length,
-            bookmarkIds,
+            count: createdIds.length,
+            movedCount,
+            bookmarkIds: createdIds,
         });
     } catch (error) {
         console.error("Import error:", error);

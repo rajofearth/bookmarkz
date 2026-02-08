@@ -207,8 +207,18 @@ async function handleExport() {
         }
 
         const importResult = await importResponse.json();
+        const createdCount = Number(importResult.count || 0);
+        const movedCount = Number(importResult.movedCount || 0);
+        const createdLabel = `${createdCount} bookmark${createdCount === 1 ? '' : 's'}`;
+        const movedLabel = `${movedCount} existing bookmark${movedCount === 1 ? '' : 's'}`;
 
-        statusEl.textContent = `Successfully imported ${importResult.count} bookmarks!`;
+        if (createdCount === 0 && movedCount > 0) {
+            statusEl.textContent = `Moved ${movedLabel}.`;
+        } else if (movedCount > 0) {
+            statusEl.textContent = `Imported ${createdLabel}, moved ${movedLabel}.`;
+        } else {
+            statusEl.textContent = `Successfully imported ${createdLabel}!`;
+        }
         statusEl.className = 'status success';
         importProgressEl.textContent = 'Check the website to see metadata enrichment in progress.';
 
