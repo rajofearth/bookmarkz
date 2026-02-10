@@ -165,8 +165,6 @@ export function BookmarksPage() {
     return result;
   }, [bookmarks, selectedFolder, searchQuery]);
 
-  const currentFolder = folders.find((f) => f.id === selectedFolder);
-
   // On mobile home tab, always show "All Bookmarks"; on desktop use selected folder
   const effectiveSelectedFolder = isMobile ? "all" : selectedFolder;
   const effectiveFilteredBookmarks = useMemo(() => {
