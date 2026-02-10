@@ -52,7 +52,7 @@ export function BookmarksPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
   const [activeBookmarkId, setActiveBookmarkId] = useState<string | null>(null);
-  
+
   // Mobile tab state
   const [activeTab, setActiveTab] = useState<"home" | "folders" | "profile">("home");
   const [mobileSelectedFolder, setMobileSelectedFolder] = useState<string | null>(null);
@@ -76,7 +76,6 @@ export function BookmarksPage() {
   const deleteBookmarkMutation = useMutation(api.bookmarks.deleteBookmark);
   const createFolderMutation = useMutation(api.bookmarks.createFolder);
   // const updateFolderMutation = useMutation(api.bookmarks.updateFolder);
-  const deleteFolderMutation = useMutation(api.bookmarks.deleteFolder);
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -128,13 +127,6 @@ export function BookmarksPage() {
         // Count for specific folder
         if (b.folderId) {
           counts[b.folderId] = (counts[b.folderId] || 0) + 1;
-        }
-
-        // Logic for favorites - currently based on folderId="favorites" in the old code,
-        // but typically favorites is a flag. The old code used folderId="favorites".
-        // If we want to support that legacy way:
-        if (b.folderId === "favorites") {
-          counts["favorites"] = (counts["favorites"] || 0) + 1;
         }
       });
 
@@ -292,43 +284,45 @@ export function BookmarksPage() {
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
-      const { active, over } = event;
-
-      if (!over) return;
-
-      const activeData = active.data.current as DragData | null;
-      const overData = over.data.current as DragData | null;
-
-      if (!activeData || !overData) return;
-
-      if (activeData.type !== "bookmark" || overData.type !== "folder") {
-        return;
-      }
-
-      const bookmarkId = activeData.bookmarkId;
-      const folderId = overData.folderId;
-
-      // Validate that target is a user-created folder (not "all" or "favorites")
-      if (folderId === "all" || folderId === "favorites") {
-        return;
-      }
-
-      // Check if bookmark is already in this folder
-      const bookmark = bookmarks.find((b) => b.id === bookmarkId);
-      if (bookmark && bookmark.folderId === folderId) {
-        return;
-      }
-
       try {
-        await updateBookmarkMutation({
-          bookmarkId: bookmarkId as Id<"bookmarks">,
-          folderId: folderId as Id<"folders">,
-        });
-      } catch (error) {
-        console.error("Failed to move bookmark:", error);
-      }
+        const { active, over } = event;
 
-      setActiveBookmarkId(null);
+        if (!over) return;
+
+        const activeData = active.data.current as DragData | null;
+        const overData = over.data.current as DragData | null;
+
+        if (!activeData || !overData) return;
+
+        if (activeData.type !== "bookmark" || overData.type !== "folder") {
+          return;
+        }
+
+        const bookmarkId = activeData.bookmarkId;
+        const folderId = overData.folderId;
+
+        // Validate that target is a user-created folder (not "all" or "favorites")
+        if (folderId === "all" || folderId === "favorites") {
+          return;
+        }
+
+        // Check if bookmark is already in this folder
+        const bookmark = bookmarks.find((b) => b.id === bookmarkId);
+        if (bookmark && bookmark.folderId === folderId) {
+          return;
+        }
+
+        try {
+          await updateBookmarkMutation({
+            bookmarkId: bookmarkId as Id<"bookmarks">,
+            folderId: folderId as Id<"folders">,
+          });
+        } catch (error) {
+          console.error("Failed to move bookmark:", error);
+        }
+      } finally {
+        setActiveBookmarkId(null);
+      }
     },
     [bookmarks, updateBookmarkMutation],
   );
@@ -464,10 +458,10 @@ export function BookmarksPage() {
       </header>
 
       {/* Bookmarks Grid */}
-      <div 
-        className="flex-1 overflow-y-auto p-4 pb-20 md:pb-4" 
-        style={{ 
-          paddingBottom: isMobile ? "calc(5rem + env(safe-area-inset-bottom))" : undefined 
+      <div
+        className="flex-1 overflow-y-auto p-4 pb-20 md:pb-4"
+        style={{
+          paddingBottom: isMobile ? "calc(5rem + env(safe-area-inset-bottom))" : undefined
         }}
       >
         {isLoading ? (
@@ -505,9 +499,9 @@ export function BookmarksPage() {
                 </div>
               </div>
             )}
-            <FlipReveal 
-              keys={effectiveFilteredBookmarks.map((b) => String(b.id))} 
-              showClass="block" 
+            <FlipReveal
+              keys={effectiveFilteredBookmarks.map((b) => String(b.id))}
+              showClass="block"
               hideClass="hidden"
             >
               <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -572,26 +566,28 @@ export function BookmarksPage() {
       />
 
       {/* Desktop Layout */}
-      <div className="bg-background text-foreground hidden md:flex h-screen w-full">
-        {/* Sidebar */}
-        <aside
-          className={cn(
-            "border-border bg-card flex h-full flex-col border-r transition-all duration-200",
-            sidebarOpen ? "w-64" : "w-0 overflow-hidden",
-          )}
-        >
-          <FoldersSidebar
-            folders={folders}
-            selectedFolder={selectedFolder}
-            onSelectFolder={setSelectedFolder}
-            onAddFolder={handleAddFolder}
-            onSettings={() => router.push("/settings")}
-          />
-        </aside>
+      {!isMobile && (
+        <div className="bg-background text-foreground flex h-screen w-full">
+          {/* Sidebar */}
+          <aside
+            className={cn(
+              "border-border bg-card flex h-full flex-col border-r transition-all duration-200",
+              sidebarOpen ? "w-64" : "w-0 overflow-hidden",
+            )}
+          >
+            <FoldersSidebar
+              folders={folders}
+              selectedFolder={selectedFolder}
+              onSelectFolder={setSelectedFolder}
+              onAddFolder={handleAddFolder}
+              onSettings={() => router.push("/settings")}
+            />
+          </aside>
 
-        {/* Main Content */}
-        {renderMainContent()}
-      </div>
+          {/* Main Content */}
+          {renderMainContent()}
+        </div>
+      )}
 
       {/* Edit Bookmark Dialog */}
       <EditBookmarkDialog

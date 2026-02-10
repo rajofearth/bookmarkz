@@ -12,9 +12,14 @@ interface AuthFormProps {
 export function AuthForm({ className }: AuthFormProps) {
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleSocialLogin = (provider: "google" | "github") => {
+    const handleSocialLogin = async (provider: "google" | "github") => {
         setIsLoading(true);
-        authClient.signIn.social({ provider });
+        try {
+            await authClient.signIn.social({ provider });
+        } catch (error) {
+            console.error("Social login failed:", error);
+            setIsLoading(false);
+        }
     };
 
     return (

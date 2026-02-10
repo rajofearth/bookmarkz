@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Loader2 } from "lucide-react";
@@ -12,6 +12,7 @@ export function MetadataFetcher() {
 
     const [processing, setProcessing] = useState<Set<string>>(new Set());
     const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
+    const isProcessingRef = useRef(false);
 
     useEffect(() => {
         if (!bookmarks) return;
@@ -27,54 +28,57 @@ export function MetadataFetcher() {
             return;
         }
 
+        // Prevent overlapping runs
+        if (isProcessingRef.current) return;
+
         const processQueue = async () => {
-            // Initialize progress
-            const total = pendingBookmarks.length + processing.size;
-            setProgress((prev) => ({
-                current: prev ? prev.current : 0,
-                total: total
-            }));
+            isProcessingRef.current = true;
+            try {
+                // Initialize progress
+                const total = pendingBookmarks.length + processing.size;
+                setProgress((prev) => ({
+                    current: prev ? prev.current : 0,
+                    total: total
+                }));
 
-            // Add to processing set
-            setProcessing((prev) => {
-                const next = new Set(prev);
-                pendingBookmarks.forEach((b) => next.add(b._id));
-                return next;
-            });
+                // Add to processing set
+                setProcessing((prev) => {
+                    const next = new Set(prev);
+                    pendingBookmarks.forEach((b) => next.add(b._id));
+                    return next;
+                });
 
-            // Process in chunks of 5
-            const CONCURRENCY = 5;
-            for (let i = 0; i < pendingBookmarks.length; i += CONCURRENCY) {
-                const chunk = pendingBookmarks.slice(i, i + CONCURRENCY);
+                // Process in chunks of 5
+                const CONCURRENCY = 5;
+                for (let i = 0; i < pendingBookmarks.length; i += CONCURRENCY) {
+                    const chunk = pendingBookmarks.slice(i, i + CONCURRENCY);
 
-                await Promise.all(
-                    chunk.map(async (bookmark) => {
-                        try {
-                            const metadata = await fetchMetadataAction({ url: bookmark.url });
+                    await Promise.all(
+                        chunk.map(async (bookmark) => {
+                            try {
+                                const metadata = await fetchMetadataAction({ url: bookmark.url });
 
-                            await updateMetadata({
-                                bookmarkId: bookmark._id,
-                                title: metadata.title,
-                                favicon: metadata.favicon,
-                                ogImage: metadata.ogImage,
-                            });
-                        } catch (error) {
-                            console.error(`Failed to process ${bookmark.url}`, error);
-                            // Mark as failed locally so we don't retry immediately? 
-                            // For now, we just leave it or maybe a robust retry logic is needed later.
-                            // But to stop infinite loop, we should probably mark it as failed in DB.
-                            // However, for this MVP, if action fails it returns partial data or error, 
-                            // and we call updateMetadata anyway which sets status to "completed".
-                        } finally {
-                            setProcessing((prev) => {
-                                const next = new Set(prev);
-                                next.delete(bookmark._id);
-                                return next;
-                            });
-                            setProgress((prev) => prev ? { ...prev, current: prev.current + 1 } : null);
-                        }
-                    })
-                );
+                                await updateMetadata({
+                                    bookmarkId: bookmark._id,
+                                    title: metadata.title,
+                                    favicon: metadata.favicon,
+                                    ogImage: metadata.ogImage,
+                                });
+                            } catch (error) {
+                                console.error(`Failed to process ${bookmark.url}`, error);
+                            } finally {
+                                setProcessing((prev) => {
+                                    const next = new Set(prev);
+                                    next.delete(bookmark._id);
+                                    return next;
+                                });
+                                setProgress((prev) => prev ? { ...prev, current: prev.current + 1 } : null);
+                            }
+                        })
+                    );
+                }
+            } finally {
+                isProcessingRef.current = false;
             }
         };
 

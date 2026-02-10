@@ -8,12 +8,43 @@ export const fetchMetadata = action({
     args: { url: v.string() },
     handler: async (ctx, args) => {
         try {
+            // SSRF protection: validate URL before fetching
+            let parsedUrl: URL;
+            try {
+                parsedUrl = new URL(args.url);
+            } catch {
+                throw new Error(`Invalid URL: ${args.url}`);
+            }
+
+            if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+                throw new Error(`Unsupported protocol: ${parsedUrl.protocol}`);
+            }
+
+            const hostname = parsedUrl.hostname.toLowerCase();
+            const isPrivate =
+                hostname === "localhost" ||
+                hostname === "127.0.0.1" ||
+                hostname === "[::1]" ||
+                hostname.startsWith("10.") ||
+                hostname.startsWith("192.168.") ||
+                /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+                hostname.endsWith(".local");
+            if (isPrivate) {
+                throw new Error(`Blocked request to private/local address: ${hostname}`);
+            }
+
+            // Timeout protection
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+
             const response = await fetch(args.url, {
+                signal: controller.signal,
                 headers: {
                     "User-Agent":
                         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
                 },
             });
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 throw new Error(`Failed to fetch ${args.url}: ${response.statusText}`);

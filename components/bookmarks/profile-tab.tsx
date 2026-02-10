@@ -10,7 +10,6 @@ import {
   LogOut,
   Bookmark,
   FolderOpen,
-  Mail,
   ChevronRight,
   Moon,
   Sun,
@@ -37,7 +36,6 @@ import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { usePrivacyStore } from "@/hooks/use-privacy-store";
-import { useGeneralStore } from "@/hooks/use-general-store";
 
 type SettingsSection = "profile" | "appearance" | "general" | "notifications" | null;
 
@@ -47,7 +45,6 @@ export function ProfileTab() {
   const user = useQuery(api.users.getProfile);
   const stats = useQuery(api.bookmarks.getUserStats);
   const blurProfile = usePrivacyStore((state) => state.blurProfile);
-  const { openInNewTab, showFavicons, updateSettings } = useGeneralStore();
   const [openSection, setOpenSection] = useState<SettingsSection>(null);
 
   const handleSignOut = async () => {
@@ -62,11 +59,11 @@ export function ProfileTab() {
 
   const initials = user?.name
     ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
     : "??";
 
   const imageUrl = user?.image ?? undefined;
@@ -104,7 +101,7 @@ export function ProfileTab() {
       <div className="relative px-4 pt-5 pb-4 border-b border-border bg-background overflow-hidden">
         {/* Gradient Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-primary/3 to-transparent pointer-events-none" />
-        
+
         <div className="relative flex items-center gap-3 mb-4">
           {/* Avatar with Enhanced Styling */}
           <div className="relative">
@@ -118,7 +115,7 @@ export function ProfileTab() {
               </AvatarFallback>
             </Avatar>
           </div>
-          
+
           {/* User Info */}
           <div className="flex-1 min-w-0">
             <h2 className={cn(

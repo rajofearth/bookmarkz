@@ -63,8 +63,8 @@ export function BookmarkCard({
 
   const style = transform
     ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-      }
+      transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    }
     : undefined;
 
   return (
@@ -78,7 +78,7 @@ export function BookmarkCard({
         "cursor-grab active:cursor-grabbing hover:shadow-md",
         "w-full",
         isDragging &&
-          "pointer-events-none z-20 scale-[1.02] opacity-0 shadow-lg ring-2 ring-primary/40",
+        "pointer-events-none z-20 scale-[1.02] opacity-0 shadow-lg ring-2 ring-primary/40",
       )}
     >
       {/* OG Image Preview */}
@@ -123,7 +123,7 @@ export function BookmarkCard({
               <GlobeIcon
                 className={cn(
                   "text-muted-foreground size-3 sm:size-4",
-                  bookmark.favicon && "hidden",
+                  bookmark.favicon && bookmark.favicon.startsWith("http") && "hidden",
                 )}
               />
             </div>

@@ -110,13 +110,17 @@ function sortFoldersTopologically(
     const byId = new Map(folders.map((f) => [f.id, f]));
     const sorted: FolderInput[] = [];
     const added = new Set<string>();
+    const visiting = new Set<string>();
 
     function add(folder: FolderInput) {
         if (added.has(folder.id)) return;
+        if (visiting.has(folder.id)) return; // cycle detected — break it
+        visiting.add(folder.id);
         if (folder.parentId != null && !added.has(folder.parentId)) {
             const parent = byId.get(folder.parentId);
             if (parent) add(parent);
         }
+        visiting.delete(folder.id);
         sorted.push(folder);
         added.add(folder.id);
     }
@@ -182,14 +186,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const authPromise = isAuthenticated();
-        const bodyPromise = request.json() as Promise<ImportRequestBody>;
-        const authenticated = await authPromise;
+        const authenticated = await isAuthenticated();
         if (!authenticated) {
             return res.unauthorized();
         }
 
-        const body = await bodyPromise;
+        let body: ImportRequestBody;
+        try {
+            body = await request.json() as ImportRequestBody;
+        } catch {
+            return res.badRequest("Invalid JSON in request body.");
+        }
+
         const raw = body.bookmarks;
 
         if (!Array.isArray(raw)) {

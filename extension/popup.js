@@ -1,5 +1,14 @@
-const API_BASE_URL = 'http://localhost:3000';
-const APP_URL = 'http://localhost:3000';
+// Default to production URL; override via chrome.storage.local.set({ apiBaseUrl: '...' })
+let API_BASE_URL = 'https://bookmarkz.vercel.app';
+let APP_URL = 'https://bookmarkz.vercel.app';
+
+// Allow overriding via chrome.storage for development
+if (typeof chrome !== 'undefined' && chrome.storage) {
+    chrome.storage.local.get(['apiBaseUrl', 'appUrl'], (result) => {
+        if (result.apiBaseUrl) API_BASE_URL = result.apiBaseUrl;
+        if (result.appUrl) APP_URL = result.appUrl;
+    });
+}
 
 // UI Elements
 const authStatusEl = document.getElementById('authStatus');
@@ -19,8 +28,8 @@ checkAuthentication();
 
 // Event listeners
 if (savePageBtn) savePageBtn.addEventListener('click', handleSavePage);
-exportBtn.addEventListener('click', handleExport);
-recheckBtn.addEventListener('click', checkAuthentication);
+if (exportBtn) exportBtn.addEventListener('click', handleExport);
+if (recheckBtn) recheckBtn.addEventListener('click', checkAuthentication);
 openAppLinks.forEach((el) => el.addEventListener('click', (e) => { e.preventDefault(); window.open(APP_URL, '_blank'); }));
 
 async function checkAuthentication() {

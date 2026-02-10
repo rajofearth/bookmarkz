@@ -57,10 +57,18 @@ export const updateFolder = mutation({
             throw new Error("Folder not found or unauthorized");
         }
 
-        await ctx.db.patch(args.folderId, {
-            name: args.name,
-            parentId: args.parentId,
-        });
+        // Guard against self-referencing cycle
+        if (args.parentId === args.folderId) {
+            throw new Error("A folder cannot be its own parent");
+        }
+
+        // Only patch fields that were actually provided
+        const { folderId, ...rest } = args;
+        const patch = Object.fromEntries(
+            Object.entries(rest).filter(([, value]) => value !== undefined),
+        ) as Record<string, unknown>;
+
+        await ctx.db.patch(folderId, patch);
     },
 });
 
@@ -80,11 +88,27 @@ export const deleteFolder = mutation({
             throw new Error("Folder not found or unauthorized");
         }
 
-        // TODO: cascading delete of bookmarks?
-        // For now, let's just delete the folder. Bookmarks might get orphaned or we should check.
-        // Better to orphan or prevent delete if not empty?
-        // Let's recursively delete for now or just delete the folder node.
-        // Simple delete:
+        // Cascading delete: remove child bookmarks
+        const childBookmarks = await ctx.db
+            .query("bookmarks")
+            .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+            .filter((q) => q.eq(q.field("folderId"), args.folderId))
+            .collect();
+        for (const bm of childBookmarks) {
+            await ctx.db.delete(bm._id);
+        }
+
+        // Cascading delete: remove child folders recursively
+        const childFolders = await ctx.db
+            .query("folders")
+            .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+            .filter((q) => q.eq(q.field("parentId"), args.folderId))
+            .collect();
+        for (const cf of childFolders) {
+            // Reparent children to the deleted folder's parent instead of recursive delete
+            await ctx.db.patch(cf._id, { parentId: folder.parentId });
+        }
+
         await ctx.db.delete(args.folderId);
     },
 });
@@ -166,6 +190,7 @@ export const batchCreateBookmarks = mutation({
                         movedCount += 1;
                     }
                 }
+                createdIds.push(existing._id);
                 continue;
             }
 
@@ -219,11 +244,12 @@ export const updateBookmarkMetadata = mutation({
             throw new Error("Bookmark not found or unauthorized");
         }
 
+        const hasNewData = args.favicon !== undefined || args.ogImage !== undefined || args.title !== undefined;
         await ctx.db.patch(args.bookmarkId, {
-            favicon: args.favicon || bookmark.favicon,
-            ogImage: args.ogImage || bookmark.ogImage,
-            title: args.title || bookmark.title,
-            metadataStatus: "completed",
+            favicon: args.favicon ?? bookmark.favicon,
+            ogImage: args.ogImage ?? bookmark.ogImage,
+            title: args.title ?? bookmark.title,
+            metadataStatus: hasNewData ? "completed" : bookmark.metadataStatus,
         });
     },
 });
