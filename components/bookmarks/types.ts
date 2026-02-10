@@ -24,3 +24,13 @@ export interface UrlMetadata {
   ogImage: string | null;
   description?: string;
 }
+
+export type DragData =
+  | {
+      type: "bookmark";
+      bookmarkId: string;
+    }
+  | {
+      type: "folder";
+      folderId: string;
+    };

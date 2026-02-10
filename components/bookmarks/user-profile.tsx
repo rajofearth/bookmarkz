@@ -13,8 +13,9 @@ import {
   Sun,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
@@ -23,13 +24,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { usePrivacyStore } from "@/hooks/use-privacy-store";
-
-interface User {
-  name: string;
-  email: string;
-  avatar?: string;
-}
+import { UserInfoRow } from "@/components/user-info-row";
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 interface UserStats {
   bookmarks: number;
@@ -37,19 +34,11 @@ interface UserStats {
 }
 
 interface UserProfileProps {
-  user?: User;
   stats?: UserStats;
   onSettings?: () => void;
   onKeyboardShortcuts?: () => void;
   onSignOut?: () => void;
 }
-
-// Default mock user - replace with actual auth data
-const defaultUser: User = {
-  name: "John Doe",
-  email: "john@example.com",
-  avatar: undefined,
-};
 
 const defaultStats: UserStats = {
   bookmarks: 128,
@@ -57,28 +46,26 @@ const defaultStats: UserStats = {
 };
 
 export function UserProfile({
-  user = defaultUser,
-  stats = defaultStats,
+  stats,
   onSettings,
   onKeyboardShortcuts,
   onSignOut,
 }: UserProfileProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const blurProfile = usePrivacyStore((state) => state.blurProfile);
+
+  const user = useQuery(api.users.getProfile);
+  const realStats = useQuery(api.bookmarks.getUserStats);
+
+  // Use real stats from database if available, otherwise use passed stats or defaults
+  const displayStats = realStats ?? stats ?? defaultStats;
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const initials = user.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
 
   const toggleTheme = () => {
     if (theme === "light") {
@@ -87,6 +74,16 @@ export function UserProfile({
       setTheme("system");
     } else {
       setTheme("light");
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await authClient.signOut();
+    } finally {
+      onSignOut?.();
+      setIsOpen(false);
+      router.push("/auth");
     }
   };
 
@@ -124,6 +121,14 @@ export function UserProfile({
     };
   }, [isOpen]);
 
+  if (!user) {
+    return (
+      <div className="relative border-t border-sidebar-border p-2 text-xs text-sidebar-foreground/60">
+        Loading profile...
+      </div>
+    );
+  }
+
   return (
     <div ref={containerRef} className="relative border-t border-sidebar-border p-2">
       {/* Dropdown Menu - appears above the button */}
@@ -138,25 +143,18 @@ export function UserProfile({
         )}
       >
         {/* User Info Header */}
-        <div className="flex items-center gap-3 p-3">
-          <Avatar className="size-10">
-            <AvatarImage src={user.avatar} alt={user.name} className={cn(blurProfile && "blur-sm")} />
-            <AvatarFallback className={cn("bg-sidebar-accent text-sidebar-accent-foreground text-sm font-medium", blurProfile && "blur-sm")}>
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className={cn("truncate text-sm font-medium text-sidebar-foreground", blurProfile && "blur-sm")}>{user.name}</p>
-            <p className={cn("truncate text-xs text-sidebar-foreground/60", blurProfile && "blur-sm")}>{user.email}</p>
-          </div>
-        </div>
+        <UserInfoRow
+          user={user}
+          className="p-3 gap-3"
+          avatarClassName="size-10"
+        />
 
         <Separator className="bg-sidebar-border" />
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-1 p-2">
-          <StatItem icon={Bookmark} value={stats.bookmarks} label="Bookmarks" />
-          <StatItem icon={FolderOpen} value={stats.folders} label="Folders" />
+          <StatItem icon={Bookmark} value={displayStats.bookmarks} label="Bookmarks" />
+          <StatItem icon={FolderOpen} value={displayStats.folders} label="Folders" />
         </div>
 
         <Separator className="bg-sidebar-border" />
@@ -207,10 +205,7 @@ export function UserProfile({
               icon={LogOut}
               label="Sign out"
               variant="destructive"
-              onClick={() => {
-                onSignOut?.();
-                setIsOpen(false);
-              }}
+              onClick={handleSignOut}
             />
           </TooltipProvider>
         </div>
@@ -228,18 +223,10 @@ export function UserProfile({
           isOpen && "bg-sidebar-accent text-sidebar-accent-foreground"
         )}
       >
-        <Avatar className="size-7 shrink-0">
-          <AvatarImage src={user.avatar} alt={user.name} className={cn(blurProfile && "blur-sm")} />
-          <AvatarFallback className={cn("bg-sidebar-primary/10 text-sidebar-primary text-xs font-medium", blurProfile && "blur-sm")}>
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <p className={cn("truncate text-sm font-medium leading-tight text-sidebar-foreground", blurProfile && "blur-sm")}>
-            {user.name}
-          </p>
-          <p className={cn("truncate text-xs text-sidebar-foreground/60", blurProfile && "blur-sm")}>{user.email}</p>
-        </div>
+        <UserInfoRow
+          user={user}
+          className="flex-1 px-0"
+        />
         <ChevronUp
           className={cn(
             "size-4 shrink-0 text-sidebar-foreground/50 transition-transform duration-150",

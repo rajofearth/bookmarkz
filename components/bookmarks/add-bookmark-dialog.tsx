@@ -90,9 +90,9 @@ export function AddBookmarkDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button size="sm">
+        <Button size="sm" className="gap-2">
           <PlusIcon className="size-4" />
-          Add Bookmark
+          <span className="hidden sm:inline">Add Bookmark</span>
         </Button>
       </DialogTrigger>
       <DialogContent>

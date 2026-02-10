@@ -1,17 +1,25 @@
 "use client";
 
-import { motion } from "motion/react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { AuthForm } from "@/components/auth";
+import { authClient } from "@/lib/auth-client";
 
 export default function AuthPage() {
+    const router = useRouter();
+    const { data: session, isPending } = authClient.useSession();
+
+    useEffect(() => {
+        if (!isPending && session) {
+            router.push("/bookmarks");
+        }
+    }, [session, isPending, router]);
+
+    if (session) return null;
+
     return (
         <div className="flex min-h-svh w-full flex-1 flex-col items-center justify-center bg-background px-6 py-12">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className="w-full max-w-sm"
-            >
+            <div className="w-full max-w-sm">
                 <AuthForm />
 
                 {/* Footer */}
@@ -25,7 +33,7 @@ export default function AuthPage() {
                         Privacy Policy
                     </a>
                 </p>
-            </motion.div>
+            </div>
         </div>
     );
 }

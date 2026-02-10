@@ -1,11 +1,20 @@
+
 import { SettingsPage } from "@/components/settings/settings-page";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { isAuthenticated } from "@/lib/auth-server";
 
 export const metadata: Metadata = {
     title: "Settings | Bookmarks",
     description: "Manage your account and application settings",
 };
 
-export default function Page() {
+export default async function Page() {
+    const isAuth = await isAuthenticated();
+
+    if (!isAuth) {
+        redirect("/auth");
+    }
+
     return <SettingsPage />;
 }

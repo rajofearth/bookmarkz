@@ -24,6 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { motion } from "framer-motion"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -462,14 +463,42 @@ function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">) {
   )
 }
 
-function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
+function SidebarMenuItem({
+  className,
+  children,
+  onMouseEnter,
+  onMouseLeave,
+  ...props
+}: React.ComponentProps<"li">) {
+  const [isHovered, setIsHovered] = React.useState(false)
+
+  const handleMouseEnter = (e: React.MouseEvent<HTMLLIElement>) => {
+    setIsHovered(true)
+    onMouseEnter?.(e)
+  }
+  const handleMouseLeave = (e: React.MouseEvent<HTMLLIElement>) => {
+    setIsHovered(false)
+    onMouseLeave?.(e)
+  }
+
+  const child =
+    React.Children.count(children) === 1 && React.isValidElement(children)
+      ? React.cloneElement(children as React.ReactElement<{ isHovered?: boolean }>, {
+          isHovered,
+        })
+      : children
+
   return (
     <li
       data-slot="sidebar-menu-item"
       data-sidebar="menu-item"
       className={cn("group/menu-item relative", className)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       {...props}
-    />
+    >
+      {child}
+    </li>
   )
 }
 
@@ -498,14 +527,17 @@ const sidebarMenuButtonVariants = cva(
 function SidebarMenuButton({
   asChild = false,
   isActive = false,
+  isHovered = false,
   variant = "default",
   size = "default",
   tooltip,
   className,
+  children,
   ...props
 }: React.ComponentProps<"button"> & {
   asChild?: boolean
   isActive?: boolean
+  isHovered?: boolean
   tooltip?: string | React.ComponentProps<typeof TooltipContent>
 } & VariantProps<typeof sidebarMenuButtonVariants>) {
   const Comp = asChild ? Slot : "button"
@@ -517,9 +549,22 @@ function SidebarMenuButton({
       data-sidebar="menu-button"
       data-size={size}
       data-active={isActive}
-      className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+      className={cn(
+        "relative",
+        sidebarMenuButtonVariants({ variant, size }),
+        className
+      )}
       {...props}
-    />
+    >
+      {isHovered && (
+        <motion.div
+          layoutId="sidebar-hover-bg"
+          className="absolute inset-0 rounded-md bg-sidebar-accent/50 pointer-events-none"
+          style={{ zIndex: 0 }}
+        />
+      )}
+      {children}
+    </Comp>
   )
 
   if (!tooltip) {
