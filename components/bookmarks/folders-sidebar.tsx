@@ -1,6 +1,6 @@
 "use client";
 
-import { BookmarkIcon, FolderIcon, StarIcon } from "lucide-react";
+import { BookmarkIcon, FolderIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useDndContext, useDroppable } from "@dnd-kit/core";
 import { AnimatePresence, motion } from "framer-motion";
@@ -51,7 +51,7 @@ function DroppableFolderItem({
   const { active } = useDndContext();
   const activeData = active?.data.current as DragData | null;
   const isDraggingBookmark = activeData?.type === "bookmark";
-  const droppable = folder.id !== "all" && folder.id !== "favorites";
+  const droppable = folder.id !== "all";
   const { setNodeRef, isOver } = useDroppable({
     id: folder.id,
     disabled: !droppable,
@@ -132,7 +132,6 @@ export function FoldersSidebar({
   // Get icon for folder
   const getFolderIcon = (folder: Folder) => {
     if (folder.id === "all") return <BookmarkIcon className="size-4" />;
-    if (folder.id === "favorites") return <StarIcon className="size-4" />;
     if (folder.icon) {
       const Icon = folder.icon;
       return <Icon className="size-4" />;

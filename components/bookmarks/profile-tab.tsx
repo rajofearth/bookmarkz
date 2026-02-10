@@ -227,6 +227,7 @@ export function ProfileTab() {
             const Icon = item.icon;
             return (
               <button
+                type="button"
                 key={item.id}
                 onClick={() => setOpenSection(item.id)}
                 className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 active:bg-muted transition-colors text-left"

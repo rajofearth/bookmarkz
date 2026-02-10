@@ -58,10 +58,6 @@ export function MoveBookmarkDialog({
       return "All Bookmarks";
     }
 
-    if (bookmark.folderId === "favorites") {
-      return "Favorites";
-    }
-
     const match = folders.find((folder) => folder.id === bookmark.folderId);
     return match?.name ?? "Unknown folder";
   }, [bookmark, folders]);

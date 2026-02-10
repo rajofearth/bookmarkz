@@ -5,7 +5,6 @@ import {
   ChevronRightIcon,
   FolderIcon,
   SearchIcon,
-  StarIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -104,7 +103,6 @@ export function BookmarksPage() {
   const folders: Folder[] = useMemo(() => {
     const staticFolders: Folder[] = [
       { id: "all", name: "All Bookmarks", count: 0, icon: BookmarkIcon },
-      { id: "favorites", name: "Favorites", count: 0, icon: StarIcon },
     ];
 
     if (!convexFolders) return staticFolders;
@@ -145,12 +143,7 @@ export function BookmarksPage() {
     let result = bookmarks;
 
     if (selectedFolder !== "all") {
-      // For favorites, if we use folderId strategy
-      if (selectedFolder === "favorites") {
-        result = bookmarks.filter((b) => b.folderId === "favorites");
-      } else {
-        result = bookmarks.filter((b) => b.folderId === selectedFolder);
-      }
+      result = bookmarks.filter((b) => b.folderId === selectedFolder);
     }
 
     if (searchQuery) {
@@ -182,13 +175,13 @@ export function BookmarksPage() {
   const effectiveCurrentFolder = folders.find((f) => f.id === effectiveSelectedFolder);
 
   // Folders available for selection when adding a bookmark
-  // Exclude "all" and "favorites" from the dropdown list for now unless we want to allow moving to favorites directly
+  // Exclude "all" from the dropdown list
   const editableFolders = folders.filter(
-    (f) => f.id !== "all" && f.id !== "favorites",
+    (f) => f.id !== "all",
   );
 
   const handleMoveBookmark = async (bookmarkId: string, folderId: string) => {
-    if (!folderId) return;
+    if (!folderId || folderId === "all") return;
 
     try {
       await updateBookmarkMutation({
@@ -214,7 +207,7 @@ export function BookmarksPage() {
         title: data.title,
         favicon: data.favicon ?? undefined,
         ogImage: data.ogImage ?? undefined,
-        folderId: data.folderId && data.folderId !== "all" && data.folderId !== "favorites"
+        folderId: data.folderId && data.folderId !== "all"
           ? (data.folderId as Id<"folders">)
           : undefined,
       });
@@ -250,7 +243,7 @@ export function BookmarksPage() {
         title: data.title,
         favicon: data.favicon ?? undefined,
         ogImage: data.ogImage ?? undefined,
-        folderId: data.folderId && data.folderId !== "all" && data.folderId !== "favorites"
+        folderId: data.folderId && data.folderId !== "all"
           ? (data.folderId as Id<"folders">)
           : undefined,
       });
@@ -299,8 +292,8 @@ export function BookmarksPage() {
         const bookmarkId = activeData.bookmarkId;
         const folderId = overData.folderId;
 
-        // Validate that target is a user-created folder (not "all" or "favorites")
-        if (folderId === "all" || folderId === "favorites") {
+        // Validate that target is a user-created folder (not "all")
+        if (folderId === "all") {
           return;
         }
 
@@ -338,9 +331,6 @@ export function BookmarksPage() {
   const mobileFolderBookmarks = useMemo(() => {
     if (!mobileSelectedFolder) return [];
     if (mobileSelectedFolder === "all") return bookmarks;
-    if (mobileSelectedFolder === "favorites") {
-      return bookmarks.filter((b) => b.folderId === "favorites");
-    }
     return bookmarks.filter((b) => b.folderId === mobileSelectedFolder);
   }, [bookmarks, mobileSelectedFolder]);
 
@@ -472,11 +462,9 @@ export function BookmarksPage() {
               <BookmarkIcon className="text-muted-foreground size-6" />
             </div>
             <div>
-              <p className="text-sm font-medium">No bookmarks found</p>
+              <p className="text-sm font-medium">No bookmarks yet</p>
               <p className="text-muted-foreground text-sm">
-                {searchQuery
-                  ? "Try a different search term"
-                  : "Add your first bookmark to get started"}
+                Add your first bookmark to get started
               </p>
             </div>
           </div>
@@ -554,17 +542,15 @@ export function BookmarksPage() {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      {/* Mobile Layout */}
-      <MobileLayout
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        homeContent={renderMainContent()}
-        foldersContent={renderMobileFoldersContent()}
-        profileContent={<ProfileTab />}
-      />
-
-      {/* Desktop Layout */}
-      {!isMobile && (
+      {isMobile ? (
+        <MobileLayout
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          homeContent={renderMainContent()}
+          foldersContent={renderMobileFoldersContent()}
+          profileContent={<ProfileTab />}
+        />
+      ) : (
         <div className="bg-background text-foreground flex h-screen w-full">
           {/* Sidebar */}
           <aside

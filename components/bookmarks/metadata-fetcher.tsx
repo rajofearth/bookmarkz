@@ -58,12 +58,23 @@ export function MetadataFetcher() {
                             try {
                                 const metadata = await fetchMetadataAction({ url: bookmark.url });
 
-                                await updateMetadata({
-                                    bookmarkId: bookmark._id,
-                                    title: metadata.title,
-                                    favicon: metadata.favicon,
-                                    ogImage: metadata.ogImage,
-                                });
+                                // Detect failed metadata fetch (error field or all fields undefined)
+                                const hasMeaningfulData = metadata.title || metadata.favicon || metadata.ogImage;
+                                const hasError = 'error' in metadata && metadata.error;
+
+                                if (hasError || !hasMeaningfulData) {
+                                    await updateMetadata({
+                                        bookmarkId: bookmark._id,
+                                        metadataStatus: "failed",
+                                    });
+                                } else {
+                                    await updateMetadata({
+                                        bookmarkId: bookmark._id,
+                                        title: metadata.title,
+                                        favicon: metadata.favicon,
+                                        ogImage: metadata.ogImage,
+                                    });
+                                }
                             } catch (error) {
                                 console.error(`Failed to process ${bookmark.url}`, error);
                             } finally {

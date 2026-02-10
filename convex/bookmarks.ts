@@ -232,6 +232,7 @@ export const updateBookmarkMetadata = mutation({
         favicon: v.optional(v.string()),
         ogImage: v.optional(v.string()),
         title: v.optional(v.string()),
+        metadataStatus: v.optional(v.union(v.literal("pending"), v.literal("fetching"), v.literal("completed"), v.literal("failed"))),
     },
     handler: async (ctx, args) => {
         const user = await authComponent.getAuthUser(ctx);
@@ -245,11 +246,12 @@ export const updateBookmarkMetadata = mutation({
         }
 
         const hasNewData = args.favicon !== undefined || args.ogImage !== undefined || args.title !== undefined;
+        const resolvedStatus = args.metadataStatus ?? (hasNewData ? "completed" : bookmark.metadataStatus);
         await ctx.db.patch(args.bookmarkId, {
             favicon: args.favicon ?? bookmark.favicon,
             ogImage: args.ogImage ?? bookmark.ogImage,
             title: args.title ?? bookmark.title,
-            metadataStatus: hasNewData ? "completed" : bookmark.metadataStatus,
+            metadataStatus: resolvedStatus,
         });
     },
 });

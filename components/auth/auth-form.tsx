@@ -18,6 +18,7 @@ export function AuthForm({ className }: AuthFormProps) {
             await authClient.signIn.social({ provider });
         } catch (error) {
             console.error("Social login failed:", error);
+        } finally {
             setIsLoading(false);
         }
     };

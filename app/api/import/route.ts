@@ -232,26 +232,36 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        const importResult = await fetchAuthMutation(
-            api.bookmarks.batchCreateBookmarks,
-            {
-                bookmarks: bookmarks.map((b) => ({
-                    title: b.title,
-                    url: b.url,
-                    folderId: b.folderId
-                        ? chromeFolderIdToAppId.get(b.folderId)
-                        : undefined,
-                    favicon: b.favicon,
-                    ogImage: b.ogImage,
-                })),
-            }
-        );
-        const createdIds = Array.isArray(importResult)
-            ? importResult
-            : (importResult?.createdIds ?? []);
-        const movedCount = Array.isArray(importResult)
-            ? 0
-            : (importResult?.movedCount ?? 0);
+        // Chunk bookmarks into batches of 50 to stay under Convex's 16 MiB mutation-argument limit
+        const BATCH_SIZE = 50;
+        const mappedBookmarks = bookmarks.map((b) => ({
+            title: b.title,
+            url: b.url,
+            folderId: b.folderId
+                ? chromeFolderIdToAppId.get(b.folderId)
+                : undefined,
+            favicon: b.favicon,
+            ogImage: b.ogImage,
+        }));
+
+        const createdIds: Id<"bookmarks">[] = [];
+        let movedCount = 0;
+
+        for (let i = 0; i < mappedBookmarks.length; i += BATCH_SIZE) {
+            const chunk = mappedBookmarks.slice(i, i + BATCH_SIZE);
+            const importResult = await fetchAuthMutation(
+                api.bookmarks.batchCreateBookmarks,
+                { bookmarks: chunk }
+            );
+            const chunkIds = Array.isArray(importResult)
+                ? importResult
+                : (importResult?.createdIds ?? []);
+            const chunkMoved = Array.isArray(importResult)
+                ? 0
+                : (importResult?.movedCount ?? 0);
+            createdIds.push(...chunkIds);
+            movedCount += chunkMoved;
+        }
 
         console.log("Import result", {
             createdCount: createdIds.length,

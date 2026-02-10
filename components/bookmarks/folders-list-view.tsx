@@ -1,6 +1,6 @@
 "use client";
 
-import { BookmarkIcon, FolderIcon, StarIcon } from "lucide-react";
+import { BookmarkIcon, FolderIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,7 +25,6 @@ export function FoldersListView({
 }: FoldersListViewProps) {
   const getFolderIcon = (folder: Folder) => {
     if (folder.id === "all") return <BookmarkIcon className="size-5" />;
-    if (folder.id === "favorites") return <StarIcon className="size-5" />;
     if (folder.icon) {
       const Icon = folder.icon;
       return <Icon className="size-5" />;
