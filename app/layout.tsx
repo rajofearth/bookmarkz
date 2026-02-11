@@ -12,7 +12,7 @@ const fontSans = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bookmarks",
+  title: "Bukmarks",
   description: "Organize and manage your bookmarks with ease",
 };
 
@@ -33,14 +33,14 @@ export default async function RootLayout({
     <html lang="en" className={fontSans.variable} suppressHydrationWarning>
       <body className="antialiased">
         <ConvexClientProvider initialToken={token}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
         </ConvexClientProvider>
       </body>
     </html>

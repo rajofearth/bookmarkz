@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Sign In | Bookmarks",
-    description: "Sign in to your Bookmarks account",
+    title: "Sign In | Bukmarks",
+    description: "Sign in to your Bukmarks account",
 };
 
 export default function AuthLayout({
