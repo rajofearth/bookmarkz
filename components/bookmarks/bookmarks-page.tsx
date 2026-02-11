@@ -39,6 +39,7 @@ import { BookmarkCard } from "./bookmark-card";
 import { FoldersSidebar } from "./folders-sidebar";
 import { MetadataFetcher } from "./metadata-fetcher";
 import { FlipReveal, FlipRevealItem } from "@/components/gsap/flip-reveal";
+import { ImportGuide } from "@/components/onboarding/import-guide";
 import type { Bookmark, Folder, DragData } from "./types";
 import type { Id } from "@/convex/_generated/dataModel";
 
@@ -457,17 +458,7 @@ export function BookmarksPage() {
             Loading your bookmarks...
           </div>
         ) : bookmarks.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-            <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
-              <BookmarkIcon className="text-muted-foreground size-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">No bookmarks yet</p>
-              <p className="text-muted-foreground text-sm">
-                Add your first bookmark to get started
-              </p>
-            </div>
-          </div>
+          <ImportGuide />
         ) : (
           <div className="relative h-full">
             {effectiveFilteredBookmarks.length === 0 && (
