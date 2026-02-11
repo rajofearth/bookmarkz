@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth-server";
 
 export const metadata: Metadata = {
-    title: "Settings | Bookmarks",
+    title: "Settings | Bukmarks",
     description: "Manage your account and application settings",
 };
 

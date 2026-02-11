@@ -55,7 +55,7 @@ export function SettingsPage() {
                             onClick={() => router.push("/bookmarks")}
                         >
                             <ArrowLeft className="size-4" />
-                            Back to Bookmarks
+                            Back to Bukmarks
                         </Button>
                     </div>
 

@@ -12,7 +12,7 @@ const fontSans = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bookmarks",
+  title: "Bukmarks",
   description: "Organize and manage your bookmarks with ease",
 };
 
