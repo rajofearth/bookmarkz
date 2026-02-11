@@ -9,6 +9,7 @@ import {
     Palette,
     Settings as SettingsIcon,
     Bell,
+    HardDriveDownload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList } from "@/components/ui/tabs";
@@ -18,6 +19,7 @@ import { ProfileSettings } from "./profile-settings";
 import { AppearanceSettings } from "./appearance-settings";
 import { GeneralSettings } from "./general-settings";
 import { NotificationsSettings } from "./notifications-settings";
+import { DataSettings } from "./data-settings";
 import { UserInfoRow } from "@/components/user-info-row";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -92,6 +94,13 @@ export function SettingsPage() {
                                 active={activeTab === "notifications"}
                                 onClick={() => setActiveTab("notifications")}
                             />
+                            <SettingsTabTrigger
+                                value="data"
+                                icon={HardDriveDownload}
+                                label="Data"
+                                active={activeTab === "data"}
+                                onClick={() => setActiveTab("data")}
+                            />
                         </TabsList>
                     </div>
 
@@ -127,6 +136,12 @@ export function SettingsPage() {
                             {activeTab === "notifications" && (
                                 <TabContentWrapper key="notifications">
                                     <NotificationsSettings />
+                                </TabContentWrapper>
+                            )}
+
+                            {activeTab === "data" && (
+                                <TabContentWrapper key="data">
+                                    <DataSettings />
                                 </TabContentWrapper>
                             )}
                         </AnimatePresence>
