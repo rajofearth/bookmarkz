@@ -168,20 +168,20 @@ export function ImportGuide() {
             <div className="w-full max-w-md space-y-6">
                 {/* Header */}
                 <motion.div
-                    className="text-center space-y-2"
+                    className="flex flex-col items-center gap-4 text-center"
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
                 >
-                    <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-xl bg-muted">
-                        <BookmarkIcon className="size-5 text-muted-foreground" />
+                    <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
+                        <BookmarkIcon className="text-muted-foreground size-6" />
                     </div>
-                    <h2 className="text-base font-semibold tracking-tight">
-                        Bring your bookmarks over
-                    </h2>
-                    <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
-                        Just grab them from your current browser and drop them here.
-                    </p>
+                    <div>
+                        <p className="text-sm font-medium">Bring your bookmarks over</p>
+                        <p className="text-muted-foreground text-sm mt-1">
+                            Export them from your browser, then drop the file here.
+                        </p>
+                    </div>
                 </motion.div>
 
                 {/* How to export — simple steps */}
