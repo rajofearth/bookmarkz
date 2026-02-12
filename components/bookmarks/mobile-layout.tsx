@@ -29,22 +29,23 @@ export function MobileLayout({
   }
 
   // On mobile, render tab-based layout with bottom nav
+  // Use h-dvh (100dvh) instead of h-screen - 100vh is broken on mobile (address bar)
   return (
-    <div className="flex flex-col h-screen w-full bg-background text-foreground overflow-hidden">
+    <div className="flex flex-col h-dvh w-full bg-background text-foreground overflow-hidden">
       {/* Tab Content */}
-      <div className="flex-1 overflow-hidden relative">
+      <div className="flex-1 min-h-0 overflow-hidden relative">
         {activeTab === "home" && (
-          <div className="absolute inset-0 overflow-y-auto">
+          <div className="absolute inset-0 flex flex-col min-h-0 overflow-hidden">
             {homeContent}
           </div>
         )}
         {activeTab === "folders" && (
-          <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute inset-0 flex flex-col min-h-0 overflow-hidden">
             {foldersContent}
           </div>
         )}
         {activeTab === "profile" && (
-          <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute inset-0 flex flex-col min-h-0 overflow-hidden">
             {profileContent}
           </div>
         )}

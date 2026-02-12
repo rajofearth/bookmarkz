@@ -491,7 +491,7 @@ export function BookmarksPage() {
 
   // Render main content (used for both desktop and mobile home tab)
   const renderMainContent = () => (
-    <main className="flex flex-1 flex-col overflow-hidden">
+    <main className="flex flex-1 flex-col min-h-0 overflow-hidden">
       {/* Header */}
       <header className="border-border border-b bg-background">
         {isMobile ? (
@@ -534,7 +534,7 @@ export function BookmarksPage() {
 
       {/* Bookmarks Grid */}
       <div
-        className="flex-1 overflow-y-auto p-4 pb-20 md:pb-4"
+        className="flex-1 min-h-0 overflow-y-auto p-4 pb-20 md:pb-4"
         style={{
           paddingBottom: isMobile ? "calc(5rem + env(safe-area-inset-bottom))" : undefined
         }}

@@ -96,7 +96,7 @@ export function ProfileTab() {
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-background">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden bg-background">
       {/* Enhanced Profile Header */}
       <div className="relative px-4 pt-5 pb-4 border-b border-border bg-background overflow-hidden">
         {/* Gradient Background */}
@@ -215,7 +215,7 @@ export function ProfileTab() {
       </div>
 
       {/* Settings List */}
-      <div className="flex-1 overflow-y-auto pb-20" style={{ paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
+      <div className="flex-1 min-h-0 overflow-y-auto pb-20" style={{ paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
         <div className="px-4 py-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
             Settings
