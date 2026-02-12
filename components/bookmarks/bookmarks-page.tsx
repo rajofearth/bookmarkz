@@ -6,7 +6,7 @@ import {
   FolderIcon,
   SearchIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ElementType, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import dynamic from "next/dynamic";
@@ -40,8 +40,132 @@ import { FoldersSidebar } from "./folders-sidebar";
 import { MetadataFetcher } from "./metadata-fetcher";
 import { FlipReveal, FlipRevealItem } from "@/components/gsap/flip-reveal";
 import { ImportGuide } from "@/components/onboarding/import-guide";
+import { DisplayControlsMenu } from "./display-controls-menu";
+import { useGeneralStore } from "@/hooks/use-general-store";
 import type { Bookmark, Folder, DragData } from "./types";
 import type { Id } from "@/convex/_generated/dataModel";
+
+interface DesktopBookmarksHeaderProps {
+  currentFolderName?: string;
+  CurrentFolderIcon?: ElementType;
+  sidebarOpen: boolean;
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
+  onToggleSidebar: () => void;
+  addBookmarkButton: ReactNode;
+}
+
+function DesktopBookmarksHeader({
+  currentFolderName,
+  CurrentFolderIcon,
+  sidebarOpen,
+  searchQuery,
+  onSearchChange,
+  onToggleSidebar,
+  addBookmarkButton,
+}: DesktopBookmarksHeaderProps) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={onToggleSidebar}
+        className="shrink-0"
+      >
+        <ChevronRightIcon
+          className={cn(
+            "size-4 transition-transform",
+            sidebarOpen && "rotate-180",
+          )}
+        />
+      </Button>
+
+      <div className="flex items-center gap-2 min-w-0">
+        {CurrentFolderIcon ? (
+          <CurrentFolderIcon className="text-muted-foreground size-4" />
+        ) : (
+          <FolderIcon className="text-muted-foreground size-4" />
+        )}
+        <h1 className="text-sm font-medium truncate">{currentFolderName}</h1>
+      </div>
+
+      <div className="relative ml-auto max-w-xs flex-1">
+        <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+        <Input
+          id="search-input-desktop"
+          type="search"
+          placeholder="Search bookmarks..."
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="h-8 pl-9 text-sm"
+        />
+      </div>
+
+      <DisplayControlsMenu />
+      {addBookmarkButton}
+    </div>
+  );
+}
+
+interface MobileBookmarksHeaderProps {
+  currentFolderName?: string;
+  CurrentFolderIcon?: ElementType;
+  showMobileSearch: boolean;
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
+  onToggleSearch: () => void;
+  addBookmarkButton: ReactNode;
+}
+
+function MobileBookmarksHeader({
+  currentFolderName,
+  CurrentFolderIcon,
+  showMobileSearch,
+  searchQuery,
+  onSearchChange,
+  onToggleSearch,
+  addBookmarkButton,
+}: MobileBookmarksHeaderProps) {
+  return (
+    <>
+      <div className="flex items-center gap-2 px-4 py-3">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {CurrentFolderIcon ? (
+            <CurrentFolderIcon className="text-muted-foreground size-4 shrink-0" />
+          ) : (
+            <FolderIcon className="text-muted-foreground size-4 shrink-0" />
+          )}
+          <h1 className="text-sm font-medium truncate">{currentFolderName}</h1>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <Button variant="ghost" size="icon-sm" onClick={onToggleSearch}>
+            <SearchIcon className="size-4" />
+          </Button>
+          <DisplayControlsMenu />
+          {addBookmarkButton}
+        </div>
+      </div>
+
+      {showMobileSearch && (
+        <div className="px-4 pb-3 border-t border-border/50">
+          <div className="relative">
+            <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+            <Input
+              id="search-input"
+              type="search"
+              placeholder="Search bookmarks..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="h-9 pl-9 text-sm w-full"
+              autoFocus={showMobileSearch}
+            />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
 export function BookmarksPage() {
   const router = useRouter();
@@ -57,6 +181,7 @@ export function BookmarksPage() {
   const [activeTab, setActiveTab] = useState<"home" | "folders" | "profile">("home");
   const [mobileSelectedFolder, setMobileSelectedFolder] = useState<string | null>(null);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const { viewMode, sortMode } = useGeneralStore();
 
   useEffect(() => {
     if (searchParams.get("tab") === "profile") {
@@ -159,21 +284,44 @@ export function BookmarksPage() {
     return result;
   }, [bookmarks, selectedFolder, searchQuery]);
 
+  const sortedFilteredBookmarks = useMemo(() => {
+    return [...filteredBookmarks].sort((a, b) => {
+      const aTime = a.createdAt.getTime();
+      const bTime = b.createdAt.getTime();
+      return sortMode === "newest" ? bTime - aTime : aTime - bTime;
+    });
+  }, [filteredBookmarks, sortMode]);
+
   // On mobile home tab, always show "All Bookmarks"; on desktop use selected folder
   const effectiveSelectedFolder = isMobile ? "all" : selectedFolder;
   const effectiveFilteredBookmarks = useMemo(() => {
+    const sortBookmarks = (items: Bookmark[]) =>
+      [...items].sort((a, b) => {
+        const aTime = a.createdAt.getTime();
+        const bTime = b.createdAt.getTime();
+        return sortMode === "newest" ? bTime - aTime : aTime - bTime;
+      });
+
     if (isMobile) {
-      if (!searchQuery) return bookmarks;
+      if (!searchQuery) return sortBookmarks(bookmarks);
       const query = searchQuery.toLowerCase();
-      return bookmarks.filter(
-        (b) =>
-          b.title.toLowerCase().includes(query) ||
-          b.url.toLowerCase().includes(query),
+      return sortBookmarks(
+        bookmarks.filter(
+          (b) =>
+            b.title.toLowerCase().includes(query) ||
+            b.url.toLowerCase().includes(query),
+        ),
       );
     }
-    return filteredBookmarks;
-  }, [isMobile, bookmarks, searchQuery, filteredBookmarks]);
+    return sortedFilteredBookmarks;
+  }, [isMobile, bookmarks, searchQuery, sortedFilteredBookmarks, sortMode]);
   const effectiveCurrentFolder = folders.find((f) => f.id === effectiveSelectedFolder);
+  const folderNameById = useMemo(() => {
+    return folders.reduce<Record<string, string>>((acc, folder) => {
+      acc[folder.id] = folder.name;
+      return acc;
+    }, { all: "All Bookmarks" });
+  }, [folders]);
 
   // Folders available for selection when adding a bookmark
   // Exclude "all" from the dropdown list
@@ -346,103 +494,40 @@ export function BookmarksPage() {
       {/* Header */}
       <header className="border-border border-b bg-background">
         {isMobile ? (
-          <>
-            {/* Top Row: Folder name and actions (mobile) */}
-            <div className="flex items-center gap-2 px-4 py-3">
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                {effectiveCurrentFolder?.icon ? (
-                  <effectiveCurrentFolder.icon className="text-muted-foreground size-4 shrink-0" />
-                ) : (
-                  <FolderIcon className="text-muted-foreground size-4 shrink-0" />
-                )}
-                <h1 className="text-sm font-medium truncate">
-                  {effectiveCurrentFolder?.name}
-                </h1>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                {/* Search button for mobile - opens search bar */}
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => setShowMobileSearch(!showMobileSearch)}
-                >
-                  <SearchIcon className="size-4" />
-                </Button>
-                <AddBookmarkDialog
-                  folders={editableFolders}
-                  onSubmit={handleAddBookmark}
-                />
-              </div>
-            </div>
-
-            {/* Search bar for mobile */}
-            {showMobileSearch && (
-              <div className="px-4 pb-3 border-t border-border/50">
-                <div className="relative">
-                  <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
-                  <Input
-                    id="search-input"
-                    type="search"
-                    placeholder="Search bookmarks..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      if (e.target.value === "") {
-                        setShowMobileSearch(false);
-                      }
-                    }}
-                    className="h-9 pl-9 text-sm w-full"
-                    autoFocus={showMobileSearch}
-                  />
-                </div>
-              </div>
+          <MobileBookmarksHeader
+            currentFolderName={effectiveCurrentFolder?.name}
+            CurrentFolderIcon={effectiveCurrentFolder?.icon}
+            showMobileSearch={showMobileSearch}
+            searchQuery={searchQuery}
+            onSearchChange={(value) => {
+              setSearchQuery(value);
+              if (value === "") {
+                setShowMobileSearch(false);
+              }
+            }}
+            onToggleSearch={() => setShowMobileSearch(!showMobileSearch)}
+            addBookmarkButton={(
+              <AddBookmarkDialog
+                folders={editableFolders}
+                onSubmit={handleAddBookmark}
+              />
             )}
-          </>
+          />
         ) : (
-          <div className="flex items-center gap-3 px-4 py-3">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="shrink-0"
-            >
-              <ChevronRightIcon
-                className={cn(
-                  "size-4 transition-transform",
-                  sidebarOpen && "rotate-180",
-                )}
+          <DesktopBookmarksHeader
+            currentFolderName={effectiveCurrentFolder?.name}
+            CurrentFolderIcon={effectiveCurrentFolder?.icon}
+            sidebarOpen={sidebarOpen}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+            addBookmarkButton={(
+              <AddBookmarkDialog
+                folders={editableFolders}
+                onSubmit={handleAddBookmark}
               />
-            </Button>
-
-            <div className="flex items-center gap-2 min-w-0">
-              {effectiveCurrentFolder?.icon ? (
-                <effectiveCurrentFolder.icon className="text-muted-foreground size-4" />
-              ) : (
-                <FolderIcon className="text-muted-foreground size-4" />
-              )}
-              <h1 className="text-sm font-medium truncate">
-                {effectiveCurrentFolder?.name}
-              </h1>
-            </div>
-
-            <div className="relative ml-auto max-w-xs flex-1">
-              <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
-              <Input
-                id="search-input-desktop"
-                type="search"
-                placeholder="Search bookmarks..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-8 pl-9 text-sm"
-              />
-            </div>
-
-            <AddBookmarkDialog
-              folders={editableFolders}
-              onSubmit={handleAddBookmark}
-            />
-          </div>
+            )}
+          />
         )}
       </header>
 
@@ -476,16 +561,34 @@ export function BookmarksPage() {
                 </div>
               </div>
             )}
+            {/* Details header row */}
+            {viewMode === "details" && (
+              <div className="flex items-center gap-3 px-3 py-2 border-b border-border text-xs font-medium text-muted-foreground">
+                <span className="w-6 shrink-0" />
+                <span className="flex-1">Name</span>
+                <span className="hidden sm:block w-36 text-right">URL</span>
+                <span className="hidden lg:block w-32 text-right">Folder</span>
+                <span className="hidden md:block w-28 text-right">Date Added</span>
+                <span className="w-6 shrink-0" />
+              </div>
+            )}
             <FlipReveal
               keys={effectiveFilteredBookmarks.map((b) => String(b.id))}
               showClass="block"
               hideClass="hidden"
             >
-              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {bookmarks.map((bookmark) => (
+              <div className={cn(
+                viewMode === "normal" && "grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+                viewMode === "compact" && "grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5",
+                viewMode === "list" && "flex flex-col gap-1",
+                viewMode === "details" && "flex flex-col gap-0",
+              )}>
+                {effectiveFilteredBookmarks.map((bookmark) => (
                   <FlipRevealItem key={bookmark.id} flipKey={String(bookmark.id)}>
                     <BookmarkCard
                       bookmark={bookmark}
+                      folderName={folderNameById[bookmark.folderId] ?? "Unsorted"}
+                      viewMode={viewMode}
                       onEdit={setEditingBookmark}
                       onDelete={handleDeleteBookmark}
                       onMove={handleMoveBookmark}

@@ -1,6 +1,6 @@
 // Default to production URL; override via chrome.storage.local.set({ apiBaseUrl: '...' })
-let API_BASE_URL = 'https://bookmarkz.vercel.app';
-let APP_URL = 'https://bookmarkz.vercel.app';
+let API_BASE_URL = 'https://bukmark.vercel.app';
+let APP_URL = 'https://bukmark.vercel.app';
 
 // Initialize: read storage overrides, then check auth
 (async function init() {

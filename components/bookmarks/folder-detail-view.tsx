@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BookmarkCard } from "./bookmark-card";
 import { FlipReveal, FlipRevealItem } from "@/components/gsap/flip-reveal";
+import { DisplayControlsMenu } from "./display-controls-menu";
+import { useGeneralStore } from "@/hooks/use-general-store";
+import { cn } from "@/lib/utils";
 import type { Bookmark, Folder } from "./types";
 import dynamic from "next/dynamic";
 
@@ -40,6 +43,7 @@ export function FolderDetailView({
   onAddBookmark,
 }: FolderDetailViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const { viewMode, sortMode } = useGeneralStore();
 
   const filteredBookmarks = useMemo(() => {
     let result = bookmarks;
@@ -53,8 +57,12 @@ export function FolderDetailView({
       );
     }
 
-    return result;
-  }, [bookmarks, searchQuery]);
+    return [...result].sort((a, b) => {
+      const aTime = a.createdAt.getTime();
+      const bTime = b.createdAt.getTime();
+      return sortMode === "newest" ? bTime - aTime : aTime - bTime;
+    });
+  }, [bookmarks, searchQuery, sortMode]);
 
   const getFolderIcon = () => {
     if (folder.icon) {
@@ -94,6 +102,8 @@ export function FolderDetailView({
             className="h-8 pl-9 text-sm"
           />
         </div>
+
+        <DisplayControlsMenu />
 
         <AddBookmarkDialog
           folders={editableFolders}
@@ -144,16 +154,34 @@ export function FolderDetailView({
                 </div>
               </div>
             )}
+            {/* Details header row */}
+            {viewMode === "details" && (
+              <div className="flex items-center gap-3 px-3 py-2 border-b border-border text-xs font-medium text-muted-foreground">
+                <span className="w-6 shrink-0" />
+                <span className="flex-1">Name</span>
+                <span className="hidden sm:block w-36 text-right">URL</span>
+                <span className="hidden lg:block w-32 text-right">Folder</span>
+                <span className="hidden md:block w-28 text-right">Date Added</span>
+                <span className="w-6 shrink-0" />
+              </div>
+            )}
             <FlipReveal
               keys={filteredBookmarks.map((b) => String(b.id))}
               showClass="block"
               hideClass="hidden"
             >
-              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {bookmarks.map((bookmark) => (
+              <div className={cn(
+                viewMode === "normal" && "grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+                viewMode === "compact" && "grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5",
+                viewMode === "list" && "flex flex-col gap-1",
+                viewMode === "details" && "flex flex-col gap-0",
+              )}>
+                {filteredBookmarks.map((bookmark) => (
                   <FlipRevealItem key={bookmark.id} flipKey={String(bookmark.id)}>
                     <BookmarkCard
                       bookmark={bookmark}
+                      folderName={folder.name}
+                      viewMode={viewMode}
                       onEdit={onEditBookmark}
                       onDelete={onDeleteBookmark}
                       priority={filteredBookmarks[0]?.id === bookmark.id}
