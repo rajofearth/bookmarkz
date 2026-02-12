@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useDraggable } from "@dnd-kit/core";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +49,7 @@ export function BookmarkCard({
 }: BookmarkCardProps) {
   const [imageError, setImageError] = useState(false);
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
+  const [isRowHovered, setIsRowHovered] = useState(false);
   const { openInNewTab, showFavicons } = useGeneralStore();
 
   const {
@@ -180,51 +182,71 @@ export function BookmarkCard({
         {...listeners}
         {...attributes}
         className={cn(
-          "group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-          "cursor-grab active:cursor-grabbing hover:bg-accent/40",
+          "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+          "cursor-grab active:cursor-grabbing",
           viewMode === "details" && "border-b border-border/60",
           isDragging && "pointer-events-none z-20 opacity-0",
         )}
+        onMouseEnter={() => setIsRowHovered(true)}
+        onMouseLeave={() => setIsRowHovered(false)}
       >
-        {faviconEl}
+        <AnimatePresence>
+          {isRowHovered && (
+            <motion.div
+              layoutId="bookmark-row-hover-bg"
+              className="absolute inset-0 rounded-lg bg-accent/50 pointer-events-none"
+              style={{ zIndex: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{
+                layout: { type: "spring", stiffness: 280, damping: 32 },
+                opacity: { duration: 0.2 },
+              }}
+            />
+          )}
+        </AnimatePresence>
+        <div className="relative z-10 flex items-center gap-3 min-w-0 flex-1">
+          {faviconEl}
 
-        {/* Title */}
-        <a
-          href={bookmark.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="min-w-0 flex-1 truncate text-sm font-medium leading-tight"
-        >
-          {bookmark.title}
-        </a>
+          {/* Title */}
+          <a
+            href={bookmark.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="min-w-0 flex-1 truncate text-sm font-medium leading-tight"
+          >
+            {bookmark.title}
+          </a>
 
-        {/* Domain */}
-        <span className="text-muted-foreground hidden sm:block text-xs shrink-0 w-36 truncate text-right">
-          {getDomain(bookmark.url)}
-        </span>
-
-        {/* Folder and date in list mode */}
-        {viewMode === "list" && (
-          <span className="text-muted-foreground hidden md:block text-xs shrink-0 max-w-48 truncate text-right">
-             · {folderLabel} · {dateShort}
+          {/* Domain */}
+          <span className="text-muted-foreground hidden sm:block text-xs shrink-0 w-36 truncate text-right">
+            {getDomain(bookmark.url)}
           </span>
-        )}
 
-        {/* Folder in details mode */}
-        {viewMode === "details" && (
-          <span className="text-muted-foreground hidden lg:block text-xs shrink-0 w-32 truncate text-right">
-            {folderLabel}
-          </span>
-        )}
+          {/* Folder and date in list mode */}
+          {viewMode === "list" && (
+            <span className="text-muted-foreground hidden md:block text-xs shrink-0 max-w-48 truncate text-right">
+               · {folderLabel} · {dateShort}
+            </span>
+          )}
 
-        {/* Date (details only) */}
-        {viewMode === "details" && (
-          <span className="text-muted-foreground hidden md:block text-xs shrink-0 w-28 text-right">
-            {bookmark.createdAt.toLocaleDateString()}
-          </span>
-        )}
+          {/* Folder in details mode */}
+          {viewMode === "details" && (
+            <span className="text-muted-foreground hidden lg:block text-xs shrink-0 w-32 truncate text-right">
+              {folderLabel}
+            </span>
+          )}
 
-        {actionsMenu}
+          {/* Date (details only) */}
+          {viewMode === "details" && (
+            <span className="text-muted-foreground hidden md:block text-xs shrink-0 w-28 text-right">
+              {bookmark.createdAt.toLocaleDateString()}
+            </span>
+          )}
+
+          {actionsMenu}
+        </div>
         {moveDialog}
       </div>
     );
