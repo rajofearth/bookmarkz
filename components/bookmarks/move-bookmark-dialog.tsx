@@ -175,9 +175,7 @@ export function MoveBookmarkDialog({
           <Button
             type="submit"
             form="move-bookmark-form"
-            disabled={
-              isSubmitting || !folderId || !bookmark || isSameFolder
-            }
+            disabled={isSubmitting || !folderId || !bookmark || isSameFolder}
           >
             {isSubmitting && (
               <Loader2Icon className="mr-2 size-4 animate-spin" />

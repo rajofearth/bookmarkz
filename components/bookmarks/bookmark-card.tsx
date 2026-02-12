@@ -1,5 +1,7 @@
 "use client";
 
+import { useDraggable } from "@dnd-kit/core";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ExternalLinkIcon,
   FolderIcon,
@@ -10,8 +12,6 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { useDraggable } from "@dnd-kit/core";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,10 +20,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn, getDomain } from "@/lib/utils";
 import { useGeneralStore, type ViewMode } from "@/hooks/use-general-store";
-import type { Bookmark, DragData, Folder } from "./types";
+import { cn, getDomain } from "@/lib/utils";
 import { MoveBookmarkDialog } from "./move-bookmark-dialog";
+import type { Bookmark, DragData, Folder } from "./types";
 
 interface BookmarkCardProps {
   bookmark: Bookmark;
@@ -48,28 +48,24 @@ export function BookmarkCard({
   priority = false,
 }: BookmarkCardProps) {
   const [imageError, setImageError] = useState(false);
+  const [faviconError, setFaviconError] = useState(false);
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
   const [isRowHovered, setIsRowHovered] = useState(false);
   const { openInNewTab, showFavicons } = useGeneralStore();
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    isDragging,
-  } = useDraggable({
-    id: bookmark.id,
-    data: {
-      type: "bookmark",
-      bookmarkId: bookmark.id,
-    } satisfies DragData,
-  });
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: bookmark.id,
+      data: {
+        type: "bookmark",
+        bookmarkId: bookmark.id,
+      } satisfies DragData,
+    });
 
   const style = transform
     ? {
-      transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-    }
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+      }
     : undefined;
 
   const isRowMode = viewMode === "list" || viewMode === "details";
@@ -126,8 +122,22 @@ export function BookmarkCard({
   );
 
   // ── Favicon element (shared) ──
-  const faviconSize = isRowMode ? "size-6" : viewMode === "compact" ? "size-6" : "size-7 sm:size-8";
-  const faviconImgSize = isRowMode ? "size-4" : viewMode === "compact" ? "size-3" : "size-3 sm:size-4";
+  const faviconSize = isRowMode
+    ? "size-6"
+    : viewMode === "compact"
+      ? "size-6"
+      : "size-7 sm:size-8";
+  const faviconImgSize = isRowMode
+    ? "size-4"
+    : viewMode === "compact"
+      ? "size-3"
+      : "size-3 sm:size-4";
+
+  const showFaviconImage =
+    showFavicons &&
+    bookmark.favicon &&
+    bookmark.favicon.startsWith("http") &&
+    !faviconError;
 
   const faviconEl = showFavicons ? (
     <div
@@ -139,39 +149,37 @@ export function BookmarkCard({
         faviconSize,
       )}
     >
-      {bookmark.favicon && bookmark.favicon.startsWith("http") ? (
+      {showFaviconImage && bookmark.favicon ? (
         <Image
           src={bookmark.favicon}
           alt=""
           width={16}
           height={16}
           className={cn(faviconImgSize, "object-contain")}
-          onError={(e) => {
-            e.currentTarget.style.display = "none";
-            e.currentTarget.nextElementSibling?.classList.remove("hidden");
-          }}
+          onError={() => setFaviconError(true)}
         />
       ) : null}
       <GlobeIcon
         className={cn(
           "text-muted-foreground",
           faviconImgSize,
-          bookmark.favicon && bookmark.favicon.startsWith("http") && "hidden",
+          showFaviconImage && "hidden",
         )}
       />
     </div>
   ) : null;
 
   // ── Move dialog (shared) ──
-  const moveDialog = onMove && folders && folders.length > 0 ? (
-    <MoveBookmarkDialog
-      bookmark={bookmark}
-      folders={folders}
-      open={isMoveDialogOpen}
-      onOpenChange={setIsMoveDialogOpen}
-      onMove={onMove}
-    />
-  ) : null;
+  const moveDialog =
+    onMove && folders && folders.length > 0 ? (
+      <MoveBookmarkDialog
+        bookmark={bookmark}
+        folders={folders}
+        open={isMoveDialogOpen}
+        onOpenChange={setIsMoveDialogOpen}
+        onMove={onMove}
+      />
+    ) : null;
 
   // ── LIST / DETAILS mode ──
   if (isRowMode) {
@@ -194,8 +202,7 @@ export function BookmarkCard({
           {isRowHovered && !isDragging && (
             <motion.div
               layoutId={`bookmark-row-hover-${bookmark.id}`}
-              className="absolute inset-0 rounded-lg bg-accent/50 pointer-events-none"
-              style={{ zIndex: 0 }}
+              className="absolute inset-0 z-0 rounded-lg bg-accent/50 pointer-events-none"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -227,7 +234,7 @@ export function BookmarkCard({
           {/* Folder and date in list mode */}
           {viewMode === "list" && (
             <span className="text-muted-foreground hidden md:block text-xs shrink-0 max-w-48 truncate text-right">
-               · {folderLabel} · {dateShort}
+              · {folderLabel} · {dateShort}
             </span>
           )}
 
@@ -266,8 +273,7 @@ export function BookmarkCard({
           "group relative overflow-hidden rounded-lg border border-border/60 bg-card transition-all duration-150",
           "cursor-grab active:cursor-grabbing hover:border-border hover:shadow-sm",
           "w-full",
-          isDragging &&
-            "pointer-events-none z-20 opacity-0 invisible",
+          isDragging && "pointer-events-none z-20 opacity-0 invisible",
         )}
       >
         <a
@@ -282,8 +288,12 @@ export function BookmarkCard({
               {bookmark.title}
             </p>
             <p className="flex min-w-0 gap-1 overflow-hidden text-[11px] text-muted-foreground/70">
-              <span className="min-w-0 truncate">{getDomain(bookmark.url)}</span>
-              <span className="shrink-0 text-muted-foreground/50">· {metaLine}</span>
+              <span className="min-w-0 truncate">
+                {getDomain(bookmark.url)}
+              </span>
+              <span className="shrink-0 text-muted-foreground/50">
+                · {metaLine}
+              </span>
             </p>
           </div>
         </a>
@@ -306,8 +316,7 @@ export function BookmarkCard({
         "group relative overflow-hidden rounded-xl border border-border/60 bg-card transition-all duration-150",
         "cursor-grab active:cursor-grabbing hover:border-border hover:shadow-md",
         "w-full",
-        isDragging &&
-          "pointer-events-none z-20 opacity-0 invisible",
+        isDragging && "pointer-events-none z-20 opacity-0 invisible",
       )}
     >
       {/* Image */}
@@ -318,7 +327,9 @@ export function BookmarkCard({
           rel="noopener noreferrer"
           className="block relative aspect-[1.91/1] w-full overflow-hidden bg-muted/50"
         >
-          {bookmark.ogImage && !imageError && bookmark.ogImage.startsWith("http") ? (
+          {bookmark.ogImage &&
+          !imageError &&
+          bookmark.ogImage.startsWith("http") ? (
             <>
               <Image
                 src={bookmark.ogImage}
@@ -351,7 +362,9 @@ export function BookmarkCard({
               {getDomain(bookmark.url)}
             </p>
           </a>
-          <p className="mt-2 text-[11px] text-muted-foreground/60">{metaLine}</p>
+          <p className="mt-2 text-[11px] text-muted-foreground/60">
+            {metaLine}
+          </p>
         </div>
       </div>
 

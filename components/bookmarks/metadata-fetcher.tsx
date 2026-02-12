@@ -1,112 +1,121 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useQuery, useMutation, useAction } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { api } from "@/convex/_generated/api";
 
 export function MetadataFetcher() {
-    const bookmarks = useQuery(api.bookmarks.getBookmarks);
-    const updateMetadata = useMutation(api.bookmarks.updateBookmarkMetadata);
-    const fetchMetadataAction = useAction(api.actions.fetchMetadata);
+  const bookmarks = useQuery(api.bookmarks.getBookmarks);
+  const updateMetadata = useMutation(api.bookmarks.updateBookmarkMetadata);
+  const fetchMetadataAction = useAction(api.actions.fetchMetadata);
 
-    const [processing, setProcessing] = useState<Set<string>>(new Set());
-    const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
-    const isProcessingRef = useRef(false);
+  const [processing, setProcessing] = useState<Set<string>>(new Set());
+  const [progress, setProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
+  const isProcessingRef = useRef(false);
 
-    useEffect(() => {
-        if (!bookmarks) return;
+  useEffect(() => {
+    if (!bookmarks) return;
 
-        const pendingBookmarks = bookmarks.filter(
-            (b) => b.metadataStatus === "pending" && !processing.has(b._id)
-        );
+    const pendingBookmarks = bookmarks.filter(
+      (b) => b.metadataStatus === "pending" && !processing.has(b._id),
+    );
 
-        if (pendingBookmarks.length === 0) {
-            if (processing.size === 0) {
-                setProgress(null);
-            }
-            return;
-        }
+    if (pendingBookmarks.length === 0) {
+      if (processing.size === 0) {
+        setProgress(null);
+      }
+      return;
+    }
 
-        // Prevent overlapping runs
-        if (isProcessingRef.current) return;
+    // Prevent overlapping runs
+    if (isProcessingRef.current) return;
 
-        const processQueue = async () => {
-            isProcessingRef.current = true;
-            try {
-                // Initialize progress
-                const total = pendingBookmarks.length + processing.size;
-                setProgress((prev) => ({
-                    current: prev ? prev.current : 0,
-                    total: total
-                }));
+    const processQueue = async () => {
+      isProcessingRef.current = true;
+      try {
+        // Initialize progress
+        const total = pendingBookmarks.length + processing.size;
+        setProgress((prev) => ({
+          current: prev ? prev.current : 0,
+          total: total,
+        }));
 
-                // Add to processing set
-                setProcessing((prev) => {
-                    const next = new Set(prev);
-                    pendingBookmarks.forEach((b) => next.add(b._id));
-                    return next;
+        // Add to processing set
+        setProcessing((prev) => {
+          const next = new Set(prev);
+          pendingBookmarks.forEach((b) => next.add(b._id));
+          return next;
+        });
+
+        // Process in chunks of 5
+        const CONCURRENCY = 5;
+        for (let i = 0; i < pendingBookmarks.length; i += CONCURRENCY) {
+          const chunk = pendingBookmarks.slice(i, i + CONCURRENCY);
+
+          await Promise.all(
+            chunk.map(async (bookmark) => {
+              try {
+                const metadata = await fetchMetadataAction({
+                  url: bookmark.url,
                 });
 
-                // Process in chunks of 5
-                const CONCURRENCY = 5;
-                for (let i = 0; i < pendingBookmarks.length; i += CONCURRENCY) {
-                    const chunk = pendingBookmarks.slice(i, i + CONCURRENCY);
+                // Detect failed metadata fetch (error field or all fields undefined)
+                const hasMeaningfulData =
+                  metadata.title || metadata.favicon || metadata.ogImage;
+                const hasError = "error" in metadata && metadata.error;
 
-                    await Promise.all(
-                        chunk.map(async (bookmark) => {
-                            try {
-                                const metadata = await fetchMetadataAction({ url: bookmark.url });
-
-                                // Detect failed metadata fetch (error field or all fields undefined)
-                                const hasMeaningfulData = metadata.title || metadata.favicon || metadata.ogImage;
-                                const hasError = 'error' in metadata && metadata.error;
-
-                                if (hasError || !hasMeaningfulData) {
-                                    await updateMetadata({
-                                        bookmarkId: bookmark._id,
-                                        metadataStatus: "failed",
-                                    });
-                                } else {
-                                    await updateMetadata({
-                                        bookmarkId: bookmark._id,
-                                        title: metadata.title,
-                                        favicon: metadata.favicon,
-                                        ogImage: metadata.ogImage,
-                                    });
-                                }
-                            } catch (error) {
-                                console.error(`Failed to process ${bookmark.url}`, error);
-                            } finally {
-                                setProcessing((prev) => {
-                                    const next = new Set(prev);
-                                    next.delete(bookmark._id);
-                                    return next;
-                                });
-                                setProgress((prev) => prev ? { ...prev, current: prev.current + 1 } : null);
-                            }
-                        })
-                    );
+                if (hasError || !hasMeaningfulData) {
+                  await updateMetadata({
+                    bookmarkId: bookmark._id,
+                    metadataStatus: "failed",
+                  });
+                } else {
+                  await updateMetadata({
+                    bookmarkId: bookmark._id,
+                    title: metadata.title,
+                    favicon: metadata.favicon,
+                    ogImage: metadata.ogImage,
+                  });
                 }
-            } finally {
-                isProcessingRef.current = false;
-            }
-        };
+              } catch (error) {
+                console.error(`Failed to process ${bookmark.url}`, error);
+              } finally {
+                setProcessing((prev) => {
+                  const next = new Set(prev);
+                  next.delete(bookmark._id);
+                  return next;
+                });
+                setProgress((prev) =>
+                  prev ? { ...prev, current: prev.current + 1 } : null,
+                );
+              }
+            }),
+          );
+        }
+      } finally {
+        isProcessingRef.current = false;
+      }
+    };
 
-        processQueue();
-    }, [bookmarks, fetchMetadataAction, updateMetadata]); // eslint-disable-line react-hooks/exhaustive-deps
+    processQueue();
+  }, [bookmarks, fetchMetadataAction, updateMetadata]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    if (!progress || progress.total === 0 || progress.current >= progress.total) return null;
+  if (!progress || progress.total === 0 || progress.current >= progress.total)
+    return null;
 
-    return (
-        <div className="fixed bottom-4 right-4 z-50 rounded-lg bg-card p-4 shadow-lg border border-border flex items-center gap-3 animate-in slide-in-from-bottom-5">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium">Enriching bookmarks...</p>
-                <p className="text-xs text-muted-foreground">
-                    {progress.current} / {progress.total} processed
-                </p>
-            </div>
-        </div>
-    );
+  return (
+    <div className="fixed bottom-4 right-4 z-50 rounded-lg bg-card p-4 shadow-lg border border-border flex items-center gap-3 animate-in slide-in-from-bottom-5">
+      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium">Enriching bookmarks...</p>
+        <p className="text-xs text-muted-foreground">
+          {progress.current} / {progress.total} processed
+        </p>
+      </div>
+    </div>
+  );
 }

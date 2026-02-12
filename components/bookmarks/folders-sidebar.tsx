@@ -1,17 +1,20 @@
 "use client";
 
-import { BookmarkIcon, FolderIcon } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useDndContext, useDroppable } from "@dnd-kit/core";
 import { AnimatePresence, motion } from "framer-motion";
-import { useState, type ReactNode } from "react";
-import type { Folder } from "@/components/bookmarks/types";
-import type { DragData } from "@/components/bookmarks/types";
+import dynamic from "next/dynamic";
+import { useState } from "react";
+import type { DragData, Folder } from "@/components/bookmarks/types";
 
 const AddFolderDialog = dynamic(
-  () => import("@/components/bookmarks/add-folder-dialog").then((mod) => ({ default: mod.AddFolderDialog })),
-  { ssr: false }
+  () =>
+    import("@/components/bookmarks/add-folder-dialog").then((mod) => ({
+      default: mod.AddFolderDialog,
+    })),
+  { ssr: false },
 );
+
+import { FolderIconDisplay } from "@/components/bookmarks/folder-icon";
 import { UserProfile } from "@/components/bookmarks/user-profile";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -38,14 +41,12 @@ interface DroppableFolderItemProps {
   folder: Folder;
   selectedFolder: string;
   onSelectFolder: (folderId: string) => void;
-  getFolderIcon: (folder: Folder) => ReactNode;
 }
 
 function DroppableFolderItem({
   folder,
   selectedFolder,
   onSelectFolder,
-  getFolderIcon,
 }: DroppableFolderItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   const { active } = useDndContext();
@@ -71,11 +72,11 @@ function DroppableFolderItem({
         "cursor-pointer rounded-md px-2 transition-all",
         selectedFolder === folder.id && "bg-accent",
         droppable &&
-        isDraggingBookmark &&
-        "border border-dashed border-border/60 bg-accent/40",
+          isDraggingBookmark &&
+          "border border-dashed border-border/60 bg-accent/40",
         droppable &&
-        isOver &&
-        "bg-accent/80 ring-2 ring-primary ring-offset-2 ring-offset-background",
+          isOver &&
+          "bg-accent/80 ring-2 ring-primary ring-offset-2 ring-offset-background",
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -90,8 +91,7 @@ function DroppableFolderItem({
           {isHovered && (
             <motion.div
               layoutId="folders-sidebar-hover-bg"
-              className="absolute inset-0 rounded-md bg-accent/50 pointer-events-none"
-              style={{ zIndex: 0 }}
+              className="absolute inset-0 z-0 rounded-md bg-accent/50 pointer-events-none"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -104,7 +104,7 @@ function DroppableFolderItem({
           )}
         </AnimatePresence>
         <ItemMedia className="relative z-10 text-muted-foreground">
-          {getFolderIcon(folder)}
+          <FolderIconDisplay folder={folder} />
         </ItemMedia>
         <ItemContent className="relative z-10 min-w-0">
           <ItemTitle className="truncate text-sm font-normal">
@@ -129,16 +129,6 @@ export function FoldersSidebar({
   onSettings,
   className,
 }: FoldersSidebarProps) {
-  // Get icon for folder
-  const getFolderIcon = (folder: Folder) => {
-    if (folder.id === "all") return <BookmarkIcon className="size-4" />;
-    if (folder.icon) {
-      const Icon = folder.icon;
-      return <Icon className="size-4" />;
-    }
-    return <FolderIcon className="size-4" />;
-  };
-
   return (
     <div className={cn("flex h-full flex-col", className)}>
       <div className="flex items-center justify-between p-4">
@@ -159,7 +149,6 @@ export function FoldersSidebar({
               folder={folder}
               selectedFolder={selectedFolder}
               onSelectFolder={onSelectFolder}
-              getFolderIcon={getFolderIcon}
             />
           ))}
         </ItemGroup>

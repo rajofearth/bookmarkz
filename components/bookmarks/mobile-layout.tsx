@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { BottomNav } from "./bottom-nav";
 
@@ -34,21 +34,11 @@ export function MobileLayout({
     <div className="flex flex-col h-dvh w-full bg-background text-foreground overflow-hidden">
       {/* Tab Content */}
       <div className="flex-1 min-h-0 overflow-hidden relative">
-        {activeTab === "home" && (
-          <div className="absolute inset-0 flex flex-col min-h-0 overflow-hidden">
-            {homeContent}
-          </div>
-        )}
-        {activeTab === "folders" && (
-          <div className="absolute inset-0 flex flex-col min-h-0 overflow-hidden">
-            {foldersContent}
-          </div>
-        )}
-        {activeTab === "profile" && (
-          <div className="absolute inset-0 flex flex-col min-h-0 overflow-hidden">
-            {profileContent}
-          </div>
-        )}
+        <div className="absolute inset-0 flex flex-col min-h-0 overflow-hidden">
+          {activeTab === "home" && homeContent}
+          {activeTab === "folders" && foldersContent}
+          {activeTab === "profile" && profileContent}
+        </div>
       </div>
 
       {/* Bottom Navigation */}

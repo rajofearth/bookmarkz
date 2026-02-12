@@ -30,7 +30,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background md:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden">
       <div className="grid grid-cols-3 h-16">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -45,11 +45,16 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                 "active:bg-muted/50",
                 isActive
                   ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <Icon className={cn("size-5", isActive && "scale-110")} />
-              <span className={cn("text-[10px] font-medium", isActive && "font-semibold")}>
+              <span
+                className={cn(
+                  "text-[10px] font-medium",
+                  isActive && "font-semibold",
+                )}
+              >
                 {tab.label}
               </span>
             </button>

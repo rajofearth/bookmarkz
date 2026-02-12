@@ -1,5 +1,5 @@
-import { isAuthenticated } from "@/lib/auth-server";
 import { type NextRequest, NextResponse } from "next/server";
+import { isAuthenticated } from "@/lib/auth-server";
 
 export async function GET(request: NextRequest) {
   // Verify user is authenticated
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   if (!authenticated) {
     return NextResponse.json(
       { error: "Unauthorized. Please sign in to fetch metadata." },
-      { status: 401 }
+      { status: 401 },
     );
   }
 

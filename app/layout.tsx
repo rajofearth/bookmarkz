@@ -1,10 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
 import { ConvexClientProvider } from "@/app/ConvexClientProvider";
+import { ThemeProvider } from "@/components/theme-provider";
 import { getToken } from "@/lib/auth-server";
-
 
 const fontSans = JetBrains_Mono({
   subsets: ["latin"],
@@ -33,14 +32,14 @@ export default async function RootLayout({
     <html lang="en" className={fontSans.variable} suppressHydrationWarning>
       <body className="antialiased">
         <ConvexClientProvider initialToken={token}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+          </ThemeProvider>
         </ConvexClientProvider>
       </body>
     </html>

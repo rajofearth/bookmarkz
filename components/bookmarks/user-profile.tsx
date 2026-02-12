@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useQuery } from "convex/react";
 import {
   Bookmark,
   ChevronUp,
   FolderOpen,
   Keyboard,
   LogOut,
-  Moon,
   Monitor,
+  Moon,
   Settings,
   Sun,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useEffect, useRef, useState } from "react";
 
 import { Separator } from "@/components/ui/separator";
 import {
@@ -23,10 +23,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import { UserInfoRow } from "@/components/user-info-row";
+import { api } from "@/convex/_generated/api";
 import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 interface UserStats {
   bookmarks: number;
@@ -90,7 +90,10 @@ export function UserProfile({
   // Close on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -130,7 +133,10 @@ export function UserProfile({
   }
 
   return (
-    <div ref={containerRef} className="relative border-t border-sidebar-border p-2">
+    <div
+      ref={containerRef}
+      className="relative border-t border-sidebar-border p-2"
+    >
       {/* Dropdown Menu - appears above the button */}
       <div
         className={cn(
@@ -139,7 +145,7 @@ export function UserProfile({
           "transition-all duration-150 ease-out",
           isOpen
             ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
-            : "pointer-events-none translate-y-1 scale-[0.98] opacity-0"
+            : "pointer-events-none translate-y-1 scale-[0.98] opacity-0",
         )}
       >
         {/* User Info Header */}
@@ -153,8 +159,16 @@ export function UserProfile({
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-1 p-2">
-          <StatItem icon={Bookmark} value={displayStats.bookmarks} label="Bookmarks" />
-          <StatItem icon={FolderOpen} value={displayStats.folders} label="Folders" />
+          <StatItem
+            icon={Bookmark}
+            value={displayStats.bookmarks}
+            label="Bookmarks"
+          />
+          <StatItem
+            icon={FolderOpen}
+            value={displayStats.folders}
+            label="Folders"
+          />
         </div>
 
         <Separator className="bg-sidebar-border" />
@@ -182,11 +196,7 @@ export function UserProfile({
             {mounted && (
               <MenuItem
                 icon={
-                  theme === "system"
-                    ? Monitor
-                    : theme === "dark"
-                      ? Moon
-                      : Sun
+                  theme === "system" ? Monitor : theme === "dark" ? Moon : Sun
                 }
                 label={
                   theme === "system"
@@ -220,17 +230,14 @@ export function UserProfile({
           "ring-sidebar-ring transition-colors duration-100",
           "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
           "focus-visible:outline-none focus-visible:ring-2",
-          isOpen && "bg-sidebar-accent text-sidebar-accent-foreground"
+          isOpen && "bg-sidebar-accent text-sidebar-accent-foreground",
         )}
       >
-        <UserInfoRow
-          user={user}
-          className="flex-1 px-0"
-        />
+        <UserInfoRow user={user} className="flex-1 px-0" />
         <ChevronUp
           className={cn(
             "size-4 shrink-0 text-sidebar-foreground/50 transition-transform duration-150",
-            isOpen ? "rotate-0" : "rotate-180"
+            isOpen ? "rotate-0" : "rotate-180",
           )}
         />
       </button>
@@ -250,7 +257,9 @@ function StatItem({ icon: Icon, value, label }: StatItemProps) {
     <div className="flex items-center gap-2 rounded-md px-3 py-2 bg-sidebar-accent/50">
       <Icon className="size-4 text-sidebar-foreground/50" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold tabular-nums text-sidebar-foreground">{value}</p>
+        <p className="text-sm font-semibold tabular-nums text-sidebar-foreground">
+          {value}
+        </p>
         <p className="text-[10px] text-sidebar-foreground/50">{label}</p>
       </div>
     </div>
@@ -266,7 +275,13 @@ interface MenuItemProps {
   variant?: "default" | "destructive";
 }
 
-function MenuItem({ icon: Icon, label, shortcut, onClick, variant = "default" }: MenuItemProps) {
+function MenuItem({
+  icon: Icon,
+  label,
+  shortcut,
+  onClick,
+  variant = "default",
+}: MenuItemProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -283,7 +298,7 @@ function MenuItem({ icon: Icon, label, shortcut, onClick, variant = "default" }:
             variant === "destructive" && [
               "text-destructive",
               "hover:bg-destructive/10",
-            ]
+            ],
           )}
         >
           <Icon className="size-4 shrink-0" />

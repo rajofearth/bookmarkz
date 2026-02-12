@@ -1,43 +1,48 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useQuery } from "convex/react";
 import {
-  User,
+  Bell,
+  Bookmark,
+  ChevronRight,
+  FolderOpen,
+  LogOut,
+  Monitor,
+  Moon,
   Palette,
   Settings as SettingsIcon,
-  Bell,
-  LogOut,
-  Bookmark,
-  FolderOpen,
-  ChevronRight,
-  Moon,
   Sun,
-  Monitor,
+  User,
 } from "lucide-react";
-import { useQuery } from "convex/react";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { api } from "@/convex/_generated/api";
+import { useState } from "react";
+import { toast } from "sonner";
+import { AppearanceSettings } from "@/components/settings/appearance-settings";
+import { GeneralSettings } from "@/components/settings/general-settings";
+import { NotificationsSettings } from "@/components/settings/notifications-settings";
+import { ProfileSettings } from "@/components/settings/profile-settings";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ProfileSettings } from "@/components/settings/profile-settings";
-import { AppearanceSettings } from "@/components/settings/appearance-settings";
-import { GeneralSettings } from "@/components/settings/general-settings";
-import { NotificationsSettings } from "@/components/settings/notifications-settings";
-import { authClient } from "@/lib/auth-client";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
+import { api } from "@/convex/_generated/api";
 import { usePrivacyStore } from "@/hooks/use-privacy-store";
+import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 
-type SettingsSection = "profile" | "appearance" | "general" | "notifications" | null;
+type SettingsSection =
+  | "profile"
+  | "appearance"
+  | "general"
+  | "notifications"
+  | null;
 
 export function ProfileTab() {
   const router = useRouter();
@@ -59,11 +64,11 @@ export function ProfileTab() {
 
   const initials = user?.name
     ? user.name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2)
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
     : "??";
 
   const imageUrl = user?.image ?? undefined;
@@ -105,10 +110,12 @@ export function ProfileTab() {
         <div className="relative flex items-center gap-3 mb-4">
           {/* Avatar with Enhanced Styling */}
           <div className="relative">
-            <Avatar className={cn(
-              "size-14 ring-2 ring-background shadow-md",
-              blurProfile && "blur-sm"
-            )}>
+            <Avatar
+              className={cn(
+                "size-14 ring-2 ring-background shadow-md",
+                blurProfile && "blur-sm",
+              )}
+            >
               <AvatarImage src={imageUrl} />
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-base">
                 {initials}
@@ -118,17 +125,21 @@ export function ProfileTab() {
 
           {/* User Info */}
           <div className="flex-1 min-w-0">
-            <h2 className={cn(
-              "text-base font-semibold truncate",
-              blurProfile && "blur-sm"
-            )}>
+            <h2
+              className={cn(
+                "text-base font-semibold truncate",
+                blurProfile && "blur-sm",
+              )}
+            >
               {user?.name || "User"}
             </h2>
             {user?.email && (
-              <p className={cn(
-                "text-xs text-muted-foreground truncate",
-                blurProfile && "blur-sm"
-              )}>
+              <p
+                className={cn(
+                  "text-xs text-muted-foreground truncate",
+                  blurProfile && "blur-sm",
+                )}
+              >
                 {user.email}
               </p>
             )}
@@ -182,7 +193,11 @@ export function ProfileTab() {
           <div>
             <p className="text-xs font-medium text-foreground mb-0.5">Theme</p>
             <p className="text-[10px] text-muted-foreground">
-              {theme === "light" ? "Light" : theme === "dark" ? "Dark" : "System"}
+              {theme === "light"
+                ? "Light"
+                : theme === "dark"
+                  ? "Dark"
+                  : "System"}
             </p>
           </div>
           <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
@@ -215,7 +230,7 @@ export function ProfileTab() {
       </div>
 
       {/* Settings List */}
-      <div className="flex-1 min-h-0 overflow-y-auto pb-20" style={{ paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
+      <div className="flex-1 min-h-0 overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))]">
         <div className="px-4 py-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
             Settings
@@ -236,8 +251,12 @@ export function ProfileTab() {
                   <Icon className="size-4 text-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{item.label}</p>
-                  <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {item.label}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {item.description}
+                  </p>
                 </div>
                 <ChevronRight className="size-4 text-muted-foreground shrink-0" />
               </button>
@@ -261,8 +280,14 @@ export function ProfileTab() {
       </div>
 
       {/* Settings Dialogs */}
-      <Dialog open={openSection === "profile"} onOpenChange={(open) => !open && setOpenSection(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
+      <Dialog
+        open={openSection === "profile"}
+        onOpenChange={(open) => !open && setOpenSection(null)}
+      >
+        <DialogContent
+          className="max-h-[90vh] overflow-y-auto"
+          aria-describedby={undefined}
+        >
           <DialogTitle className="sr-only">Profile settings</DialogTitle>
           <div className="mt-4">
             <ProfileSettings />
@@ -270,8 +295,14 @@ export function ProfileTab() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={openSection === "appearance"} onOpenChange={(open) => !open && setOpenSection(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
+      <Dialog
+        open={openSection === "appearance"}
+        onOpenChange={(open) => !open && setOpenSection(null)}
+      >
+        <DialogContent
+          className="max-h-[90vh] overflow-y-auto"
+          aria-describedby={undefined}
+        >
           <DialogTitle className="sr-only">Appearance settings</DialogTitle>
           <div className="mt-4">
             <AppearanceSettings />
@@ -279,8 +310,14 @@ export function ProfileTab() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={openSection === "general"} onOpenChange={(open) => !open && setOpenSection(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
+      <Dialog
+        open={openSection === "general"}
+        onOpenChange={(open) => !open && setOpenSection(null)}
+      >
+        <DialogContent
+          className="max-h-[90vh] overflow-y-auto"
+          aria-describedby={undefined}
+        >
           <DialogTitle className="sr-only">General settings</DialogTitle>
           <div className="mt-4">
             <GeneralSettings />
@@ -288,8 +325,14 @@ export function ProfileTab() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={openSection === "notifications"} onOpenChange={(open) => !open && setOpenSection(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
+      <Dialog
+        open={openSection === "notifications"}
+        onOpenChange={(open) => !open && setOpenSection(null)}
+      >
+        <DialogContent
+          className="max-h-[90vh] overflow-y-auto"
+          aria-describedby={undefined}
+        >
           <DialogTitle className="sr-only">Notifications settings</DialogTitle>
           <div className="mt-4">
             <NotificationsSettings />

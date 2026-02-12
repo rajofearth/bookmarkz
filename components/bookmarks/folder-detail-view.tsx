@@ -1,20 +1,29 @@
 "use client";
 
-import { ArrowLeft, FolderIcon, SearchIcon, BookmarkIcon } from "lucide-react";
+import { ArrowLeft, BookmarkIcon, SearchIcon } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
+import { FlipReveal, FlipRevealItem } from "@/components/gsap/flip-reveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BookmarkCard } from "./bookmark-card";
-import { FlipReveal, FlipRevealItem } from "@/components/gsap/flip-reveal";
-import { DisplayControlsMenu } from "./display-controls-menu";
 import { useGeneralStore } from "@/hooks/use-general-store";
-import { cn } from "@/lib/utils";
+import {
+  filterBookmarksBySearch,
+  getViewModeGridClasses,
+  sortBookmarksByDate,
+} from "@/lib/bookmarks-utils";
+import { BookmarkCard } from "./bookmark-card";
+import { DetailsHeaderRow } from "./bookmarks-empty-details";
+import { DisplayControlsMenu } from "./display-controls-menu";
+import { FolderIconDisplay } from "./folder-icon";
 import type { Bookmark, Folder } from "./types";
-import dynamic from "next/dynamic";
 
 const AddBookmarkDialog = dynamic(
-  () => import("./add-bookmark-dialog").then((mod) => ({ default: mod.AddBookmarkDialog })),
-  { ssr: false }
+  () =>
+    import("./add-bookmark-dialog").then((mod) => ({
+      default: mod.AddBookmarkDialog,
+    })),
+  { ssr: false },
 );
 
 interface FolderDetailViewProps {
@@ -45,32 +54,14 @@ export function FolderDetailView({
   const [searchQuery, setSearchQuery] = useState("");
   const { viewMode, sortMode } = useGeneralStore();
 
-  const filteredBookmarks = useMemo(() => {
-    let result = bookmarks;
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (b) =>
-          b.title.toLowerCase().includes(query) ||
-          b.url.toLowerCase().includes(query)
-      );
-    }
-
-    return [...result].sort((a, b) => {
-      const aTime = a.createdAt.getTime();
-      const bTime = b.createdAt.getTime();
-      return sortMode === "newest" ? bTime - aTime : aTime - bTime;
-    });
-  }, [bookmarks, searchQuery, sortMode]);
-
-  const getFolderIcon = () => {
-    if (folder.icon) {
-      const Icon = folder.icon;
-      return <Icon className="size-4" />;
-    }
-    return <FolderIcon className="size-4" />;
-  };
+  const filteredBookmarks = useMemo(
+    () =>
+      sortBookmarksByDate(
+        filterBookmarksBySearch(bookmarks, searchQuery),
+        sortMode,
+      ),
+    [bookmarks, searchQuery, sortMode],
+  );
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -87,7 +78,7 @@ export function FolderDetailView({
 
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="text-muted-foreground shrink-0">
-            {getFolderIcon()}
+            <FolderIconDisplay folder={folder} />
           </div>
           <h1 className="text-sm font-medium truncate">{folder.name}</h1>
         </div>
@@ -105,10 +96,7 @@ export function FolderDetailView({
 
         <DisplayControlsMenu />
 
-        <AddBookmarkDialog
-          folders={editableFolders}
-          onSubmit={onAddBookmark}
-        />
+        <AddBookmarkDialog folders={editableFolders} onSubmit={onAddBookmark} />
       </header>
 
       {/* Search bar for mobile */}
@@ -126,7 +114,7 @@ export function FolderDetailView({
       </div>
 
       {/* Bookmarks Grid */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 pb-20" style={{ paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 pb-[calc(5rem+env(safe-area-inset-bottom))]">
         {bookmarks.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
             <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
@@ -155,29 +143,18 @@ export function FolderDetailView({
               </div>
             )}
             {/* Details header row */}
-            {viewMode === "details" && (
-              <div className="flex items-center gap-3 px-3 py-2 border-b border-border text-xs font-medium text-muted-foreground">
-                <span className="w-6 shrink-0" />
-                <span className="flex-1">Name</span>
-                <span className="hidden sm:block w-36 text-right">URL</span>
-                <span className="hidden lg:block w-32 text-right">Folder</span>
-                <span className="hidden md:block w-28 text-right">Date Added</span>
-                <span className="w-6 shrink-0" />
-              </div>
-            )}
+            {viewMode === "details" && <DetailsHeaderRow />}
             <FlipReveal
               keys={filteredBookmarks.map((b) => String(b.id))}
               showClass="block"
               hideClass="hidden"
             >
-              <div className={cn(
-                viewMode === "normal" && "grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
-                viewMode === "compact" && "grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5",
-                viewMode === "list" && "flex flex-col gap-1",
-                viewMode === "details" && "flex flex-col gap-0",
-              )}>
+              <div className={getViewModeGridClasses(viewMode)}>
                 {filteredBookmarks.map((bookmark) => (
-                  <FlipRevealItem key={bookmark.id} flipKey={String(bookmark.id)}>
+                  <FlipRevealItem
+                    key={bookmark.id}
+                    flipKey={String(bookmark.id)}
+                  >
                     <BookmarkCard
                       bookmark={bookmark}
                       folderName={folder.name}
