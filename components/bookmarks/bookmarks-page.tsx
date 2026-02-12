@@ -20,6 +20,7 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -635,6 +636,7 @@ export function BookmarksPage() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
+      modifiers={[restrictToWindowEdges]}
     >
       {isMobile ? (
         <MobileLayout
@@ -677,13 +679,19 @@ export function BookmarksPage() {
       />
       <MetadataFetcher />
 
-      <DragOverlay>
+      <DragOverlay dropAnimation={null} modifiers={[restrictToWindowEdges]}>
         {activeBookmark ? (
-          <BookmarkCard
-            bookmark={activeBookmark}
-            onEdit={setEditingBookmark}
-            onDelete={handleDeleteBookmark}
-          />
+          <div className={cn(
+            (viewMode === "list" || viewMode === "details") && "w-64 max-w-[min(80vw,320px)]"
+          )}>
+            <BookmarkCard
+              bookmark={activeBookmark}
+              folderName={folderNameById[activeBookmark.folderId] ?? "Unsorted"}
+              viewMode={viewMode}
+              onEdit={setEditingBookmark}
+              onDelete={handleDeleteBookmark}
+            />
+          </div>
         ) : null}
       </DragOverlay>
     </DndContext>

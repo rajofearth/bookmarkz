@@ -185,15 +185,15 @@ export function BookmarkCard({
           "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
           "cursor-grab active:cursor-grabbing",
           viewMode === "details" && "border-b border-border/60",
-          isDragging && "pointer-events-none z-20 opacity-0",
+          isDragging && "pointer-events-none z-20 opacity-0 invisible",
         )}
         onMouseEnter={() => setIsRowHovered(true)}
         onMouseLeave={() => setIsRowHovered(false)}
       >
         <AnimatePresence>
-          {isRowHovered && (
+          {isRowHovered && !isDragging && (
             <motion.div
-              layoutId="bookmark-row-hover-bg"
+              layoutId={`bookmark-row-hover-${bookmark.id}`}
               className="absolute inset-0 rounded-lg bg-accent/50 pointer-events-none"
               style={{ zIndex: 0 }}
               initial={{ opacity: 0 }}
@@ -267,7 +267,7 @@ export function BookmarkCard({
           "cursor-grab active:cursor-grabbing hover:border-border hover:shadow-sm",
           "w-full",
           isDragging &&
-            "pointer-events-none z-20 scale-[0.98] opacity-50 shadow-lg ring-2 ring-primary/30",
+            "pointer-events-none z-20 opacity-0 invisible",
         )}
       >
         <a
@@ -307,7 +307,7 @@ export function BookmarkCard({
         "cursor-grab active:cursor-grabbing hover:border-border hover:shadow-md",
         "w-full",
         isDragging &&
-          "pointer-events-none z-20 scale-[0.98] opacity-50 shadow-lg ring-2 ring-primary/30",
+          "pointer-events-none z-20 opacity-0 invisible",
       )}
     >
       {/* Image */}
