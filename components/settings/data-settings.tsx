@@ -234,7 +234,7 @@ export function DataSettings() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
-        className="max-w-2xl"
+        className="max-w-2xl space-y-6"
       >
         {/* ── Export Section ─────────────────────────────────── */}
         <motion.div
@@ -273,9 +273,18 @@ export function DataSettings() {
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm font-medium">
-                      {bookmarks.length} bookmarks
-                      {folders.length > 0 && ` · ${folders.length} folders`}
+                    <p className="text-sm font-medium flex flex-wrap items-baseline gap-x-1.5 gap-y-0">
+                      <span className="whitespace-nowrap">
+                        {bookmarks.length} bookmarks
+                      </span>
+                      {folders.length > 0 && (
+                        <>
+                          <span className="text-muted-foreground" aria-hidden>·</span>
+                          <span className="whitespace-nowrap">
+                            {folders.length} folders
+                          </span>
+                        </>
+                      )}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Netscape Bookmark File Format
@@ -347,7 +356,7 @@ export function DataSettings() {
         </div>
         </motion.div>
 
-        <Separator className={cn(isMobile && "my-4")} />
+        <Separator className="my-0" />
 
         {/* ── Import Section ─────────────────────────────────── */}
         <motion.div
@@ -358,7 +367,7 @@ export function DataSettings() {
             delay: 0.08,
             ease: [0.25, 0.46, 0.45, 0.94],
           }}
-          className={cn("space-y-4", isMobile && "space-y-3")}
+          className={cn("space-y-4 pt-4", isMobile && "space-y-3")}
         >
         <div className="space-y-1">
           <h3 className="text-base font-medium">Import Bookmarks</h3>
