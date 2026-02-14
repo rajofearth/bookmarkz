@@ -145,7 +145,7 @@ export function ProfileSettings() {
               type="email"
               value={formData.email}
               disabled
-              className="max-w-md bg-muted text-muted-foreground"
+              className={cn("max-w-md bg-muted text-muted-foreground", blurProfile && "blur-sm")}
             />
           </div>
           <div className={isMobile ? "pt-0" : "pt-2"}>
