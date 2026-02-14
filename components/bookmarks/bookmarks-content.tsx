@@ -1,7 +1,8 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import { BookmarkIcon } from "lucide-react";
-import { FlipReveal, FlipRevealItem } from "@/components/gsap/flip-reveal";
+import { FlipReveal } from "@/components/gsap/flip-reveal";
 import { ImportGuide } from "@/components/onboarding/import-guide";
 import { useGeneralStore } from "@/hooks/use-general-store";
 import { getViewModeGridClasses } from "@/lib/bookmarks-utils";
@@ -74,8 +75,17 @@ export function BookmarksContent({
         hideClass="hidden"
       >
         <div className={cn(getViewModeGridClasses(viewMode))}>
-          {filteredBookmarks.map((bookmark) => (
-            <FlipRevealItem key={bookmark.id} flipKey={String(bookmark.id)}>
+          <AnimatePresence initial={false} mode="popLayout">
+            {filteredBookmarks.map((bookmark) => (
+              <motion.div
+                key={bookmark.id}
+                data-flip={String(bookmark.id)}
+                layout
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
               <BookmarkCard
                 bookmark={bookmark}
                 folderName={folderNameById[bookmark.folderId] ?? "Unsorted"}
@@ -86,8 +96,9 @@ export function BookmarksContent({
                 folders={editableFolders}
                 priority={filteredBookmarks[0]?.id === bookmark.id}
               />
-            </FlipRevealItem>
-          ))}
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </FlipReveal>
     </div>

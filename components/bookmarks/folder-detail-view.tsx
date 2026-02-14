@@ -1,9 +1,10 @@
 "use client";
 
 import { ArrowLeft, BookmarkIcon, SearchIcon } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
-import { FlipReveal, FlipRevealItem } from "@/components/gsap/flip-reveal";
+import { FlipReveal } from "@/components/gsap/flip-reveal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useGeneralStore } from "@/hooks/use-general-store";
@@ -150,10 +151,16 @@ export function FolderDetailView({
               hideClass="hidden"
             >
               <div className={getViewModeGridClasses(viewMode)}>
-                {filteredBookmarks.map((bookmark) => (
-                  <FlipRevealItem
+                <AnimatePresence initial={false} mode="popLayout">
+                  {filteredBookmarks.map((bookmark) => (
+                    <motion.div
                     key={bookmark.id}
-                    flipKey={String(bookmark.id)}
+                    data-flip={String(bookmark.id)}
+                    layout
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
                   >
                     <BookmarkCard
                       bookmark={bookmark}
@@ -163,8 +170,9 @@ export function FolderDetailView({
                       onDelete={onDeleteBookmark}
                       priority={filteredBookmarks[0]?.id === bookmark.id}
                     />
-                  </FlipRevealItem>
-                ))}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             </FlipReveal>
           </div>
