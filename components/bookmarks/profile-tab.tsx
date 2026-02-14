@@ -2,55 +2,39 @@
 
 import { useQuery } from "convex/react";
 import {
-  Bell,
+  ArrowLeft,
   Bookmark,
   ChevronRight,
+  Database,
   FolderOpen,
   LogOut,
-  Monitor,
-  Moon,
-  Palette,
-  Settings as SettingsIcon,
-  Sun,
+  SlidersHorizontal,
   User,
 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
 import { useState } from "react";
 import { toast } from "sonner";
-import { AppearanceSettings } from "@/components/settings/appearance-settings";
-import { GeneralSettings } from "@/components/settings/general-settings";
-import { NotificationsSettings } from "@/components/settings/notifications-settings";
+import { DataSettings } from "@/components/settings/data-settings";
+import { PreferencesSettings } from "@/components/settings/preferences-settings";
 import { ProfileSettings } from "@/components/settings/profile-settings";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/convex/_generated/api";
 import { usePrivacyStore } from "@/hooks/use-privacy-store";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
-type SettingsSection =
-  | "profile"
-  | "appearance"
-  | "general"
-  | "notifications"
-  | null;
+type ProfileScreen = "root" | "profile" | "preferences" | "data";
 
 export function ProfileTab() {
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
   const user = useQuery(api.users.getProfile);
   const stats = useQuery(api.bookmarks.getUserStats);
   const blurProfile = usePrivacyStore((state) => state.blurProfile);
-  const [openSection, setOpenSection] = useState<SettingsSection>(null);
+  const [screen, setScreen] = useState<ProfileScreen>("root");
 
   const handleSignOut = async () => {
     try {
@@ -75,270 +59,184 @@ export function ProfileTab() {
 
   const settingsItems = [
     {
-      id: "profile" as const,
+      id: "profile" as ProfileScreen,
       label: "Profile",
       icon: User,
       description: "Manage your personal information",
     },
     {
-      id: "appearance" as const,
-      label: "Appearance",
-      icon: Palette,
-      description: "Customize theme and display",
+      id: "preferences" as ProfileScreen,
+      label: "Preferences",
+      icon: SlidersHorizontal,
+      description: "Theme and app behavior",
     },
     {
-      id: "general" as const,
-      label: "General",
-      icon: SettingsIcon,
-      description: "Application preferences",
-    },
-    {
-      id: "notifications" as const,
-      label: "Notifications",
-      icon: Bell,
-      description: "Notification settings",
+      id: "data" as ProfileScreen,
+      label: "Data",
+      icon: Database,
+      description: "Import and export bookmarks",
     },
   ];
 
+  const titles: Record<Exclude<ProfileScreen, "root">, string> = {
+    profile: "Profile",
+    preferences: "Preferences",
+    data: "Data",
+  };
+
+  const renderDetailScreen = () => {
+    if (screen === "profile") return <ProfileSettings />;
+    if (screen === "preferences") return <PreferencesSettings />;
+    return <DataSettings />;
+  };
+
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden bg-background">
-      {/* Enhanced Profile Header */}
-      <div className="relative px-4 pt-5 pb-4 border-b border-border bg-background overflow-hidden">
-        {/* Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-primary/3 to-transparent pointer-events-none" />
-
-        <div className="relative flex items-center gap-3 mb-4">
-          {/* Avatar with Enhanced Styling */}
-          <div className="relative">
-            <Avatar
-              className={cn(
-                "size-14 ring-2 ring-background shadow-md",
-                blurProfile && "blur-sm",
-              )}
-            >
-              <AvatarImage src={imageUrl} />
-              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-base">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-          </div>
-
-          {/* User Info */}
-          <div className="flex-1 min-w-0">
-            <h2
-              className={cn(
-                "text-base font-semibold truncate",
-                blurProfile && "blur-sm",
-              )}
-            >
-              {user?.name || "User"}
-            </h2>
-            {user?.email && (
-              <p
-                className={cn(
-                  "text-xs text-muted-foreground truncate",
-                  blurProfile && "blur-sm",
-                )}
-              >
-                {user.email}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Enhanced Stats Cards */}
-        {stats && (
-          <div className="relative flex gap-2">
-            <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all duration-200 hover:shadow-md hover:scale-[1.01]">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="bg-gradient-to-br from-primary/20 to-primary/10 p-2 rounded-lg ring-1 ring-primary/10">
-                    <Bookmark className="size-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-bold tabular-nums tracking-tight">
-                      {stats.bookmarks}
+      <AnimatePresence mode="wait" initial={false}>
+        {screen === "root" ? (
+          <motion.div
+            key="profile-root"
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="flex flex-col flex-1 min-h-0"
+          >
+            <div className="px-4 pt-5 pb-4 border-b border-border bg-background">
+              <div className="flex items-center gap-3 mb-4">
+                <Avatar className={cn("size-14", blurProfile && "blur-sm")}>
+                  <AvatarImage src={imageUrl} />
+                  <AvatarFallback className="font-semibold text-base">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <h2
+                    className={cn(
+                      "text-base font-semibold truncate",
+                      blurProfile && "blur-sm",
+                    )}
+                  >
+                    {user?.name || "User"}
+                  </h2>
+                  {user?.email && (
+                    <p
+                      className={cn(
+                        "text-xs text-muted-foreground truncate",
+                        blurProfile && "blur-sm",
+                      )}
+                    >
+                      {user.email}
                     </p>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                      Bookmarks
-                    </p>
-                  </div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-            <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all duration-200 hover:shadow-md hover:scale-[1.01]">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="bg-gradient-to-br from-primary/20 to-primary/10 p-2 rounded-lg ring-1 ring-primary/10">
-                    <FolderOpen className="size-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-bold tabular-nums tracking-tight">
-                      {stats.folders}
-                    </p>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                      Folders
-                    </p>
-                  </div>
+              </div>
+
+              {stats && (
+                <div className="flex gap-2">
+                  <Card className="flex-1">
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-2">
+                        <Bookmark className="size-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-lg font-semibold tabular-nums">
+                            {stats.bookmarks}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                            Bookmarks
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="flex-1">
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-2">
+                        <FolderOpen className="size-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-lg font-semibold tabular-nums">
+                            {stats.folders}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                            Folders
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-      </div>
+              )}
+            </div>
 
-      {/* Quick Actions */}
-      <div className="px-4 py-3 border-b border-border">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-medium text-foreground mb-0.5">Theme</p>
-            <p className="text-[10px] text-muted-foreground">
-              {theme === "light"
-                ? "Light"
-                : theme === "dark"
-                  ? "Dark"
-                  : "System"}
-            </p>
-          </div>
-          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-            <Button
-              variant={theme === "light" ? "default" : "ghost"}
-              size="icon-xs"
-              onClick={() => setTheme("light")}
-              className="h-7 w-7"
-            >
-              <Sun className="size-3.5" />
-            </Button>
-            <Button
-              variant={theme === "dark" ? "default" : "ghost"}
-              size="icon-xs"
-              onClick={() => setTheme("dark")}
-              className="h-7 w-7"
-            >
-              <Moon className="size-3.5" />
-            </Button>
-            <Button
-              variant={theme === "system" ? "default" : "ghost"}
-              size="icon-xs"
-              onClick={() => setTheme("system")}
-              className="h-7 w-7"
-            >
-              <Monitor className="size-3.5" />
-            </Button>
-          </div>
-        </div>
-      </div>
+            <div className="flex-1 min-h-0 overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))]">
+              <div className="px-4 py-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Settings
+                </p>
+              </div>
 
-      {/* Settings List */}
-      <div className="flex-1 min-h-0 overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))]">
-        <div className="px-4 py-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-            Settings
-          </p>
-        </div>
+              <div className="px-3">
+                {settingsItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      type="button"
+                      key={item.id}
+                      onClick={() => setScreen(item.id)}
+                      className="w-full flex items-center gap-3 px-2 py-3.5 border-b border-border/70 text-left"
+                    >
+                      <Icon className="size-4 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium leading-tight">
+                          {item.label}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                          {item.description}
+                        </p>
+                      </div>
+                      <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+                    </button>
+                  );
+                })}
+              </div>
 
-        <div className="px-2">
-          {settingsItems.map((item) => {
-            const Icon = item.icon;
-            return (
+              <div className="px-4 mt-6 pt-4">
+                <Button
+                  variant="destructive"
+                  className="w-full h-10"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="size-4 mr-2" />
+                  Sign Out
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key={`profile-${screen}`}
+            initial={{ opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="flex flex-col flex-1 min-h-0"
+          >
+            <div className="px-3 py-2 border-b border-border bg-background">
               <button
                 type="button"
-                key={item.id}
-                onClick={() => setOpenSection(item.id)}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-muted/50 active:bg-muted transition-colors text-left"
+                onClick={() => setScreen("root")}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground"
               >
-                <div className="bg-muted p-2 rounded-lg">
-                  <Icon className="size-4 text-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">
-                    {item.label}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {item.description}
-                  </p>
-                </div>
-                <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+                <ArrowLeft className="size-4" />
+                Back
               </button>
-            );
-          })}
-        </div>
-
-        <Separator className="my-2" />
-
-        {/* Sign Out */}
-        <div className="px-4 py-2">
-          <Button
-            variant="destructive"
-            className="w-full h-10"
-            onClick={handleSignOut}
-          >
-            <LogOut className="size-4 mr-2" />
-            Sign Out
-          </Button>
-        </div>
-      </div>
-
-      {/* Settings Dialogs */}
-      <Dialog
-        open={openSection === "profile"}
-        onOpenChange={(open) => !open && setOpenSection(null)}
-      >
-        <DialogContent
-          className="max-h-[90vh] overflow-y-auto"
-          aria-describedby={undefined}
-        >
-          <DialogTitle className="sr-only">Profile settings</DialogTitle>
-          <div className="mt-4">
-            <ProfileSettings />
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={openSection === "appearance"}
-        onOpenChange={(open) => !open && setOpenSection(null)}
-      >
-        <DialogContent
-          className="max-h-[90vh] overflow-y-auto"
-          aria-describedby={undefined}
-        >
-          <DialogTitle className="sr-only">Appearance settings</DialogTitle>
-          <div className="mt-4">
-            <AppearanceSettings />
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={openSection === "general"}
-        onOpenChange={(open) => !open && setOpenSection(null)}
-      >
-        <DialogContent
-          className="max-h-[90vh] overflow-y-auto"
-          aria-describedby={undefined}
-        >
-          <DialogTitle className="sr-only">General settings</DialogTitle>
-          <div className="mt-4">
-            <GeneralSettings />
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={openSection === "notifications"}
-        onOpenChange={(open) => !open && setOpenSection(null)}
-      >
-        <DialogContent
-          className="max-h-[90vh] overflow-y-auto"
-          aria-describedby={undefined}
-        >
-          <DialogTitle className="sr-only">Notifications settings</DialogTitle>
-          <div className="mt-4">
-            <NotificationsSettings />
-          </div>
-        </DialogContent>
-      </Dialog>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 pb-[calc(5rem+env(safe-area-inset-bottom))]">
+              {renderDetailScreen()}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

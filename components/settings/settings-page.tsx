@@ -3,10 +3,8 @@
 import { useQuery } from "convex/react";
 import {
   ArrowLeft,
-  Bell,
   HardDriveDownload,
-  Palette,
-  Settings as SettingsIcon,
+  SlidersHorizontal,
   User,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -18,10 +16,8 @@ import { Tabs, TabsList } from "@/components/ui/tabs";
 import { UserInfoRow } from "@/components/user-info-row";
 import { api } from "@/convex/_generated/api";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { AppearanceSettings } from "./appearance-settings";
 import { DataSettings } from "./data-settings";
-import { GeneralSettings } from "./general-settings";
-import { NotificationsSettings } from "./notifications-settings";
+import { PreferencesSettings } from "./preferences-settings";
 import { ProfileSettings } from "./profile-settings";
 import { SettingsTabTrigger } from "./settings-tab-trigger";
 
@@ -77,25 +73,11 @@ export function SettingsPage() {
                 onClick={() => setActiveTab("profile")}
               />
               <SettingsTabTrigger
-                value="appearance"
-                icon={Palette}
-                label="Appearance"
-                active={activeTab === "appearance"}
-                onClick={() => setActiveTab("appearance")}
-              />
-              <SettingsTabTrigger
-                value="general"
-                icon={SettingsIcon}
-                label="General"
-                active={activeTab === "general"}
-                onClick={() => setActiveTab("general")}
-              />
-              <SettingsTabTrigger
-                value="notifications"
-                icon={Bell}
-                label="Notifications"
-                active={activeTab === "notifications"}
-                onClick={() => setActiveTab("notifications")}
+                value="preferences"
+                icon={SlidersHorizontal}
+                label="Preferences"
+                active={activeTab === "preferences"}
+                onClick={() => setActiveTab("preferences")}
               />
               <SettingsTabTrigger
                 value="data"
@@ -124,21 +106,9 @@ export function SettingsPage() {
                 </TabContentWrapper>
               )}
 
-              {activeTab === "appearance" && (
-                <TabContentWrapper key="appearance">
-                  <AppearanceSettings />
-                </TabContentWrapper>
-              )}
-
-              {activeTab === "general" && (
-                <TabContentWrapper key="general">
-                  <GeneralSettings />
-                </TabContentWrapper>
-              )}
-
-              {activeTab === "notifications" && (
-                <TabContentWrapper key="notifications">
-                  <NotificationsSettings />
+              {activeTab === "preferences" && (
+                <TabContentWrapper key="preferences">
+                  <PreferencesSettings />
                 </TabContentWrapper>
               )}
 

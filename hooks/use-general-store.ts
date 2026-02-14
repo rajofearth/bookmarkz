@@ -7,12 +7,14 @@ export type SortMode = "newest" | "oldest";
 interface GeneralSettingsState {
   openInNewTab: boolean;
   showFavicons: boolean;
+  reducedMotion: boolean;
   viewMode: ViewMode;
   sortMode: SortMode;
   updateSettings: (
     settings: Partial<{
       openInNewTab: boolean;
       showFavicons: boolean;
+      reducedMotion: boolean;
       viewMode: ViewMode;
       sortMode: SortMode;
     }>,
@@ -24,6 +26,7 @@ export const useGeneralStore = create<GeneralSettingsState>()(
     (set) => ({
       openInNewTab: true,
       showFavicons: true,
+      reducedMotion: false,
       viewMode: "normal",
       sortMode: "newest",
       updateSettings: (newSettings) =>

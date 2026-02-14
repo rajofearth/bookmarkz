@@ -17,6 +17,7 @@ import { useCallback, useRef, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   downloadBookmarkFile,
   generateBookmarkHtml,
@@ -44,6 +45,7 @@ type ExportState = "idle" | "exporting" | "done" | "error";
 
 // ─── Component ───────────────────────────────────────────────────────
 export function DataSettings() {
+  const isMobile = useIsMobile();
   // Export
   const bookmarks = useQuery(api.bookmarks.getBookmarks);
   const folders = useQuery(api.bookmarks.getFolders);
@@ -225,27 +227,39 @@ export function DataSettings() {
       <SectionHeader
         title="Data"
         description="Import and export your bookmarks."
+        compact={isMobile}
       />
 
-      {/* ── Export Section ─────────────────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{
-          duration: 0.35,
-          ease: [0.25, 0.46, 0.45, 0.94],
-        }}
-        className="space-y-4 max-w-2xl"
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="max-w-2xl"
       >
-        <div className="space-y-1">
-          <h3 className="text-base font-medium">Export Bookmarks</h3>
-          <p className="text-sm text-muted-foreground">
-            Download all your bookmarks as an HTML file compatible with any
-            browser.
-          </p>
-        </div>
+        {/* ── Export Section ─────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.35,
+            ease: [0.25, 0.46, 0.45, 0.94],
+          }}
+          className={cn("space-y-4", isMobile && "space-y-3")}
+        >
+          <div className="space-y-1">
+            <h3 className="text-base font-medium">Export Bookmarks</h3>
+            <p className="text-sm text-muted-foreground">
+              Download all your bookmarks as an HTML file compatible with any
+              browser.
+            </p>
+          </div>
 
-        <div className="rounded-xl border border-border bg-muted/20 p-5">
+          <div
+            className={cn(
+              "rounded-xl border border-border bg-muted/20",
+              isMobile ? "p-4" : "p-5",
+            )}
+          >
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
@@ -331,21 +345,21 @@ export function DataSettings() {
             </AnimatePresence>
           </div>
         </div>
-      </motion.div>
+        </motion.div>
 
-      <Separator className="max-w-2xl" />
+        <Separator className={cn(isMobile && "my-4")} />
 
-      {/* ── Import Section ─────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{
-          duration: 0.35,
-          delay: 0.08,
-          ease: [0.25, 0.46, 0.45, 0.94],
-        }}
-        className="space-y-4 max-w-2xl"
-      >
+        {/* ── Import Section ─────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.35,
+            delay: 0.08,
+            ease: [0.25, 0.46, 0.45, 0.94],
+          }}
+          className={cn("space-y-4", isMobile && "space-y-3")}
+        >
         <div className="space-y-1">
           <h3 className="text-base font-medium">Import Bookmarks</h3>
           <p className="text-sm text-muted-foreground">
@@ -568,6 +582,7 @@ export function DataSettings() {
             </motion.div>
           )}
         </AnimatePresence>
+        </motion.div>
       </motion.div>
     </>
   );
