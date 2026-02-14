@@ -8,7 +8,6 @@ export default defineSchema({
     name: v.optional(v.string()), // Override or cache of name
     email: v.optional(v.string()), // Override or cache
     image: v.optional(v.string()), // Override
-    bio: v.optional(v.string()),
     blurProfile: v.optional(v.boolean()),
   }).index("by_user_id", ["userId"]),
 

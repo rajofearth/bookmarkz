@@ -27,8 +27,7 @@ export function ProfileSettings() {
   // Local state for form inputs to allow editing before saving
   const [formData, setFormData] = useState({
     name: "",
-    email: "", // Read-only usually, or editable if we support it
-    bio: "",
+    email: "", // Read-only 
   });
 
   // Sync from profile when loaded
@@ -37,7 +36,6 @@ export function ProfileSettings() {
       setFormData({
         name: profile.name ?? "",
         email: profile.email ?? "",
-        bio: profile.bio ?? "",
       });
       // Sync store to persistent setting if available
       if (profile.blurProfile !== undefined) {
@@ -50,7 +48,6 @@ export function ProfileSettings() {
     try {
       await updateProfile({
         name: formData.name,
-        bio: formData.bio,
       });
       toast.success("Profile updated");
     } catch (error) {
@@ -149,16 +146,6 @@ export function ProfileSettings() {
               value={formData.email}
               disabled
               className="max-w-md bg-muted text-muted-foreground"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="bio">Bio</Label>
-            <Input
-              id="bio"
-              value={formData.bio}
-              onChange={(e) =>
-                setFormData({ ...formData, bio: e.target.value })
-              }
             />
           </div>
           <div className={isMobile ? "pt-0" : "pt-2"}>

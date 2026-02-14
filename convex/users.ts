@@ -40,7 +40,6 @@ export const getProfile = query({
       email: user.email, // Email usually comes from auth, but if we allow profile email overrides... usually not.
       _id: profile?._id, // This is the PROFILE ID, not User ID.
       userId: user._id,
-      bio: profile?.bio ?? "",
       blurProfile: profile?.blurProfile ?? false,
     };
   },
@@ -53,8 +52,7 @@ export const generateUploadUrl = mutation(async (ctx) => {
 export const updateProfile = mutation({
   args: {
     name: v.optional(v.string()),
-    bio: v.optional(v.string()),
-    image: v.optional(v.string()), // This can be a Storage ID now
+    image: v.optional(v.string()), 
     blurProfile: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
