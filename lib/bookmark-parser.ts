@@ -7,6 +7,7 @@ export interface ParsedBookmark {
   title: string;
   url: string;
   folder?: string; // Top-level folder name the bookmark belongs to
+  addDate?: number; // Unix seconds
 }
 
 export interface ParseResult {
@@ -59,6 +60,12 @@ export function parseBookmarkHtml(html: string): ParseResult {
           // This DT contains a bookmark link
           const url = link.getAttribute("HREF");
           const title = link.textContent?.trim() || "";
+          const addDateStr = link.getAttribute("ADD_DATE");
+          let addDate: number | undefined;
+          if (addDateStr != null) {
+            const n = parseInt(addDateStr, 10);
+            if (!Number.isNaN(n)) addDate = n;
+          }
 
           if (
             url &&
@@ -68,6 +75,7 @@ export function parseBookmarkHtml(html: string): ParseResult {
               title: title || url,
               url,
               folder: currentFolder,
+              ...(addDate != null && { addDate }),
             });
           }
         }

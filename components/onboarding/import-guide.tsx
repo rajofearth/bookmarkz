@@ -113,6 +113,7 @@ export function ImportGuide() {
         const bookmarksToCreate = chunk.map((b) => ({
           title: b.title,
           url: b.url,
+          addDate: b.addDate != null ? b.addDate * 1000 : undefined,
           folderId: b.folder ? folderMap.get(b.folder) : undefined,
         }));
 

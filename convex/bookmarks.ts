@@ -119,6 +119,7 @@ export const createBookmark = mutation({
   args: {
     title: v.string(),
     url: v.string(),
+    addDate: v.optional(v.number()),
     folderId: v.optional(v.id("folders")),
     favicon: v.optional(v.string()),
     ogImage: v.optional(v.string()),
@@ -150,7 +151,7 @@ export const createBookmark = mutation({
       folderId: args.folderId,
       favicon: args.favicon,
       ogImage: args.ogImage,
-      createdAt: Date.now(),
+      createdAt: args.addDate ?? Date.now(),
       metadataStatus: args.favicon && args.ogImage ? "completed" : "pending",
     });
     return bookmarkId;
@@ -163,6 +164,7 @@ export const batchCreateBookmarks = mutation({
       v.object({
         title: v.string(),
         url: v.string(),
+        addDate: v.optional(v.number()),
         folderId: v.optional(v.id("folders")),
         favicon: v.optional(v.string()),
         ogImage: v.optional(v.string()),
@@ -206,7 +208,7 @@ export const batchCreateBookmarks = mutation({
         folderId: bookmark.folderId,
         favicon: bookmark.favicon,
         ogImage: bookmark.ogImage,
-        createdAt: Date.now(),
+        createdAt: bookmark.addDate ?? Date.now(),
         metadataStatus:
           bookmark.favicon && bookmark.ogImage ? "completed" : "pending",
       });
