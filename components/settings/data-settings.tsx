@@ -10,10 +10,26 @@ import {
   FileText,
   FolderIcon,
   Loader2,
+  ShieldAlert,
+  Trash2,
   Upload,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -42,6 +58,7 @@ type ImportState =
   | { status: "error"; message: string };
 
 type ExportState = "idle" | "exporting" | "done" | "error";
+type DeleteState = "idle" | "deleting" | "done" | "error";
 
 // ─── Component ───────────────────────────────────────────────────────
 export function DataSettings() {
@@ -50,6 +67,9 @@ export function DataSettings() {
   const bookmarks = useQuery(api.bookmarks.getBookmarks);
   const folders = useQuery(api.bookmarks.getFolders);
   const [exportState, setExportState] = useState<ExportState>("idle");
+  const [deleteState, setDeleteState] = useState<DeleteState>("idle");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
 
   // Import
   const [importState, setImportState] = useState<ImportState>({
@@ -59,6 +79,7 @@ export function DataSettings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const batchCreateBookmarks = useMutation(api.bookmarks.batchCreateBookmarks);
   const createFolder = useMutation(api.bookmarks.createFolder);
+  const deleteAllData = useMutation(api.bookmarks.deleteAllData);
 
   // ── Export handler ───────────────────────────────────────────
   const handleExport = useCallback(() => {
@@ -221,6 +242,33 @@ export function DataSettings() {
   );
 
   const isDataLoading = bookmarks === undefined || folders === undefined;
+  const isDeleteConfirmationValid = confirmText.trim().toUpperCase() === "DELETE";
+  const hasUserData =
+    (bookmarks?.length ?? 0) > 0 || (folders?.length ?? 0) > 0;
+
+  const handleDeleteAllData = useCallback(async () => {
+    if (!isDeleteConfirmationValid || deleteState === "deleting") return;
+
+    setDeleteState("deleting");
+    try {
+      const result = await deleteAllData({});
+      setDeleteState("done");
+      toast.success("All bookmark data deleted", {
+        description: `${result.bookmarksDeleted} bookmarks and ${result.foldersDeleted} folders removed.`,
+      });
+
+      setTimeout(() => {
+        setConfirmOpen(false);
+        setConfirmText("");
+        setDeleteState("idle");
+      }, 600);
+    } catch {
+      setDeleteState("error");
+      toast.error("Failed to delete data", {
+        description: "Please try again in a moment.",
+      });
+    }
+  }, [deleteAllData, deleteState, isDeleteConfirmationValid]);
 
   return (
     <>
@@ -591,6 +639,140 @@ export function DataSettings() {
             </motion.div>
           )}
         </AnimatePresence>
+        </motion.div>
+
+        <Separator className="my-0" />
+
+        {/* ── Danger Zone ───────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.35,
+            delay: 0.14,
+            ease: [0.25, 0.46, 0.45, 0.94],
+          }}
+          className={cn("space-y-4 pt-4", isMobile && "space-y-3")}
+        >
+          <div className="space-y-1">
+            <h3 className="text-base font-medium">Danger Zone</h3>
+            <p className="text-sm text-muted-foreground">
+              Permanently delete all bookmarks and folders from your account.
+            </p>
+          </div>
+
+          <div
+            className={cn(
+              "rounded-xl border border-destructive/20 bg-destructive/[0.03]",
+              isMobile ? "p-4" : "p-5",
+            )}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+                  <Trash2 className="size-4" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Delete all data</p>
+                  <p className="text-xs text-muted-foreground">
+                    This action is irreversible and removes all imported and
+                    created bookmark data.
+                  </p>
+                </div>
+              </div>
+
+              <AlertDialog
+                open={confirmOpen}
+                onOpenChange={(open) => {
+                  setConfirmOpen(open);
+                  if (!open) {
+                    setConfirmText("");
+                    setDeleteState("idle");
+                  }
+                }}
+              >
+                <AlertDialogTrigger asChild>
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.97 }}
+                    disabled={!hasUserData || isDataLoading}
+                    className="shrink-0 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive transition-colors hover:bg-destructive/15 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Nuke data
+                  </motion.button>
+                </AlertDialogTrigger>
+
+                <AlertDialogContent size="default">
+                  <AlertDialogHeader>
+                    <AlertDialogMedia className="bg-destructive/10 text-destructive">
+                      <ShieldAlert className="size-8" />
+                    </AlertDialogMedia>
+                    <AlertDialogTitle>Delete all bookmark data?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently remove all your bookmarks and
+                      folders. Type <span className="font-semibold">DELETE</span>{" "}
+                      to confirm.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+
+                  <div className="space-y-2">
+                    <Input
+                      value={confirmText}
+                      onChange={(e) => setConfirmText(e.target.value)}
+                      placeholder="Type DELETE to confirm"
+                      disabled={deleteState === "deleting"}
+                      className="font-mono text-sm"
+                    />
+
+                    <AnimatePresence mode="wait">
+                      {deleteState === "error" && (
+                        <motion.p
+                          key="delete-error"
+                          initial={{ opacity: 0, y: -2 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          className="text-xs text-destructive"
+                        >
+                          Couldn&apos;t delete your data. Please try again.
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  <AlertDialogFooter>
+                    <AlertDialogCancel
+                      disabled={deleteState === "deleting"}
+                      onClick={() => {
+                        setConfirmText("");
+                        setDeleteState("idle");
+                      }}
+                    >
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      variant="destructive"
+                      disabled={
+                        !isDeleteConfirmationValid || deleteState === "deleting"
+                      }
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleDeleteAllData();
+                      }}
+                    >
+                      {deleteState === "deleting" ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <Loader2 className="size-3.5 animate-spin" />
+                          Deleting...
+                        </span>
+                      ) : (
+                        "Delete forever"
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
         </motion.div>
       </motion.div>
     </>

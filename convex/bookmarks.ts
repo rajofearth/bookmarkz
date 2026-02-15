@@ -324,6 +324,39 @@ export const deleteBookmark = mutation({
   },
 });
 
+export const deleteAllData = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await authComponent.getAuthUser(ctx);
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+
+    const [bookmarks, folders] = await Promise.all([
+      ctx.db
+        .query("bookmarks")
+        .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+        .collect(),
+      ctx.db
+        .query("folders")
+        .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+        .collect(),
+    ]);
+
+    for (const bookmark of bookmarks) {
+      await ctx.db.delete(bookmark._id);
+    }
+    for (const folder of folders) {
+      await ctx.db.delete(folder._id);
+    }
+
+    return {
+      bookmarksDeleted: bookmarks.length,
+      foldersDeleted: folders.length,
+    };
+  },
+});
+
 // --- User Stats ---
 
 export const getUserStats = query({
