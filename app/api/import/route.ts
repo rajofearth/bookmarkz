@@ -6,6 +6,7 @@ import {
   fetchAuthQuery,
   isAuthenticated,
 } from "@/lib/auth-server";
+import { IMPORT_CHUNK_SIZE } from "@/lib/import-constants";
 
 // --- Types ---
 
@@ -180,7 +181,7 @@ async function createFolderMap(
 
 // --- Handlers ---
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   const authenticated = await isAuthenticated();
   return NextResponse.json({ authenticated });
 }
@@ -234,8 +235,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Chunk bookmarks into batches of 50 to stay under Convex's 16 MiB mutation-argument limit
-    const BATCH_SIZE = 50;
+    // Chunk bookmarks to stay under Convex's 16 MiB mutation-argument limit.
     const mappedBookmarks = bookmarks.map((b) => ({
       title: b.title,
       url: b.url,
@@ -247,8 +247,8 @@ export async function POST(request: NextRequest) {
     const createdIds: Id<"bookmarks">[] = [];
     let movedCount = 0;
 
-    for (let i = 0; i < mappedBookmarks.length; i += BATCH_SIZE) {
-      const chunk = mappedBookmarks.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < mappedBookmarks.length; i += IMPORT_CHUNK_SIZE) {
+      const chunk = mappedBookmarks.slice(i, i + IMPORT_CHUNK_SIZE);
       const importResult = await fetchAuthMutation(
         api.bookmarks.batchCreateBookmarks,
         { bookmarks: chunk },

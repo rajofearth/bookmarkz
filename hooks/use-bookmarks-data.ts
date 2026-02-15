@@ -5,6 +5,7 @@ import { BookmarkIcon } from "lucide-react";
 import { useMemo } from "react";
 import type { Bookmark, Folder } from "@/components/bookmarks/types";
 import { api } from "@/convex/_generated/api";
+import { FOLDER_ID_ALL, fromConvexFolderId } from "@/lib/bookmarks-utils";
 
 export function useBookmarksData() {
   const convexFolders = useQuery(api.bookmarks.getFolders);
@@ -21,14 +22,19 @@ export function useBookmarksData() {
       url: b.url,
       favicon: b.favicon,
       ogImage: b.ogImage,
-      folderId: b.folderId ?? "all",
+      folderId: fromConvexFolderId(b.folderId),
       createdAt: new Date(b.createdAt),
     }));
   }, [convexBookmarks]);
 
   const folders: Folder[] = useMemo(() => {
     const staticFolders: Folder[] = [
-      { id: "all", name: "All Bookmarks", count: 0, icon: BookmarkIcon },
+      {
+        id: FOLDER_ID_ALL,
+        name: "All Bookmarks",
+        count: 0,
+        icon: BookmarkIcon,
+      },
     ];
 
     if (!convexFolders) return staticFolders;
@@ -44,7 +50,7 @@ export function useBookmarksData() {
     if (convexBookmarks) {
       const counts: Record<string, number> = {};
       convexBookmarks.forEach((b) => {
-        counts["all"] = (counts["all"] || 0) + 1;
+        counts[FOLDER_ID_ALL] = (counts[FOLDER_ID_ALL] || 0) + 1;
         if (b.folderId) {
           counts[b.folderId] = (counts[b.folderId] || 0) + 1;
         }
@@ -66,13 +72,13 @@ export function useBookmarksData() {
           acc[folder.id] = folder.name;
           return acc;
         },
-        { all: "All Bookmarks" },
+        { [FOLDER_ID_ALL]: "All Bookmarks" },
       ),
     [folders],
   );
 
   const editableFolders = useMemo(
-    () => folders.filter((f) => f.id !== "all"),
+    () => folders.filter((f) => f.id !== FOLDER_ID_ALL),
     [folders],
   );
 

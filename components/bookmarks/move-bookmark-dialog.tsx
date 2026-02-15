@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { FOLDER_ID_ALL, fromConvexFolderId } from "@/lib/bookmarks-utils";
 import { getDomain } from "@/lib/utils";
 import type { Bookmark, Folder } from "./types";
 
@@ -45,7 +46,8 @@ export function MoveBookmarkDialog({
 
   useEffect(() => {
     if (bookmark) {
-      setFolderId(bookmark.folderId === "all" ? "" : bookmark.folderId);
+      const uiFolderId = fromConvexFolderId(bookmark.folderId);
+      setFolderId(uiFolderId === FOLDER_ID_ALL ? "" : uiFolderId);
     } else {
       setFolderId("");
     }
@@ -54,7 +56,7 @@ export function MoveBookmarkDialog({
   const currentFolderName = useMemo(() => {
     if (!bookmark) return null;
 
-    if (!bookmark.folderId || bookmark.folderId === "all") {
+    if (!bookmark.folderId || bookmark.folderId === FOLDER_ID_ALL) {
       return "All Bookmarks";
     }
 
@@ -111,7 +113,7 @@ export function MoveBookmarkDialog({
         {bookmark && (
           <div className="border-border bg-muted/40 mb-4 flex flex-col gap-2 rounded-lg border px-3 py-2 text-xs sm:flex-row sm:items-center sm:gap-4 sm:text-sm">
             <div className="bg-background flex size-8 items-center justify-center rounded-full shadow-sm">
-              {bookmark.favicon && bookmark.favicon.startsWith("http") ? (
+              {bookmark.favicon?.startsWith("http") ? (
                 <Image
                   src={bookmark.favicon}
                   alt=""

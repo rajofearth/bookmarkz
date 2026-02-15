@@ -21,6 +21,7 @@ import {
   NativeSelectOption,
 } from "@/components/ui/native-select";
 import { useUrlMetadata } from "@/hooks/use-url-metadata";
+import { FOLDER_ID_ALL, fromConvexFolderId } from "@/lib/bookmarks-utils";
 import type { Bookmark, Folder } from "./types";
 
 interface EditBookmarkDialogProps {
@@ -58,11 +59,15 @@ export function EditBookmarkDialog({
     if (bookmark) {
       setUrl(bookmark.url);
       setTitle(bookmark.title);
-      setFolderId(bookmark.folderId === "all" ? "" : bookmark.folderId);
+      const uiFolderId = fromConvexFolderId(bookmark.folderId);
+      setFolderId(uiFolderId === FOLDER_ID_ALL ? "" : uiFolderId);
     } else {
-      handleReset();
+      setUrl("");
+      setTitle("");
+      setFolderId("");
+      reset();
     }
-  }, [bookmark]);
+  }, [bookmark, reset]);
 
   // Auto-update title when metadata is fetched (only if URL changed)
   useEffect(() => {

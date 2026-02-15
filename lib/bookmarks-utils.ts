@@ -1,3 +1,4 @@
+import type { Id } from "@/convex/_generated/dataModel";
 import type { ViewMode } from "@/hooks/use-general-store";
 
 export const VIEW_MODE_GRID_CLASSES: Record<ViewMode, string> = {
@@ -13,6 +14,19 @@ export function getViewModeGridClasses(viewMode: ViewMode): string {
 }
 
 export type SortMode = "newest" | "oldest";
+
+export const FOLDER_ID_ALL = "all" as const;
+
+export function toConvexFolderId(
+  folderId: string | undefined,
+): Id<"folders"> | undefined {
+  if (!folderId || folderId === FOLDER_ID_ALL) return undefined;
+  return folderId as Id<"folders">;
+}
+
+export function fromConvexFolderId(folderId: string | undefined): string {
+  return folderId ?? FOLDER_ID_ALL;
+}
 
 export function sortBookmarksByDate<T extends { createdAt: Date }>(
   items: T[],

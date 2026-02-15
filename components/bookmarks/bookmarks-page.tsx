@@ -21,6 +21,7 @@ import { useBookmarksData } from "@/hooks/use-bookmarks-data";
 import { useBookmarksFilters } from "@/hooks/use-bookmarks-filters";
 import { useGeneralStore } from "@/hooks/use-general-store";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { FOLDER_ID_ALL, toConvexFolderId } from "@/lib/bookmarks-utils";
 import { cn } from "@/lib/utils";
 import { BookmarkCard } from "./bookmark-card";
 import { BookmarksContent } from "./bookmarks-content";
@@ -49,7 +50,7 @@ export function BookmarksPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
-  const [selectedFolder, setSelectedFolder] = useState("all");
+  const [selectedFolder, setSelectedFolder] = useState(FOLDER_ID_ALL);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
@@ -93,17 +94,18 @@ export function BookmarksPage() {
     useSensor(KeyboardSensor),
   );
 
-  const effectiveSelectedFolder = isMobile ? "all" : selectedFolder;
+  const effectiveSelectedFolder = isMobile ? FOLDER_ID_ALL : selectedFolder;
   const effectiveCurrentFolder = folders.find(
     (f) => f.id === effectiveSelectedFolder,
   );
 
   const handleMoveBookmark = async (bookmarkId: string, folderId: string) => {
-    if (!folderId || folderId === "all") return;
+    const convexFolderId = toConvexFolderId(folderId);
+    if (!convexFolderId) return;
     try {
       await updateBookmarkMutation({
         bookmarkId: bookmarkId as Id<"bookmarks">,
-        folderId: folderId as Id<"folders">,
+        folderId: convexFolderId,
       });
     } catch (error) {
       console.error("Failed to move bookmark:", error);
@@ -123,10 +125,7 @@ export function BookmarksPage() {
         title: data.title,
         favicon: data.favicon ?? undefined,
         ogImage: data.ogImage ?? undefined,
-        folderId:
-          data.folderId && data.folderId !== "all"
-            ? (data.folderId as Id<"folders">)
-            : undefined,
+        folderId: toConvexFolderId(data.folderId),
       });
     } catch (error) {
       console.error("Failed to create bookmark:", error);
@@ -158,10 +157,7 @@ export function BookmarksPage() {
         title: data.title,
         favicon: data.favicon ?? undefined,
         ogImage: data.ogImage ?? undefined,
-        folderId:
-          data.folderId && data.folderId !== "all"
-            ? (data.folderId as Id<"folders">)
-            : undefined,
+        folderId: toConvexFolderId(data.folderId),
       });
     } catch (error) {
       console.error("Failed to update bookmark:", error);
@@ -196,7 +192,7 @@ export function BookmarksPage() {
         if (
           activeData.type !== "bookmark" ||
           overData.type !== "folder" ||
-          overData.folderId === "all"
+          overData.folderId === FOLDER_ID_ALL
         )
           return;
 
