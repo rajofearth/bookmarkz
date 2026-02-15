@@ -40,11 +40,14 @@ export function sortBookmarksByDate<T extends { createdAt: Date }>(
 }
 
 export function filterBookmarksBySearch<
-  T extends { title: string; url: string },
+  T extends { title: string; url: string; description?: string },
 >(items: T[], query: string): T[] {
   if (!query) return items;
   const q = query.toLowerCase();
   return items.filter(
-    (b) => b.title.toLowerCase().includes(q) || b.url.toLowerCase().includes(q),
+    (b) =>
+      b.title.toLowerCase().includes(q) ||
+      b.url.toLowerCase().includes(q) ||
+      (b.description?.toLowerCase().includes(q) ?? false),
   );
 }

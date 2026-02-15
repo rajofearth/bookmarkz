@@ -17,6 +17,7 @@ export default defineSchema({
     url: v.string(),
     favicon: v.optional(v.string()),
     ogImage: v.optional(v.string()),
+    description: v.optional(v.string()),
     folderId: v.optional(v.id("folders")),
     createdAt: v.number(),
     metadataStatus: v.optional(

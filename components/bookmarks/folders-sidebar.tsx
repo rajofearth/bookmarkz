@@ -2,9 +2,11 @@
 
 import { useDndContext, useDroppable } from "@dnd-kit/core";
 import { AnimatePresence, motion } from "framer-motion";
+import { MoreHorizontalIcon, PencilIcon, TrashIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import type { DragData, Folder } from "@/components/bookmarks/types";
+import { FOLDER_ID_ALL } from "@/lib/bookmarks-utils";
 
 const AddFolderDialog = dynamic(
   () =>
@@ -16,7 +18,29 @@ const AddFolderDialog = dynamic(
 
 import { FolderIconDisplay } from "@/components/bookmarks/folder-icon";
 import { UserProfile } from "@/components/bookmarks/user-profile";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import {
+  Editable,
+  EditableArea,
+  EditableInput,
+  EditablePreview,
+} from "@/components/ui/editable";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Item,
   ItemActions,
@@ -32,6 +56,8 @@ interface FoldersSidebarProps {
   selectedFolder: string;
   onSelectFolder: (folderId: string) => void;
   onAddFolder?: (name: string) => void;
+  onRenameFolder?: (folderId: string, newName: string) => void;
+  onDeleteFolder?: (folderId: string) => void;
   onSettings?: () => void;
   /** Optional class for the root container (e.g. for use in a sheet on mobile). */
   className?: string;
@@ -41,18 +67,27 @@ interface DroppableFolderItemProps {
   folder: Folder;
   selectedFolder: string;
   onSelectFolder: (folderId: string) => void;
+  onRenameFolder?: (folderId: string, newName: string) => void;
+  onDeleteFolder?: (folderId: string) => void;
 }
+
+const ICON_BUTTON_WIDTH = "1.5rem"; /* 24px - keep badge alignment across rows */
 
 function DroppableFolderItem({
   folder,
   selectedFolder,
   onSelectFolder,
+  onRenameFolder,
+  onDeleteFolder,
 }: DroppableFolderItemProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const { active } = useDndContext();
   const activeData = active?.data.current as DragData | null;
   const isDraggingBookmark = activeData?.type === "bookmark";
-  const droppable = folder.id !== "all";
+  const droppable = folder.id !== FOLDER_ID_ALL;
+  const isEditableFolder = folder.id !== FOLDER_ID_ALL;
   const { setNodeRef, isOver } = useDroppable({
     id: folder.id,
     disabled: !droppable,
@@ -62,62 +97,169 @@ function DroppableFolderItem({
     },
   });
 
+  const handleRowClick = () => {
+    onSelectFolder(folder.id);
+  };
+
+  const handleRowKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onSelectFolder(folder.id);
+    }
+  };
+
   return (
-    <Item
-      key={folder.id}
-      size="xs"
-      asChild
-      ref={droppable ? setNodeRef : undefined}
-      className={cn(
-        "cursor-pointer rounded-md px-2 transition-all",
-        selectedFolder === folder.id && "bg-accent",
-        droppable &&
-          isDraggingBookmark &&
-          "border border-dashed border-border/60 bg-accent/40",
-        droppable &&
-          isOver &&
-          "bg-accent/80 ring-2 ring-primary ring-offset-2 ring-offset-background",
-      )}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <button
-        type="button"
-        onClick={() => onSelectFolder(folder.id)}
-        className="relative w-full"
-        aria-current={selectedFolder === folder.id ? "true" : undefined}
+    <>
+      <Item
+        key={folder.id}
+        size="xs"
+        asChild
+        ref={droppable ? setNodeRef : undefined}
+        className={cn(
+          "cursor-pointer rounded-md px-2 transition-all",
+          selectedFolder === folder.id && "bg-accent",
+          droppable &&
+            isDraggingBookmark &&
+            "border border-dashed border-border/60 bg-accent/40",
+          droppable &&
+            isOver &&
+            "bg-accent/80 ring-2 ring-primary ring-offset-2 ring-offset-background",
+        )}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
-        <AnimatePresence>
-          {isHovered && (
-            <motion.div
-              layoutId="folders-sidebar-hover-bg"
-              className="absolute inset-0 z-0 rounded-md bg-accent/50 pointer-events-none"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{
-                layout: { type: "spring", stiffness: 400, damping: 30 },
-                opacity: { duration: 0.15 },
-                scale: { duration: 0.15 },
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={handleRowClick}
+          onKeyDown={handleRowKeyDown}
+          className="relative flex w-full items-center gap-2 outline-none"
+          aria-current={selectedFolder === folder.id ? "true" : undefined}
+        >
+          <AnimatePresence>
+            {isHovered && (
+              <motion.div
+                layoutId="folders-sidebar-hover-bg"
+                className="absolute inset-0 z-0 rounded-md bg-accent/50 pointer-events-none"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{
+                  layout: { type: "spring", stiffness: 400, damping: 30 },
+                  opacity: { duration: 0.15 },
+                  scale: { duration: 0.15 },
+                }}
+              />
+            )}
+          </AnimatePresence>
+          <ItemMedia className="relative z-10 text-muted-foreground">
+            <FolderIconDisplay folder={folder} />
+          </ItemMedia>
+          <ItemContent className="relative z-10 min-w-0 flex-1">
+            {isEditableFolder && onRenameFolder ? (
+              <Editable
+                defaultValue={folder.name}
+                triggerMode="dblclick"
+                editing={editing}
+                onEditingChange={setEditing}
+                onSubmit={(value) => {
+                  const trimmed = value.trim();
+                  if (trimmed) onRenameFolder(folder.id, trimmed);
+                }}
+                className="min-w-0"
+              >
+                <EditableArea>
+                  <EditablePreview className="truncate text-sm font-normal" />
+                  <EditableInput className="truncate text-sm font-normal" />
+                </EditableArea>
+              </Editable>
+            ) : (
+              <ItemTitle className="truncate text-sm font-normal">
+                {folder.name}
+              </ItemTitle>
+            )}
+          </ItemContent>
+          <ItemActions className="relative z-10 flex items-center gap-1">
+            {/* Fixed-width slot so badge aligns across rows; icon visible only on hover for folders */}
+            <span
+              className="flex shrink-0 items-center justify-end"
+              style={{ width: ICON_BUTTON_WIDTH }}
+            >
+              {isEditableFolder && (onDeleteFolder || onRenameFolder) && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={(e) => e.stopPropagation()}
+                      className={cn(
+                        "rounded p-1 opacity-70 hover:opacity-100 hover:bg-accent focus:outline-none focus-visible:ring-1 focus-visible:ring-ring transition-opacity",
+                        !isHovered && "opacity-0 pointer-events-none",
+                      )}
+                      aria-label="Folder actions"
+                    >
+                      <MoreHorizontalIcon className="size-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    {onRenameFolder && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditing(true);
+                        }}
+                      >
+                        <PencilIcon className="size-4" />
+                        Rename
+                      </DropdownMenuItem>
+                    )}
+                    {onDeleteFolder && (
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <TrashIcon className="size-4" />
+                        Delete folder
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </span>
+            <Badge variant="secondary" className="text-xs tabular-nums shrink-0">
+              {folder.count}
+            </Badge>
+          </ItemActions>
+        </div>
+      </Item>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete folder</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete folder &quot;{folder.name}&quot;? All {folder.count} bookmark
+              {folder.count === 1 ? "" : "s"} in this folder will be permanently
+              deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                onDeleteFolder?.(folder.id);
+                setDeleteDialogOpen(false);
               }}
-            />
-          )}
-        </AnimatePresence>
-        <ItemMedia className="relative z-10 text-muted-foreground">
-          <FolderIconDisplay folder={folder} />
-        </ItemMedia>
-        <ItemContent className="relative z-10 min-w-0">
-          <ItemTitle className="truncate text-sm font-normal">
-            {folder.name}
-          </ItemTitle>
-        </ItemContent>
-        <ItemActions className="relative z-10">
-          <Badge variant="secondary" className="text-xs tabular-nums">
-            {folder.count}
-          </Badge>
-        </ItemActions>
-      </button>
-    </Item>
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -126,6 +268,8 @@ export function FoldersSidebar({
   selectedFolder,
   onSelectFolder,
   onAddFolder,
+  onRenameFolder,
+  onDeleteFolder,
   onSettings,
   className,
 }: FoldersSidebarProps) {
@@ -149,6 +293,8 @@ export function FoldersSidebar({
               folder={folder}
               selectedFolder={selectedFolder}
               onSelectFolder={onSelectFolder}
+              onRenameFolder={onRenameFolder}
+              onDeleteFolder={onDeleteFolder}
             />
           ))}
         </ItemGroup>

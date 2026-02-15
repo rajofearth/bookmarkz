@@ -14,6 +14,7 @@ export interface Bookmark {
   url: string;
   favicon?: string;
   ogImage?: string;
+  description?: string;
   folderId: string;
   createdAt: Date;
 }

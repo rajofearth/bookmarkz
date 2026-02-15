@@ -22,6 +22,7 @@ export function useBookmarksData() {
       url: b.url,
       favicon: b.favicon,
       ogImage: b.ogImage,
+      description: b.description,
       folderId: fromConvexFolderId(b.folderId),
       createdAt: new Date(b.createdAt),
     }));

@@ -123,6 +123,7 @@ export const createBookmark = mutation({
     folderId: v.optional(v.id("folders")),
     favicon: v.optional(v.string()),
     ogImage: v.optional(v.string()),
+    description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
@@ -151,6 +152,7 @@ export const createBookmark = mutation({
       folderId: args.folderId,
       favicon: args.favicon,
       ogImage: args.ogImage,
+      description: args.description,
       createdAt: args.addDate ?? Date.now(),
       metadataStatus: args.favicon && args.ogImage ? "completed" : "pending",
     });
@@ -168,6 +170,7 @@ export const batchCreateBookmarks = mutation({
         folderId: v.optional(v.id("folders")),
         favicon: v.optional(v.string()),
         ogImage: v.optional(v.string()),
+        description: v.optional(v.string()),
       }),
     ),
   },
@@ -208,6 +211,7 @@ export const batchCreateBookmarks = mutation({
         folderId: bookmark.folderId,
         favicon: bookmark.favicon,
         ogImage: bookmark.ogImage,
+        description: bookmark.description,
         createdAt: bookmark.addDate ?? Date.now(),
         metadataStatus:
           bookmark.favicon && bookmark.ogImage ? "completed" : "pending",
@@ -284,6 +288,7 @@ export const updateBookmark = mutation({
     folderId: v.optional(v.id("folders")),
     favicon: v.optional(v.string()),
     ogImage: v.optional(v.string()),
+    description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);

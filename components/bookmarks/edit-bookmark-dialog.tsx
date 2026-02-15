@@ -20,6 +20,7 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
 import { useUrlMetadata } from "@/hooks/use-url-metadata";
 import { FOLDER_ID_ALL, fromConvexFolderId } from "@/lib/bookmarks-utils";
 import type { Bookmark, Folder } from "./types";
@@ -36,6 +37,7 @@ interface EditBookmarkDialogProps {
       title: string;
       favicon: string | null;
       ogImage: string | null;
+      description: string | null;
       folderId: string;
     },
   ) => void;
@@ -50,6 +52,7 @@ export function EditBookmarkDialog({
 }: EditBookmarkDialogProps) {
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [folderId, setFolderId] = useState("");
 
   const { metadata, isLoading, fetchMetadata, reset } = useUrlMetadata();
@@ -59,11 +62,13 @@ export function EditBookmarkDialog({
     if (bookmark) {
       setUrl(bookmark.url);
       setTitle(bookmark.title);
+      setDescription(bookmark.description ?? "");
       const uiFolderId = fromConvexFolderId(bookmark.folderId);
       setFolderId(uiFolderId === FOLDER_ID_ALL ? "" : uiFolderId);
     } else {
       setUrl("");
       setTitle("");
+      setDescription("");
       setFolderId("");
       reset();
     }
@@ -100,6 +105,7 @@ export function EditBookmarkDialog({
         title: title.trim() || url.trim(),
         favicon: newFavicon,
         ogImage: newOgImage,
+        description: description.trim() || null,
         folderId,
       });
       onOpenChange(false);
@@ -109,6 +115,7 @@ export function EditBookmarkDialog({
   const handleReset = () => {
     setUrl("");
     setTitle("");
+    setDescription("");
     setFolderId("");
     reset();
   };
@@ -166,6 +173,18 @@ export function EditBookmarkDialog({
                 placeholder="My Bookmark"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="edit-bookmark-description">
+                Description (optional)
+              </FieldLabel>
+              <Textarea
+                id="edit-bookmark-description"
+                placeholder="Add a note or description..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
               />
             </Field>
             <Field>

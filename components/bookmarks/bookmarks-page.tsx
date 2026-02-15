@@ -50,7 +50,7 @@ export function BookmarksPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
-  const [selectedFolder, setSelectedFolder] = useState(FOLDER_ID_ALL);
+  const [selectedFolder, setSelectedFolder] = useState<string>(FOLDER_ID_ALL);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
@@ -86,6 +86,8 @@ export function BookmarksPage() {
   const updateBookmarkMutation = useMutation(api.bookmarks.updateBookmark);
   const deleteBookmarkMutation = useMutation(api.bookmarks.deleteBookmark);
   const createFolderMutation = useMutation(api.bookmarks.createFolder);
+  const updateFolderMutation = useMutation(api.bookmarks.updateFolder);
+  const deleteFolderMutation = useMutation(api.bookmarks.deleteFolder);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -117,6 +119,7 @@ export function BookmarksPage() {
     title: string;
     favicon: string | null;
     ogImage: string | null;
+    description: string | null;
     folderId: string;
   }) => {
     try {
@@ -125,6 +128,7 @@ export function BookmarksPage() {
         title: data.title,
         favicon: data.favicon ?? undefined,
         ogImage: data.ogImage ?? undefined,
+        description: data.description ?? undefined,
         folderId: toConvexFolderId(data.folderId),
       });
     } catch (error) {
@@ -140,6 +144,32 @@ export function BookmarksPage() {
     }
   };
 
+  const handleRenameFolder = async (folderId: string, newName: string) => {
+    const convexFolderId = toConvexFolderId(folderId);
+    if (!convexFolderId) return;
+    try {
+      await updateFolderMutation({ folderId: convexFolderId, name: newName });
+    } catch (error) {
+      console.error("Failed to rename folder:", error);
+    }
+  };
+
+  const handleDeleteFolder = async (folderId: string) => {
+    const convexFolderId = toConvexFolderId(folderId);
+    if (!convexFolderId) return;
+    try {
+      await deleteFolderMutation({ folderId: convexFolderId });
+      if (selectedFolder === folderId) {
+        setSelectedFolder(FOLDER_ID_ALL);
+      }
+      if (mobileSelectedFolder === folderId) {
+        setMobileSelectedFolder(null);
+      }
+    } catch (error) {
+      console.error("Failed to delete folder:", error);
+    }
+  };
+
   const handleEditBookmark = async (
     bookmarkId: string,
     data: {
@@ -147,6 +177,7 @@ export function BookmarksPage() {
       title: string;
       favicon: string | null;
       ogImage: string | null;
+      description: string | null;
       folderId: string;
     },
   ) => {
@@ -157,6 +188,7 @@ export function BookmarksPage() {
         title: data.title,
         favicon: data.favicon ?? undefined,
         ogImage: data.ogImage ?? undefined,
+        description: data.description ?? undefined,
         folderId: toConvexFolderId(data.folderId),
       });
     } catch (error) {
@@ -301,6 +333,8 @@ export function BookmarksPage() {
         folders={folders}
         onSelectFolder={(folderId) => setMobileSelectedFolder(folderId)}
         onAddFolder={handleAddFolder}
+        onRenameFolder={handleRenameFolder}
+        onDeleteFolder={handleDeleteFolder}
       />
     );
   };
@@ -334,6 +368,8 @@ export function BookmarksPage() {
               selectedFolder={selectedFolder}
               onSelectFolder={setSelectedFolder}
               onAddFolder={handleAddFolder}
+              onRenameFolder={handleRenameFolder}
+              onDeleteFolder={handleDeleteFolder}
               onSettings={() => router.push("/settings")}
             />
           </aside>

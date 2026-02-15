@@ -21,6 +21,7 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
 import { useUrlMetadata } from "@/hooks/use-url-metadata";
 import type { Folder } from "./types";
 
@@ -31,6 +32,7 @@ interface AddBookmarkDialogProps {
     title: string;
     favicon: string | null;
     ogImage: string | null;
+    description: string | null;
     folderId: string;
   }) => void;
 }
@@ -42,6 +44,7 @@ export function AddBookmarkDialog({
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [folderId, setFolderId] = useState("");
 
   const { metadata, isLoading, fetchMetadata, reset } = useUrlMetadata();
@@ -66,6 +69,7 @@ export function AddBookmarkDialog({
         title: title.trim() || url.trim(),
         favicon: metadata?.favicon ?? null,
         ogImage: metadata?.ogImage ?? null,
+        description: description.trim() || null,
         folderId,
       });
       handleReset();
@@ -76,6 +80,7 @@ export function AddBookmarkDialog({
   const handleReset = () => {
     setUrl("");
     setTitle("");
+    setDescription("");
     setFolderId("");
     reset();
   };
@@ -141,6 +146,18 @@ export function AddBookmarkDialog({
                 placeholder="My Bookmark"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="bookmark-description">
+                Description (optional)
+              </FieldLabel>
+              <Textarea
+                id="bookmark-description"
+                placeholder="Add a note or description..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
               />
             </Field>
             <Field>

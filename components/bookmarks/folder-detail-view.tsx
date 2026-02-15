@@ -39,6 +39,7 @@ interface FolderDetailViewProps {
     title: string;
     favicon: string | null;
     ogImage: string | null;
+    description: string | null;
     folderId: string;
   }) => Promise<void>;
 }

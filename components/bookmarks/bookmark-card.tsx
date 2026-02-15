@@ -216,15 +216,22 @@ export function BookmarkCard({
         <div className="relative z-10 flex items-center gap-3 min-w-0 flex-1">
           {faviconEl}
 
-          {/* Title */}
-          <a
-            href={bookmark.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="min-w-0 flex-1 truncate text-sm font-medium leading-tight"
-          >
-            {bookmark.title}
-          </a>
+          {/* Title and optional description */}
+          <div className="min-w-0 flex-1">
+            <a
+              href={bookmark.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="truncate text-sm font-medium leading-tight block"
+            >
+              {bookmark.title}
+            </a>
+            {bookmark.description && viewMode === "details" && (
+              <p className="truncate text-xs text-muted-foreground/80 mt-0.5">
+                {bookmark.description}
+              </p>
+            )}
+          </div>
 
           {/* Domain */}
           <span className="text-muted-foreground hidden sm:block text-xs shrink-0 w-36 truncate text-right">
@@ -295,6 +302,11 @@ export function BookmarkCard({
                 · {metaLine}
               </span>
             </p>
+            {bookmark.description && (
+              <p className="mt-0.5 truncate text-[11px] text-muted-foreground/60">
+                {bookmark.description}
+              </p>
+            )}
           </div>
         </a>
         <div className="absolute right-1.5 top-1.5 opacity-0 transition-opacity group-hover:opacity-100">
@@ -362,6 +374,11 @@ export function BookmarkCard({
               {getDomain(bookmark.url)}
             </p>
           </a>
+          {bookmark.description && (
+            <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground/70">
+              {bookmark.description}
+            </p>
+          )}
           <p className="mt-2 text-[11px] text-muted-foreground/60">
             {metaLine}
           </p>
