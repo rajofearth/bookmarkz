@@ -21,6 +21,7 @@ import { useBookmarksData } from "@/hooks/use-bookmarks-data";
 import { useBookmarksFilters } from "@/hooks/use-bookmarks-filters";
 import { useGeneralStore } from "@/hooks/use-general-store";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSemanticIndexer } from "@/hooks/use-semantic-indexer";
 import { FOLDER_ID_ALL, toConvexFolderId } from "@/lib/bookmarks-utils";
 import { cn } from "@/lib/utils";
 import { BookmarkCard } from "./bookmark-card";
@@ -63,6 +64,8 @@ export function BookmarksPage() {
   >(null);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const { viewMode, sortMode } = useGeneralStore();
+  const { autoIndexing, indexBookmark, clearBookmarkHash } =
+    useSemanticIndexer();
 
   const { bookmarks, folders, folderNameById, editableFolders, isLoading } =
     useBookmarksData();
@@ -123,7 +126,7 @@ export function BookmarksPage() {
     folderId: string;
   }) => {
     try {
-      await createBookmarkMutation({
+      const createdBookmarkId = await createBookmarkMutation({
         url: data.url,
         title: data.title,
         favicon: data.favicon ?? undefined,
@@ -131,6 +134,14 @@ export function BookmarksPage() {
         description: data.description ?? undefined,
         folderId: toConvexFolderId(data.folderId),
       });
+      if (autoIndexing) {
+        void indexBookmark({
+          id: createdBookmarkId,
+          title: data.title,
+          url: data.url,
+          description: data.description ?? undefined,
+        });
+      }
     } catch (error) {
       console.error("Failed to create bookmark:", error);
     }
@@ -191,6 +202,14 @@ export function BookmarksPage() {
         description: data.description ?? undefined,
         folderId: toConvexFolderId(data.folderId),
       });
+      if (autoIndexing) {
+        void indexBookmark({
+          id: bookmarkId,
+          title: data.title,
+          url: data.url,
+          description: data.description ?? undefined,
+        });
+      }
     } catch (error) {
       console.error("Failed to update bookmark:", error);
     }
@@ -201,6 +220,7 @@ export function BookmarksPage() {
       await deleteBookmarkMutation({
         bookmarkId: bookmark.id as Id<"bookmarks">,
       });
+      void clearBookmarkHash(bookmark.id);
     } catch (error) {
       console.error("Failed to delete bookmark:", error);
     }

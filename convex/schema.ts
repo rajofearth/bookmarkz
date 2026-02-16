@@ -33,6 +33,30 @@ export default defineSchema({
     .index("by_folder_id", ["folderId"])
     .index("by_user_url", ["userId", "url"]),
 
+  bookmarkEmbeddings: defineTable({
+    userId: v.string(),
+    bookmarkId: v.id("bookmarks"),
+    folderId: v.optional(v.id("folders")),
+    embedding: v.array(v.float64()),
+    embeddingDim: v.number(),
+    embeddingModel: v.string(),
+    embeddingDtype: v.union(
+      v.literal("q4"),
+      v.literal("q8"),
+      v.literal("fp32"),
+    ),
+    contentHash: v.string(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_id", ["userId"])
+    .index("by_bookmark_id", ["bookmarkId"])
+    .index("by_user_bookmark", ["userId", "bookmarkId"])
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: 256,
+      filterFields: ["userId", "folderId"],
+    }),
+
   folders: defineTable({
     userId: v.string(), // Owner (Auth User ID)
     name: v.string(),

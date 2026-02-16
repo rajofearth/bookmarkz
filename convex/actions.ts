@@ -1,12 +1,27 @@
 "use node";
 
 import * as cheerio from "cheerio";
+import { makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
+import type { Doc, Id } from "./_generated/dataModel";
 import { action } from "./_generated/server";
+import { authComponent } from "./auth";
+
+const EMBEDDING_DIM = 256;
+const fetchBookmarkEmbeddingsByIdsRef = makeFunctionReference<
+  "query",
+  { ids: Id<"bookmarkEmbeddings">[] },
+  Array<{ _id: Id<"bookmarkEmbeddings">; bookmarkId: Id<"bookmarks"> }>
+>("bookmarks:fetchBookmarkEmbeddingsByIds");
+const fetchBookmarksByIdsRef = makeFunctionReference<
+  "query",
+  { ids: Id<"bookmarks">[] },
+  Doc<"bookmarks">[]
+>("bookmarks:fetchBookmarksByIds");
 
 export const fetchMetadata = action({
   args: { url: v.string() },
-  handler: async (ctx, args) => {
+  handler: async (_ctx, args) => {
     try {
       // SSRF protection: validate URL before fetching
       let parsedUrl: URL;
@@ -77,7 +92,7 @@ export const fetchMetadata = action({
             return new URL(url, baseUrl).href;
           }
           return url;
-        } catch (e) {
+        } catch (_e) {
           return undefined;
         }
       };
@@ -113,5 +128,90 @@ export const fetchMetadata = action({
         error: error instanceof Error ? error.message : "Unknown error",
       };
     }
+  },
+});
+
+export const semanticSearchBookmarks = action({
+  args: {
+    queryEmbedding: v.array(v.float64()),
+    selectedFolder: v.optional(v.id("folders")),
+    limit: v.optional(v.number()),
+    minScore: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+    if (args.queryEmbedding.length !== EMBEDDING_DIM) {
+      throw new Error("Invalid query embedding dimensions");
+    }
+
+    const topK = Math.max(1, Math.min(args.limit ?? 30, 64));
+    const rawResults = await ctx.vectorSearch(
+      "bookmarkEmbeddings",
+      "by_embedding",
+      {
+        vector: args.queryEmbedding,
+        limit: topK,
+        filter: (q) => q.eq("userId", user._id),
+      },
+    );
+
+    const minScore = args.minScore;
+    const filteredResults =
+      minScore !== undefined
+        ? rawResults.filter((result) => result._score >= minScore)
+        : rawResults;
+    if (filteredResults.length === 0) {
+      return [];
+    }
+
+    const embeddings = (await ctx.runQuery(fetchBookmarkEmbeddingsByIdsRef, {
+      ids: filteredResults.map(
+        (result) => result._id as Id<"bookmarkEmbeddings">,
+      ),
+    })) as Array<{
+      _id: Id<"bookmarkEmbeddings">;
+      bookmarkId: Id<"bookmarks">;
+    }>;
+    if (embeddings.length === 0) {
+      return [];
+    }
+
+    const scoreByEmbeddingId = new Map(
+      filteredResults.map((result) => [result._id, result._score]),
+    );
+    const bookmarkIds = embeddings.map((embedding) => embedding.bookmarkId);
+    const bookmarks = (await ctx.runQuery(fetchBookmarksByIdsRef, {
+      ids: bookmarkIds,
+    })) as Doc<"bookmarks">[];
+    const bookmarkById = new Map(
+      bookmarks.map((bookmark) => [bookmark._id, bookmark]),
+    );
+
+    const rankedResults = embeddings
+      .map((embedding) => {
+        const bookmark = bookmarkById.get(embedding.bookmarkId);
+        if (!bookmark) {
+          return null;
+        }
+        if (args.selectedFolder && bookmark.folderId !== args.selectedFolder) {
+          return null;
+        }
+        return {
+          bookmark,
+          score: scoreByEmbeddingId.get(embedding._id) ?? -1,
+        };
+      })
+      .filter(
+        (
+          result,
+        ): result is { bookmark: (typeof bookmarks)[number]; score: number } =>
+          result !== null,
+      )
+      .sort((a, b) => b.score - a.score);
+
+    return rankedResults;
   },
 });

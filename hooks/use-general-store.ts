@@ -8,6 +8,9 @@ interface GeneralSettingsState {
   openInNewTab: boolean;
   showFavicons: boolean;
   reducedMotion: boolean;
+  semanticDtype: "q4" | "q8" | "fp32";
+  semanticAutoIndexing: boolean;
+  semanticSearchEnabled: boolean;
   viewMode: ViewMode;
   sortMode: SortMode;
   updateSettings: (
@@ -15,6 +18,9 @@ interface GeneralSettingsState {
       openInNewTab: boolean;
       showFavicons: boolean;
       reducedMotion: boolean;
+      semanticDtype: "q4" | "q8" | "fp32";
+      semanticAutoIndexing: boolean;
+      semanticSearchEnabled: boolean;
       viewMode: ViewMode;
       sortMode: SortMode;
     }>,
@@ -27,6 +33,9 @@ export const useGeneralStore = create<GeneralSettingsState>()(
       openInNewTab: true,
       showFavicons: true,
       reducedMotion: false,
+      semanticDtype: "q4",
+      semanticAutoIndexing: true,
+      semanticSearchEnabled: true,
       viewMode: "normal",
       sortMode: "newest",
       updateSettings: (newSettings) =>

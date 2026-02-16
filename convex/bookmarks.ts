@@ -3,6 +3,29 @@ import type { Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
 import { authComponent, getOptionalAuthUser } from "./auth";
 
+const EMBEDDING_DIM = 256;
+const EMBEDDING_MODEL = "onnx-community/embeddinggemma-300m-ONNX";
+
+function buildBookmarkSemanticText(bookmark: {
+  title: string;
+  url: string;
+  description?: string;
+}) {
+  const normalizedDescription = bookmark.description?.trim();
+  return [bookmark.title.trim(), bookmark.url.trim(), normalizedDescription]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function hashBookmarkText(text: string) {
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `fnv1a_${(hash >>> 0).toString(16)}`;
+}
+
 // --- Folders ---
 
 export const createFolder = mutation({
@@ -95,6 +118,15 @@ export const deleteFolder = mutation({
       .filter((q) => q.eq(q.field("folderId"), args.folderId))
       .collect();
     for (const bm of childBookmarks) {
+      const embedding = await ctx.db
+        .query("bookmarkEmbeddings")
+        .withIndex("by_user_bookmark", (q) =>
+          q.eq("userId", user._id).eq("bookmarkId", bm._id),
+        )
+        .unique();
+      if (embedding) {
+        await ctx.db.delete(embedding._id);
+      }
       await ctx.db.delete(bm._id);
     }
 
@@ -238,6 +270,164 @@ export const getBookmarks = query({
   },
 });
 
+export const upsertBookmarkEmbedding = mutation({
+  args: {
+    bookmarkId: v.id("bookmarks"),
+    embedding: v.array(v.float64()),
+    embeddingDim: v.number(),
+    embeddingModel: v.string(),
+    embeddingDtype: v.union(
+      v.literal("q4"),
+      v.literal("q8"),
+      v.literal("fp32"),
+    ),
+    contentHash: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+    if (
+      args.embeddingDim !== EMBEDDING_DIM ||
+      args.embedding.length !== EMBEDDING_DIM
+    ) {
+      throw new Error("Invalid embedding dimensions");
+    }
+    if (args.embeddingModel !== EMBEDDING_MODEL) {
+      throw new Error("Unsupported embedding model");
+    }
+
+    const bookmark = await ctx.db.get(args.bookmarkId);
+    if (!bookmark || bookmark.userId !== user._id) {
+      throw new Error("Bookmark not found or unauthorized");
+    }
+
+    const existing = await ctx.db
+      .query("bookmarkEmbeddings")
+      .withIndex("by_user_bookmark", (q) =>
+        q.eq("userId", user._id).eq("bookmarkId", args.bookmarkId),
+      )
+      .unique();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        folderId: bookmark.folderId,
+        embedding: args.embedding,
+        embeddingDim: args.embeddingDim,
+        embeddingModel: args.embeddingModel,
+        embeddingDtype: args.embeddingDtype,
+        contentHash: args.contentHash,
+        updatedAt: Date.now(),
+      });
+      return existing._id;
+    }
+
+    return await ctx.db.insert("bookmarkEmbeddings", {
+      userId: user._id,
+      bookmarkId: args.bookmarkId,
+      folderId: bookmark.folderId,
+      embedding: args.embedding,
+      embeddingDim: args.embeddingDim,
+      embeddingModel: args.embeddingModel,
+      embeddingDtype: args.embeddingDtype,
+      contentHash: args.contentHash,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const deleteBookmarkEmbedding = mutation({
+  args: { bookmarkId: v.id("bookmarks") },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+    const embedding = await ctx.db
+      .query("bookmarkEmbeddings")
+      .withIndex("by_user_bookmark", (q) =>
+        q.eq("userId", user._id).eq("bookmarkId", args.bookmarkId),
+      )
+      .unique();
+    if (embedding) {
+      await ctx.db.delete(embedding._id);
+    }
+  },
+});
+
+export const getBookmarkEmbeddingHash = query({
+  args: { bookmarkId: v.id("bookmarks") },
+  handler: async (ctx, args) => {
+    const user = await getOptionalAuthUser(ctx);
+    if (!user) {
+      return null;
+    }
+    const embedding = await ctx.db
+      .query("bookmarkEmbeddings")
+      .withIndex("by_user_bookmark", (q) =>
+        q.eq("userId", user._id).eq("bookmarkId", args.bookmarkId),
+      )
+      .unique();
+    return embedding?.contentHash ?? null;
+  },
+});
+
+export const getEmbeddingIndexStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getOptionalAuthUser(ctx);
+    if (!user) {
+      return {
+        totalBookmarks: 0,
+        indexedBookmarks: 0,
+        pendingBookmarks: 0,
+        staleBookmarks: 0,
+        lastIndexedAt: null as number | null,
+      };
+    }
+
+    const [bookmarks, embeddings] = await Promise.all([
+      ctx.db
+        .query("bookmarks")
+        .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+        .collect(),
+      ctx.db
+        .query("bookmarkEmbeddings")
+        .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+        .collect(),
+    ]);
+
+    const embeddingsByBookmarkId = new Map(
+      embeddings.map((embedding) => [embedding.bookmarkId, embedding]),
+    );
+
+    let staleBookmarks = 0;
+    for (const bookmark of bookmarks) {
+      const embedding = embeddingsByBookmarkId.get(bookmark._id);
+      if (!embedding) {
+        continue;
+      }
+      const currentHash = hashBookmarkText(buildBookmarkSemanticText(bookmark));
+      if (embedding.contentHash !== currentHash) {
+        staleBookmarks += 1;
+      }
+    }
+
+    const indexedBookmarks = embeddingsByBookmarkId.size;
+    return {
+      totalBookmarks: bookmarks.length,
+      indexedBookmarks,
+      pendingBookmarks: Math.max(bookmarks.length - indexedBookmarks, 0),
+      staleBookmarks,
+      lastIndexedAt:
+        embeddings.length > 0
+          ? Math.max(...embeddings.map((embedding) => embedding.updatedAt))
+          : null,
+    };
+  },
+});
+
 export const updateBookmarkMetadata = mutation({
   args: {
     bookmarkId: v.id("bookmarks"),
@@ -309,6 +499,18 @@ export const updateBookmark = mutation({
     ) as Record<string, unknown>;
 
     await ctx.db.patch(bookmarkId, patch);
+
+    if (args.folderId !== undefined) {
+      const embedding = await ctx.db
+        .query("bookmarkEmbeddings")
+        .withIndex("by_user_bookmark", (q) =>
+          q.eq("userId", user._id).eq("bookmarkId", bookmarkId),
+        )
+        .unique();
+      if (embedding) {
+        await ctx.db.patch(embedding._id, { folderId: args.folderId });
+      }
+    }
   },
 });
 
@@ -327,6 +529,15 @@ export const deleteBookmark = mutation({
       throw new Error("Bookmark not found or unauthorized");
     }
 
+    const embedding = await ctx.db
+      .query("bookmarkEmbeddings")
+      .withIndex("by_user_bookmark", (q) =>
+        q.eq("userId", user._id).eq("bookmarkId", args.bookmarkId),
+      )
+      .unique();
+    if (embedding) {
+      await ctx.db.delete(embedding._id);
+    }
     await ctx.db.delete(args.bookmarkId);
   },
 });
@@ -339,7 +550,7 @@ export const deleteAllData = mutation({
       throw new Error("Not authenticated");
     }
 
-    const [bookmarks, folders] = await Promise.all([
+    const [bookmarks, folders, embeddings] = await Promise.all([
       ctx.db
         .query("bookmarks")
         .withIndex("by_user_id", (q) => q.eq("userId", user._id))
@@ -348,10 +559,17 @@ export const deleteAllData = mutation({
         .query("folders")
         .withIndex("by_user_id", (q) => q.eq("userId", user._id))
         .collect(),
+      ctx.db
+        .query("bookmarkEmbeddings")
+        .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+        .collect(),
     ]);
 
     for (const bookmark of bookmarks) {
       await ctx.db.delete(bookmark._id);
+    }
+    for (const embedding of embeddings) {
+      await ctx.db.delete(embedding._id);
     }
     for (const folder of folders) {
       await ctx.db.delete(folder._id);
@@ -360,7 +578,47 @@ export const deleteAllData = mutation({
     return {
       bookmarksDeleted: bookmarks.length,
       foldersDeleted: folders.length,
+      embeddingsDeleted: embeddings.length,
     };
+  },
+});
+
+export const fetchBookmarkEmbeddingsByIds = query({
+  args: { ids: v.array(v.id("bookmarkEmbeddings")) },
+  handler: async (ctx, args) => {
+    const user = await getOptionalAuthUser(ctx);
+    if (!user) {
+      return [];
+    }
+    const results: Array<{
+      _id: Id<"bookmarkEmbeddings">;
+      bookmarkId: Id<"bookmarks">;
+    }> = [];
+    for (const id of args.ids) {
+      const doc = await ctx.db.get(id);
+      if (doc && doc.userId === user._id) {
+        results.push({ _id: doc._id, bookmarkId: doc.bookmarkId });
+      }
+    }
+    return results;
+  },
+});
+
+export const fetchBookmarksByIds = query({
+  args: { ids: v.array(v.id("bookmarks")) },
+  handler: async (ctx, args) => {
+    const user = await getOptionalAuthUser(ctx);
+    if (!user) {
+      return [];
+    }
+    const results = [];
+    for (const id of args.ids) {
+      const doc = await ctx.db.get(id);
+      if (doc && doc.userId === user._id) {
+        results.push(doc);
+      }
+    }
+    return results;
   },
 });
 
