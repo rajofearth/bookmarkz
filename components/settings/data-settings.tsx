@@ -139,6 +139,8 @@ export function DataSettings() {
   const hasUserData =
     (bookmarks?.length ?? 0) > 0 || (folders?.length ?? 0) > 0;
   const hasBookmarksForIndexing = (bookmarks?.length ?? 0) > 0;
+  const canRunSemanticIndexing =
+    semanticSearchEnabled && hasBookmarksForIndexing;
   const indexProgress =
     totalCount > 0 ? Math.round((processedCount / totalCount) * 100) : 0;
 
@@ -447,7 +449,7 @@ export function DataSettings() {
                   <button
                     type="button"
                     onClick={() => handleStartIndexing(false)}
-                    disabled={!hasBookmarksForIndexing}
+                    disabled={!canRunSemanticIndexing}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3 py-2 text-xs font-medium text-background disabled:opacity-50"
                   >
                     <Play className="size-3.5" />
@@ -477,7 +479,7 @@ export function DataSettings() {
                 <button
                   type="button"
                   onClick={() => handleStartIndexing(true)}
-                  disabled={!hasBookmarksForIndexing}
+                  disabled={!canRunSemanticIndexing}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium disabled:opacity-50"
                 >
                   <RefreshCw className="size-3.5" />

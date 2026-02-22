@@ -1,7 +1,6 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   ExternalLinkIcon,
   FolderIcon,
@@ -11,7 +10,7 @@ import {
   TrashIcon,
 } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useGeneralStore, type ViewMode } from "@/hooks/use-general-store";
+import type { ViewMode } from "@/hooks/use-general-store";
 import { cn, getDomain } from "@/lib/utils";
 import { MoveBookmarkDialog } from "./move-bookmark-dialog";
 import type { Bookmark, DragData, Folder } from "./types";
@@ -29,6 +28,8 @@ interface BookmarkCardProps {
   bookmark: Bookmark;
   folderName?: string;
   viewMode?: ViewMode;
+  openInNewTab?: boolean;
+  showFavicons?: boolean;
   onEdit?: (bookmark: Bookmark) => void;
   onDelete?: (bookmark: Bookmark) => void;
   onMove?: (bookmarkId: string, folderId: string) => Promise<void> | void;
@@ -37,10 +38,12 @@ interface BookmarkCardProps {
   priority?: boolean;
 }
 
-export function BookmarkCard({
+function BookmarkCardComponent({
   bookmark,
   folderName,
   viewMode = "normal",
+  openInNewTab = true,
+  showFavicons = true,
   onEdit,
   onDelete,
   onMove,
@@ -50,8 +53,6 @@ export function BookmarkCard({
   const [imageError, setImageError] = useState(false);
   const [faviconError, setFaviconError] = useState(false);
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
-  const [isRowHovered, setIsRowHovered] = useState(false);
-  const { openInNewTab, showFavicons } = useGeneralStore();
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -195,24 +196,10 @@ export function BookmarkCard({
           viewMode === "details" && "border-b border-border/60",
           isDragging && "pointer-events-none z-20 opacity-0 invisible",
         )}
-        onMouseEnter={() => setIsRowHovered(true)}
-        onMouseLeave={() => setIsRowHovered(false)}
       >
-        <AnimatePresence>
-          {isRowHovered && !isDragging && (
-            <motion.div
-              layoutId={`bookmark-row-hover-${bookmark.id}`}
-              className="absolute inset-0 z-0 rounded-lg bg-accent/50 pointer-events-none"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{
-                layout: { type: "spring", stiffness: 280, damping: 32 },
-                opacity: { duration: 0.2 },
-              }}
-            />
-          )}
-        </AnimatePresence>
+        {!isDragging && (
+          <div className="absolute inset-0 z-0 rounded-lg bg-accent/50 pointer-events-none opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+        )}
         <div className="relative z-10 flex items-center gap-3 min-w-0 flex-1">
           {faviconEl}
 
@@ -393,3 +380,25 @@ export function BookmarkCard({
     </div>
   );
 }
+
+export const BookmarkCard = memo(
+  BookmarkCardComponent,
+  (prev, next) =>
+    prev.bookmark.id === next.bookmark.id &&
+    prev.bookmark.title === next.bookmark.title &&
+    prev.bookmark.url === next.bookmark.url &&
+    prev.bookmark.description === next.bookmark.description &&
+    prev.bookmark.favicon === next.bookmark.favicon &&
+    prev.bookmark.ogImage === next.bookmark.ogImage &&
+    prev.bookmark.folderId === next.bookmark.folderId &&
+    prev.bookmark.createdAt.getTime() === next.bookmark.createdAt.getTime() &&
+    prev.folderName === next.folderName &&
+    prev.viewMode === next.viewMode &&
+    prev.openInNewTab === next.openInNewTab &&
+    prev.showFavicons === next.showFavicons &&
+    prev.priority === next.priority &&
+    prev.onEdit === next.onEdit &&
+    prev.onDelete === next.onDelete &&
+    prev.onMove === next.onMove &&
+    prev.folders === next.folders,
+);

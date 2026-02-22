@@ -37,7 +37,9 @@ export function BookmarksContent({
   onDeleteBookmark,
   onMoveBookmark,
 }: BookmarksContentProps) {
-  const { viewMode } = useGeneralStore();
+  const viewMode = useGeneralStore((state) => state.viewMode);
+  const openInNewTab = useGeneralStore((state) => state.openInNewTab);
+  const showFavicons = useGeneralStore((state) => state.showFavicons);
 
   if (isLoading) {
     return (
@@ -86,16 +88,18 @@ export function BookmarksContent({
                 exit={{ opacity: 0, scale: 0.96 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
-              <BookmarkCard
-                bookmark={bookmark}
-                folderName={folderNameById[bookmark.folderId] ?? "Unsorted"}
-                viewMode={viewMode}
-                onEdit={onEditBookmark}
-                onDelete={onDeleteBookmark}
-                onMove={onMoveBookmark}
-                folders={editableFolders}
-                priority={filteredBookmarks[0]?.id === bookmark.id}
-              />
+                <BookmarkCard
+                  bookmark={bookmark}
+                  folderName={folderNameById[bookmark.folderId] ?? "Unsorted"}
+                  viewMode={viewMode}
+                  openInNewTab={openInNewTab}
+                  showFavicons={showFavicons}
+                  onEdit={onEditBookmark}
+                  onDelete={onDeleteBookmark}
+                  onMove={onMoveBookmark}
+                  folders={editableFolders}
+                  priority={filteredBookmarks[0]?.id === bookmark.id}
+                />
               </motion.div>
             ))}
           </AnimatePresence>

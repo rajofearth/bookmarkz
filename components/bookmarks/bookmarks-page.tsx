@@ -64,8 +64,12 @@ export function BookmarksPage() {
   >(null);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const { viewMode, sortMode } = useGeneralStore();
-  const { autoIndexing, indexBookmark, clearBookmarkHash } =
-    useSemanticIndexer();
+  const {
+    autoIndexing,
+    semanticSearchEnabled,
+    indexBookmark,
+    clearBookmarkHash,
+  } = useSemanticIndexer();
 
   const { bookmarks, folders, folderNameById, editableFolders, isLoading } =
     useBookmarksData();
@@ -104,18 +108,21 @@ export function BookmarksPage() {
     (f) => f.id === effectiveSelectedFolder,
   );
 
-  const handleMoveBookmark = async (bookmarkId: string, folderId: string) => {
-    const convexFolderId = toConvexFolderId(folderId);
-    if (!convexFolderId) return;
-    try {
-      await updateBookmarkMutation({
-        bookmarkId: bookmarkId as Id<"bookmarks">,
-        folderId: convexFolderId,
-      });
-    } catch (error) {
-      console.error("Failed to move bookmark:", error);
-    }
-  };
+  const handleMoveBookmark = useCallback(
+    async (bookmarkId: string, folderId: string) => {
+      const convexFolderId = toConvexFolderId(folderId);
+      if (!convexFolderId) return;
+      try {
+        await updateBookmarkMutation({
+          bookmarkId: bookmarkId as Id<"bookmarks">,
+          folderId: convexFolderId,
+        });
+      } catch (error) {
+        console.error("Failed to move bookmark:", error);
+      }
+    },
+    [updateBookmarkMutation],
+  );
 
   const handleAddBookmark = async (data: {
     url: string;
@@ -134,7 +141,7 @@ export function BookmarksPage() {
         description: data.description ?? undefined,
         folderId: toConvexFolderId(data.folderId),
       });
-      if (autoIndexing) {
+      if (autoIndexing && semanticSearchEnabled) {
         void indexBookmark({
           id: createdBookmarkId,
           title: data.title,
@@ -202,7 +209,7 @@ export function BookmarksPage() {
         description: data.description ?? undefined,
         folderId: toConvexFolderId(data.folderId),
       });
-      if (autoIndexing) {
+      if (autoIndexing && semanticSearchEnabled) {
         void indexBookmark({
           id: bookmarkId,
           title: data.title,
@@ -215,16 +222,19 @@ export function BookmarksPage() {
     }
   };
 
-  const handleDeleteBookmark = async (bookmark: Bookmark) => {
-    try {
-      await deleteBookmarkMutation({
-        bookmarkId: bookmark.id as Id<"bookmarks">,
-      });
-      void clearBookmarkHash(bookmark.id);
-    } catch (error) {
-      console.error("Failed to delete bookmark:", error);
-    }
-  };
+  const handleDeleteBookmark = useCallback(
+    async (bookmark: Bookmark) => {
+      try {
+        await deleteBookmarkMutation({
+          bookmarkId: bookmark.id as Id<"bookmarks">,
+        });
+        void clearBookmarkHash(bookmark.id);
+      } catch (error) {
+        console.error("Failed to delete bookmark:", error);
+      }
+    },
+    [clearBookmarkHash, deleteBookmarkMutation],
+  );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const activeData = event.active.data.current as DragData | null;

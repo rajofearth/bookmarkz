@@ -1,7 +1,7 @@
 "use client";
 
 import { useAction } from "convex/react";
-import { useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import type { Bookmark } from "@/components/bookmarks/types";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -10,7 +10,10 @@ import {
   filterBookmarksBySearch,
   sortBookmarksByDate,
 } from "@/lib/bookmarks-utils";
-import { embedBookmarkQuery } from "@/lib/embedding-client";
+import {
+  embedBookmarkQuery,
+  warmupEmbeddingModel,
+} from "@/lib/embedding-client";
 import type { SortMode } from "./use-general-store";
 
 interface UseBookmarksFiltersArgs {
@@ -35,13 +38,63 @@ export function useBookmarksFilters({
   const semanticDtype = useGeneralStore((state) => state.semanticDtype);
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery.trim());
   const [semanticIds, setSemanticIds] = useState<string[] | null>(null);
+  const latestRequestRef = useRef(0);
+  const lastInputAtRef = useRef(0);
+  const semanticResultCacheRef = useRef(new Map<string, string[]>());
+  const semanticInFlightRef = useRef(new Map<string, Promise<string[]>>());
 
   useEffect(() => {
+    lastInputAtRef.current = performance.now();
+    if (process.env.NODE_ENV !== "production") {
+      const rafId = window.requestAnimationFrame(() => {
+        const elapsed = Math.round(performance.now() - lastInputAtRef.current);
+        console.debug("[semantic-search] lexical-ready-ms", elapsed);
+      });
+      window.setTimeout(() => window.cancelAnimationFrame(rafId), 500);
+    }
     const timeout = window.setTimeout(() => {
       setDebouncedQuery(searchQuery.trim());
-    }, 250);
+    }, 180);
     return () => window.clearTimeout(timeout);
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (!semanticSearchEnabled) {
+      return;
+    }
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    let cancelled = false;
+    let idleId: number | null = null;
+    const warm = () => {
+      if (cancelled) {
+        return;
+      }
+      void warmupEmbeddingModel(semanticDtype).catch((error) => {
+        console.warn("Semantic model warm-up failed", error);
+      });
+    };
+
+    if (typeof win.requestIdleCallback === "function") {
+      idleId = win.requestIdleCallback(warm);
+    } else {
+      const timeoutId = window.setTimeout(warm, 50);
+      idleId = timeoutId;
+    }
+    return () => {
+      cancelled = true;
+      if (idleId === null) {
+        return;
+      }
+      if (typeof win.cancelIdleCallback === "function") {
+        win.cancelIdleCallback(idleId);
+      } else {
+        window.clearTimeout(idleId);
+      }
+    };
+  }, [semanticDtype, semanticSearchEnabled]);
 
   useEffect(() => {
     const hasQuery = debouncedQuery.length > 0;
@@ -50,30 +103,69 @@ export function useBookmarksFilters({
       return;
     }
 
+    const semanticKey = `${semanticDtype}|${isMobile ? "mobile" : selectedFolder}|${debouncedQuery
+      .trim()
+      .toLowerCase()}`;
+    const cachedIds = semanticResultCacheRef.current.get(semanticKey);
+    if (cachedIds) {
+      startTransition(() => {
+        setSemanticIds(cachedIds);
+      });
+      return;
+    }
+    setSemanticIds(null);
+
+    const requestId = latestRequestRef.current + 1;
+    latestRequestRef.current = requestId;
     let cancelled = false;
+    const startedAt = lastInputAtRef.current || performance.now();
     (async () => {
       try {
-        const { vector } = await embedBookmarkQuery(
-          debouncedQuery,
-          semanticDtype,
-        );
-        const results = await semanticSearch({
-          queryEmbedding: vector,
-          limit: 50,
-          selectedFolder:
-            !isMobile && selectedFolder !== "all"
-              ? (selectedFolder as Id<"folders">)
-              : undefined,
-          minScore: 0.15,
-        });
-        if (cancelled) {
+        let pending = semanticInFlightRef.current.get(semanticKey);
+        if (!pending) {
+          pending = (async () => {
+            const { vector } = await embedBookmarkQuery(
+              debouncedQuery,
+              semanticDtype,
+            );
+            const results = await semanticSearch({
+              queryEmbedding: vector,
+              limit: 40,
+              selectedFolder:
+                !isMobile && selectedFolder !== "all"
+                  ? (selectedFolder as Id<"folders">)
+                  : undefined,
+              minScore: 0.2,
+            });
+            return results.map((entry) => entry.bookmark._id);
+          })();
+          semanticInFlightRef.current.set(semanticKey, pending);
+        }
+
+        const nextIds = await pending;
+        semanticInFlightRef.current.delete(semanticKey);
+        if (cancelled || latestRequestRef.current !== requestId) {
           return;
         }
-        setSemanticIds(results.map((entry) => entry.bookmark._id));
+        if (process.env.NODE_ENV !== "production") {
+          const elapsed = Math.round(performance.now() - startedAt);
+          console.debug("[semantic-search] rerank-ready-ms", elapsed);
+        }
+        semanticResultCacheRef.current.set(semanticKey, nextIds);
+        if (semanticResultCacheRef.current.size > 64) {
+          const oldestKey = semanticResultCacheRef.current.keys().next()
+            .value as string | undefined;
+          if (oldestKey) {
+            semanticResultCacheRef.current.delete(oldestKey);
+          }
+        }
+        startTransition(() => {
+          setSemanticIds(nextIds);
+        });
       } catch (error) {
-        if (!cancelled) {
+        semanticInFlightRef.current.delete(semanticKey);
+        if (!cancelled && latestRequestRef.current === requestId) {
           console.error("Semantic search failed", error);
-          setSemanticIds(null);
         }
       }
     })();

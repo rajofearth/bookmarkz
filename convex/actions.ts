@@ -154,7 +154,12 @@ export const semanticSearchBookmarks = action({
       {
         vector: args.queryEmbedding,
         limit: topK,
-        filter: (q) => q.eq("userId", user._id),
+        // Convex vector search supports a single equality filter expression.
+        // Prefer folder scoping when present to avoid wasting top-K on other folders.
+        filter: (q) =>
+          args.selectedFolder
+            ? q.eq("folderId", args.selectedFolder)
+            : q.eq("userId", user._id),
       },
     );
 
@@ -179,10 +184,26 @@ export const semanticSearchBookmarks = action({
       return [];
     }
 
-    const scoreByEmbeddingId = new Map(
-      filteredResults.map((result) => [result._id, result._score]),
+    const embeddingById = new Map(
+      embeddings.map((embedding) => [embedding._id, embedding]),
     );
-    const bookmarkIds = embeddings.map((embedding) => embedding.bookmarkId);
+    const bookmarkIds = Array.from(
+      new Set(
+        filteredResults
+          .map((result) =>
+            embeddingById.get(result._id as Id<"bookmarkEmbeddings">),
+          )
+          .filter(
+            (
+              embedding,
+            ): embedding is {
+              _id: Id<"bookmarkEmbeddings">;
+              bookmarkId: Id<"bookmarks">;
+            } => embedding !== undefined,
+          )
+          .map((embedding) => embedding.bookmarkId),
+      ),
+    );
     const bookmarks = (await ctx.runQuery(fetchBookmarksByIdsRef, {
       ids: bookmarkIds,
     })) as Doc<"bookmarks">[];
@@ -190,18 +211,25 @@ export const semanticSearchBookmarks = action({
       bookmarks.map((bookmark) => [bookmark._id, bookmark]),
     );
 
-    const rankedResults = embeddings
-      .map((embedding) => {
+    const rankedResults = filteredResults
+      .map((result) => {
+        const embedding = embeddingById.get(
+          result._id as Id<"bookmarkEmbeddings">,
+        );
+        if (!embedding) {
+          return null;
+        }
         const bookmark = bookmarkById.get(embedding.bookmarkId);
         if (!bookmark) {
           return null;
         }
+        // Defensive fallback in case data changes between vector search and fetch.
         if (args.selectedFolder && bookmark.folderId !== args.selectedFolder) {
           return null;
         }
         return {
           bookmark,
-          score: scoreByEmbeddingId.get(embedding._id) ?? -1,
+          score: result._score,
         };
       })
       .filter(
@@ -209,8 +237,7 @@ export const semanticSearchBookmarks = action({
           result,
         ): result is { bookmark: (typeof bookmarks)[number]; score: number } =>
           result !== null,
-      )
-      .sort((a, b) => b.score - a.score);
+      );
 
     return rankedResults;
   },

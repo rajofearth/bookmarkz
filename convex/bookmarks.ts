@@ -590,17 +590,19 @@ export const fetchBookmarkEmbeddingsByIds = query({
     if (!user) {
       return [];
     }
-    const results: Array<{
-      _id: Id<"bookmarkEmbeddings">;
-      bookmarkId: Id<"bookmarks">;
-    }> = [];
-    for (const id of args.ids) {
-      const doc = await ctx.db.get(id);
-      if (doc && doc.userId === user._id) {
-        results.push({ _id: doc._id, bookmarkId: doc.bookmarkId });
-      }
-    }
-    return results;
+    const docs = await Promise.all(args.ids.map((id) => ctx.db.get(id)));
+    return docs
+      .filter(
+        (
+          doc,
+        ): doc is {
+          _id: Id<"bookmarkEmbeddings">;
+          bookmarkId: Id<"bookmarks">;
+          userId: string;
+        } => doc !== null,
+      )
+      .filter((doc) => doc.userId === user._id)
+      .map((doc) => ({ _id: doc._id, bookmarkId: doc.bookmarkId }));
   },
 });
 
@@ -611,14 +613,14 @@ export const fetchBookmarksByIds = query({
     if (!user) {
       return [];
     }
-    const results = [];
-    for (const id of args.ids) {
-      const doc = await ctx.db.get(id);
-      if (doc && doc.userId === user._id) {
-        results.push(doc);
-      }
-    }
-    return results;
+    const docs = await Promise.all(args.ids.map((id) => ctx.db.get(id)));
+    return docs.filter(
+      (
+        doc,
+      ): doc is Exclude<(typeof docs)[number], null> & {
+        userId: string;
+      } => doc !== null && doc.userId === user._id,
+    );
   },
 });
 

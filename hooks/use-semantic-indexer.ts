@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation } from "convex/react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useGeneralStore } from "@/hooks/use-general-store";
@@ -50,6 +50,9 @@ export function useSemanticIndexer() {
   const deleteEmbedding = useMutation(api.bookmarks.deleteBookmarkEmbedding);
   const semanticDtype = useGeneralStore((state) => state.semanticDtype);
   const autoIndexing = useGeneralStore((state) => state.semanticAutoIndexing);
+  const semanticSearchEnabled = useGeneralStore(
+    (state) => state.semanticSearchEnabled,
+  );
 
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -61,9 +64,27 @@ export function useSemanticIndexer() {
   const forceRef = useRef(false);
   const runningRef = useRef(false);
   const pausedRef = useRef(false);
+  const semanticEnabledRef = useRef(semanticSearchEnabled);
+
+  useEffect(() => {
+    semanticEnabledRef.current = semanticSearchEnabled;
+    if (semanticSearchEnabled) {
+      return;
+    }
+    queueRef.current = [];
+    pausedRef.current = false;
+    runningRef.current = false;
+    setIsRunning(false);
+    setIsPaused(false);
+    setProcessedCount(0);
+    setTotalCount(0);
+  }, [semanticSearchEnabled]);
 
   const indexBookmark = useCallback(
     async (bookmark: BookmarkForIndex, force = false) => {
+      if (!semanticEnabledRef.current) {
+        return { skipped: true };
+      }
       const text = buildBookmarkEmbeddingText(bookmark);
       const contentHash = hashSemanticText(text);
       if (!force) {
@@ -104,6 +125,10 @@ export function useSemanticIndexer() {
     setIsPaused(false);
 
     while (queueRef.current.length > 0) {
+      if (!semanticEnabledRef.current) {
+        queueRef.current = [];
+        break;
+      }
       if (pausedRef.current) {
         break;
       }
@@ -128,6 +153,14 @@ export function useSemanticIndexer() {
 
   const startBackfill = useCallback(
     (bookmarks: BookmarkForIndex[], force = false) => {
+      if (!semanticEnabledRef.current) {
+        queueRef.current = [];
+        setProcessedCount(0);
+        setTotalCount(0);
+        setIsPaused(false);
+        setIsRunning(false);
+        return;
+      }
       if (bookmarks.length === 0) {
         setProcessedCount(0);
         setTotalCount(0);
@@ -149,6 +182,9 @@ export function useSemanticIndexer() {
   }, []);
 
   const resumeBackfill = useCallback(() => {
+    if (!semanticEnabledRef.current) {
+      return;
+    }
     if (queueRef.current.length === 0) {
       return;
     }
@@ -171,6 +207,7 @@ export function useSemanticIndexer() {
     () => ({
       semanticDtype,
       autoIndexing,
+      semanticSearchEnabled,
       isRunning,
       isPaused,
       processedCount,
@@ -185,6 +222,7 @@ export function useSemanticIndexer() {
     [
       semanticDtype,
       autoIndexing,
+      semanticSearchEnabled,
       isRunning,
       isPaused,
       processedCount,
