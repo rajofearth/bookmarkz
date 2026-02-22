@@ -74,7 +74,13 @@ export function BookmarksPage() {
   const { bookmarks, folders, folderNameById, editableFolders, isLoading } =
     useBookmarksData();
 
-  const { effectiveFilteredBookmarks } = useBookmarksFilters({
+  const {
+    effectiveFilteredBookmarks,
+    isSemanticLoading,
+    semanticStage,
+    searchMode,
+    lastSemanticDurationMs,
+  } = useBookmarksFilters({
     bookmarks,
     selectedFolder,
     searchQuery,
@@ -308,6 +314,10 @@ export function BookmarksPage() {
             CurrentFolderIcon={effectiveCurrentFolder?.icon}
             showMobileSearch={showMobileSearch}
             searchQuery={searchQuery}
+            searchMode={searchMode}
+            isSemanticLoading={isSemanticLoading}
+            semanticStage={semanticStage}
+            semanticLatencyMs={lastSemanticDurationMs}
             onSearchChange={(value) => {
               setSearchQuery(value);
               if (value === "") setShowMobileSearch(false);
@@ -321,6 +331,10 @@ export function BookmarksPage() {
             CurrentFolderIcon={effectiveCurrentFolder?.icon}
             sidebarOpen={sidebarOpen}
             searchQuery={searchQuery}
+            searchMode={searchMode}
+            isSemanticLoading={isSemanticLoading}
+            semanticStage={semanticStage}
+            semanticLatencyMs={lastSemanticDurationMs}
             onSearchChange={setSearchQuery}
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
             addBookmarkButton={addBookmarkButton}
@@ -336,6 +350,7 @@ export function BookmarksPage() {
           folderNameById={folderNameById}
           editableFolders={editableFolders}
           searchQuery={searchQuery}
+          isSemanticLoading={isSemanticLoading}
           onEditBookmark={setEditingBookmark}
           onDeleteBookmark={handleDeleteBookmark}
           onMoveBookmark={handleMoveBookmark}

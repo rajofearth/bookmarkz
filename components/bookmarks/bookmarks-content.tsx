@@ -18,6 +18,7 @@ interface BookmarksContentProps {
   folderNameById: Record<string, string>;
   editableFolders: Folder[];
   searchQuery: string;
+  isSemanticLoading: boolean;
   onEditBookmark: (bookmark: Bookmark) => void;
   onDeleteBookmark: (bookmark: Bookmark) => void;
   onMoveBookmark: (
@@ -33,6 +34,7 @@ export function BookmarksContent({
   folderNameById,
   editableFolders,
   searchQuery,
+  isSemanticLoading,
   onEditBookmark,
   onDeleteBookmark,
   onMoveBookmark,
@@ -40,6 +42,8 @@ export function BookmarksContent({
   const viewMode = useGeneralStore((state) => state.viewMode);
   const openInNewTab = useGeneralStore((state) => state.openInNewTab);
   const showFavicons = useGeneralStore((state) => state.showFavicons);
+  const shouldAnimateList =
+    !isSemanticLoading && searchQuery.trim().length === 0;
 
   if (isLoading) {
     return (
@@ -71,40 +75,61 @@ export function BookmarksContent({
         </div>
       )}
       {viewMode === "details" && <DetailsHeaderRow />}
-      <FlipReveal
-        keys={filteredBookmarks.map((b) => String(b.id))}
-        showClass="block"
-        hideClass="hidden"
-      >
+      {shouldAnimateList ? (
+        <FlipReveal
+          keys={filteredBookmarks.map((b) => String(b.id))}
+          showClass="block"
+          hideClass="hidden"
+        >
+          <div className={cn(getViewModeGridClasses(viewMode))}>
+            <AnimatePresence initial={false} mode="popLayout">
+              {filteredBookmarks.map((bookmark) => (
+                <motion.div
+                  key={bookmark.id}
+                  data-flip={String(bookmark.id)}
+                  layout
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                >
+                  <BookmarkCard
+                    bookmark={bookmark}
+                    folderName={folderNameById[bookmark.folderId] ?? "Unsorted"}
+                    viewMode={viewMode}
+                    openInNewTab={openInNewTab}
+                    showFavicons={showFavicons}
+                    onEdit={onEditBookmark}
+                    onDelete={onDeleteBookmark}
+                    onMove={onMoveBookmark}
+                    folders={editableFolders}
+                    priority={filteredBookmarks[0]?.id === bookmark.id}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </FlipReveal>
+      ) : (
         <div className={cn(getViewModeGridClasses(viewMode))}>
-          <AnimatePresence initial={false} mode="popLayout">
-            {filteredBookmarks.map((bookmark) => (
-              <motion.div
-                key={bookmark.id}
-                data-flip={String(bookmark.id)}
-                layout
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.96 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-              >
-                <BookmarkCard
-                  bookmark={bookmark}
-                  folderName={folderNameById[bookmark.folderId] ?? "Unsorted"}
-                  viewMode={viewMode}
-                  openInNewTab={openInNewTab}
-                  showFavicons={showFavicons}
-                  onEdit={onEditBookmark}
-                  onDelete={onDeleteBookmark}
-                  onMove={onMoveBookmark}
-                  folders={editableFolders}
-                  priority={filteredBookmarks[0]?.id === bookmark.id}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
+          {filteredBookmarks.map((bookmark) => (
+            <div key={bookmark.id} data-flip={String(bookmark.id)}>
+              <BookmarkCard
+                bookmark={bookmark}
+                folderName={folderNameById[bookmark.folderId] ?? "Unsorted"}
+                viewMode={viewMode}
+                openInNewTab={openInNewTab}
+                showFavicons={showFavicons}
+                onEdit={onEditBookmark}
+                onDelete={onDeleteBookmark}
+                onMove={onMoveBookmark}
+                folders={editableFolders}
+                priority={filteredBookmarks[0]?.id === bookmark.id}
+              />
+            </div>
+          ))}
         </div>
-      </FlipReveal>
+      )}
     </div>
   );
 }
