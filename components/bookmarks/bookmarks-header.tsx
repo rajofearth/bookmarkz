@@ -12,9 +12,10 @@ interface DesktopBookmarksHeaderProps {
   CurrentFolderIcon?: ElementType;
   sidebarOpen: boolean;
   searchQuery: string;
+  searchPlaceholder?: string;
   onSearchChange: (value: string) => void;
   onToggleSidebar: () => void;
-  addBookmarkButton: ReactNode;
+  actionButton?: ReactNode;
 }
 
 export function DesktopBookmarksHeader({
@@ -22,9 +23,10 @@ export function DesktopBookmarksHeader({
   CurrentFolderIcon,
   sidebarOpen,
   searchQuery,
+  searchPlaceholder = "Search bookmarks...",
   onSearchChange,
   onToggleSidebar,
-  addBookmarkButton,
+  actionButton,
 }: DesktopBookmarksHeaderProps) {
   return (
     <div className="flex items-center gap-3 px-4 py-3">
@@ -56,7 +58,7 @@ export function DesktopBookmarksHeader({
         <Input
           id="search-input-desktop"
           type="search"
-          placeholder="Search bookmarks..."
+          placeholder={searchPlaceholder}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           className="h-8 pl-9 text-sm"
@@ -64,7 +66,7 @@ export function DesktopBookmarksHeader({
       </div>
 
       <DisplayControlsMenu />
-      {addBookmarkButton}
+      {actionButton}
     </div>
   );
 }
@@ -74,9 +76,10 @@ interface MobileBookmarksHeaderProps {
   CurrentFolderIcon?: ElementType;
   showMobileSearch: boolean;
   searchQuery: string;
+  searchPlaceholder?: string;
   onSearchChange: (value: string) => void;
   onToggleSearch: () => void;
-  addBookmarkButton: ReactNode;
+  actionButton?: ReactNode;
 }
 
 export function MobileBookmarksHeader({
@@ -84,9 +87,10 @@ export function MobileBookmarksHeader({
   CurrentFolderIcon,
   showMobileSearch,
   searchQuery,
+  searchPlaceholder = "Search bookmarks...",
   onSearchChange,
   onToggleSearch,
-  addBookmarkButton,
+  actionButton,
 }: MobileBookmarksHeaderProps) {
   return (
     <>
@@ -105,7 +109,7 @@ export function MobileBookmarksHeader({
             <SearchIcon className="size-4" />
           </Button>
           <DisplayControlsMenu />
-          {addBookmarkButton}
+          {actionButton}
         </div>
       </div>
 
@@ -116,7 +120,7 @@ export function MobileBookmarksHeader({
             <Input
               id="search-input"
               type="search"
-              placeholder="Search bookmarks..."
+              placeholder={searchPlaceholder}
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               className="h-9 pl-9 text-sm w-full"

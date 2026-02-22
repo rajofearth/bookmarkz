@@ -6,6 +6,13 @@ export interface Folder {
   name: string;
   count: number;
   icon?: LucideIcon;
+  createdAt: Date;
+}
+
+export interface FolderViewItem extends Folder {
+  previewImage?: string;
+  latestBookmarkCreatedAt?: Date;
+  latestBookmarkUrl?: string;
 }
 
 export interface Bookmark {

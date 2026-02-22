@@ -3,7 +3,11 @@
 import { useQuery } from "convex/react";
 import { BookmarkIcon } from "lucide-react";
 import { useMemo } from "react";
-import type { Bookmark, Folder } from "@/components/bookmarks/types";
+import type {
+  Bookmark,
+  Folder,
+  FolderViewItem,
+} from "@/components/bookmarks/types";
 import { api } from "@/convex/_generated/api";
 import { FOLDER_ID_ALL, fromConvexFolderId } from "@/lib/bookmarks-utils";
 
@@ -35,6 +39,7 @@ export function useBookmarksData() {
         name: "All Bookmarks",
         count: 0,
         icon: BookmarkIcon,
+        createdAt: new Date(0),
       },
     ];
 
@@ -44,6 +49,7 @@ export function useBookmarksData() {
       id: f._id,
       name: f.name,
       count: 0,
+      createdAt: new Date(f.createdAt),
     }));
 
     const allFolders = [...staticFolders, ...dynamicFolders];
@@ -83,11 +89,40 @@ export function useBookmarksData() {
     [folders],
   );
 
+  const folderViewItems: FolderViewItem[] = useMemo(() => {
+    const bookmarksByFolder = new Map<string, Bookmark[]>();
+    for (const bookmark of bookmarks) {
+      const folderBookmarks = bookmarksByFolder.get(bookmark.folderId) ?? [];
+      folderBookmarks.push(bookmark);
+      bookmarksByFolder.set(bookmark.folderId, folderBookmarks);
+    }
+
+    return editableFolders.map((folder) => {
+      const folderBookmarks = bookmarksByFolder.get(folder.id) ?? [];
+      const byNewest = [...folderBookmarks].sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+      );
+      const latestBookmarkCreatedAt = byNewest[0]?.createdAt;
+      const previewBookmark = byNewest.find(
+        (bookmark) =>
+          Boolean(bookmark.ogImage) && bookmark.ogImage?.startsWith("http"),
+      );
+
+      return {
+        ...folder,
+        latestBookmarkCreatedAt,
+        latestBookmarkUrl: previewBookmark?.url,
+        previewImage: previewBookmark?.ogImage,
+      };
+    });
+  }, [bookmarks, editableFolders]);
+
   return {
     bookmarks,
     folders,
     folderNameById,
     editableFolders,
+    folderViewItems,
     isLoading,
   };
 }

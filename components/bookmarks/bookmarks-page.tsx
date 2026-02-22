@@ -30,8 +30,7 @@ import {
   MobileBookmarksHeader,
 } from "./bookmarks-header";
 import { EditBookmarkDialog } from "./edit-bookmark-dialog";
-import { FolderDetailView } from "./folder-detail-view";
-import { FoldersListView } from "./folders-list-view";
+import { FoldersContent } from "./folders-content";
 import { FoldersSidebar } from "./folders-sidebar";
 import { MetadataFetcher } from "./metadata-fetcher";
 import { MobileLayout } from "./mobile-layout";
@@ -46,6 +45,14 @@ const AddBookmarkDialog = dynamic(
   { ssr: false },
 );
 
+const AddFolderDialog = dynamic(
+  () =>
+    import("./add-folder-dialog").then((mod) => ({
+      default: mod.AddFolderDialog,
+    })),
+  { ssr: false },
+);
+
 export function BookmarksPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -55,25 +62,32 @@ export function BookmarksPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
   const [activeBookmarkId, setActiveBookmarkId] = useState<string | null>(null);
+  const [contentMode, setContentMode] = useState<"bookmarks" | "folders">(
+    "bookmarks",
+  );
   const [activeTab, setActiveTab] = useState<"home" | "folders" | "profile">(
     "home",
   );
-  const [mobileSelectedFolder, setMobileSelectedFolder] = useState<
-    string | null
-  >(null);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const { viewMode, sortMode } = useGeneralStore();
 
-  const { bookmarks, folders, folderNameById, editableFolders, isLoading } =
-    useBookmarksData();
-
-  const { effectiveFilteredBookmarks } = useBookmarksFilters({
+  const {
     bookmarks,
-    selectedFolder,
-    searchQuery,
-    sortMode,
-    isMobile,
-  });
+    folders,
+    folderNameById,
+    editableFolders,
+    folderViewItems,
+    isLoading,
+  } = useBookmarksData();
+
+  const { effectiveFilteredBookmarks, sortedFilteredFolders } =
+    useBookmarksFilters({
+      bookmarks,
+      folderViewItems,
+      selectedFolder,
+      searchQuery,
+      sortMode,
+    });
 
   useEffect(() => {
     if (searchParams.get("tab") === "profile") {
@@ -162,9 +176,6 @@ export function BookmarksPage() {
       if (selectedFolder === folderId) {
         setSelectedFolder(FOLDER_ID_ALL);
       }
-      if (mobileSelectedFolder === folderId) {
-        setMobileSelectedFolder(null);
-      }
     } catch (error) {
       console.error("Failed to delete folder:", error);
     }
@@ -251,93 +262,92 @@ export function BookmarksPage() {
     [bookmarks, activeBookmarkId],
   );
 
-  const mobileFolderBookmarks = useMemo(() => {
-    if (!mobileSelectedFolder) return [];
-    if (mobileSelectedFolder === "all") return bookmarks;
-    return bookmarks.filter((b) => b.folderId === mobileSelectedFolder);
-  }, [bookmarks, mobileSelectedFolder]);
-
-  const mobileSelectedFolderData = useMemo(
-    () =>
-      mobileSelectedFolder
-        ? (folders.find((f) => f.id === mobileSelectedFolder) ?? null)
-        : null,
-    [folders, mobileSelectedFolder],
-  );
-
   const addBookmarkButton = (
     <AddBookmarkDialog folders={editableFolders} onSubmit={handleAddBookmark} />
   );
+  const addFolderButton = <AddFolderDialog onSubmit={handleAddFolder} />;
 
-  const renderMainContent = () => (
+  const openFolderFromGrid = (folderId: string) => {
+    setSelectedFolder(folderId);
+    if (isMobile) {
+      setActiveTab("home");
+    } else {
+      setContentMode("bookmarks");
+    }
+  };
+
+  const renderMainContent = (mode: "bookmarks" | "folders") => (
     <main className="flex flex-1 flex-col min-h-0 overflow-hidden">
       <header className="border-border border-b bg-background">
         {isMobile ? (
           <MobileBookmarksHeader
-            currentFolderName={effectiveCurrentFolder?.name}
-            CurrentFolderIcon={effectiveCurrentFolder?.icon}
+            currentFolderName={
+              mode === "folders" ? "Folders" : effectiveCurrentFolder?.name
+            }
+            CurrentFolderIcon={
+              mode === "folders" ? undefined : effectiveCurrentFolder?.icon
+            }
             showMobileSearch={showMobileSearch}
             searchQuery={searchQuery}
+            searchPlaceholder={
+              mode === "folders" ? "Search folders..." : "Search bookmarks..."
+            }
             onSearchChange={(value) => {
               setSearchQuery(value);
               if (value === "") setShowMobileSearch(false);
             }}
             onToggleSearch={() => setShowMobileSearch(!showMobileSearch)}
-            addBookmarkButton={addBookmarkButton}
+            actionButton={
+              mode === "folders" ? addFolderButton : addBookmarkButton
+            }
           />
         ) : (
           <DesktopBookmarksHeader
-            currentFolderName={effectiveCurrentFolder?.name}
-            CurrentFolderIcon={effectiveCurrentFolder?.icon}
+            currentFolderName={
+              mode === "folders" ? "Folders" : effectiveCurrentFolder?.name
+            }
+            CurrentFolderIcon={
+              mode === "folders" ? undefined : effectiveCurrentFolder?.icon
+            }
             sidebarOpen={sidebarOpen}
             searchQuery={searchQuery}
+            searchPlaceholder={
+              mode === "folders" ? "Search folders..." : "Search bookmarks..."
+            }
             onSearchChange={setSearchQuery}
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-            addBookmarkButton={addBookmarkButton}
+            actionButton={
+              mode === "folders" ? addFolderButton : addBookmarkButton
+            }
           />
         )}
       </header>
 
       <div className="flex-1 min-h-0 overflow-y-auto p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-4">
-        <BookmarksContent
-          isLoading={isLoading}
-          bookmarksCount={bookmarks.length}
-          filteredBookmarks={effectiveFilteredBookmarks}
-          folderNameById={folderNameById}
-          editableFolders={editableFolders}
-          searchQuery={searchQuery}
-          onEditBookmark={setEditingBookmark}
-          onDeleteBookmark={handleDeleteBookmark}
-          onMoveBookmark={handleMoveBookmark}
-        />
+        {mode === "folders" ? (
+          <FoldersContent
+            isLoading={isLoading}
+            foldersCount={editableFolders.length}
+            filteredFolders={sortedFilteredFolders}
+            searchQuery={searchQuery}
+            onOpenFolder={openFolderFromGrid}
+          />
+        ) : (
+          <BookmarksContent
+            isLoading={isLoading}
+            bookmarksCount={bookmarks.length}
+            filteredBookmarks={effectiveFilteredBookmarks}
+            folderNameById={folderNameById}
+            editableFolders={editableFolders}
+            searchQuery={searchQuery}
+            onEditBookmark={setEditingBookmark}
+            onDeleteBookmark={handleDeleteBookmark}
+            onMoveBookmark={handleMoveBookmark}
+          />
+        )}
       </div>
     </main>
   );
-
-  const renderMobileFoldersContent = () => {
-    if (mobileSelectedFolder && mobileSelectedFolderData) {
-      return (
-        <FolderDetailView
-          folder={mobileSelectedFolderData}
-          bookmarks={mobileFolderBookmarks}
-          editableFolders={editableFolders}
-          onBack={() => setMobileSelectedFolder(null)}
-          onEditBookmark={setEditingBookmark}
-          onDeleteBookmark={handleDeleteBookmark}
-          onAddBookmark={handleAddBookmark}
-        />
-      );
-    }
-    return (
-      <FoldersListView
-        folders={folders}
-        onSelectFolder={(folderId) => setMobileSelectedFolder(folderId)}
-        onAddFolder={handleAddFolder}
-        onRenameFolder={handleRenameFolder}
-        onDeleteFolder={handleDeleteFolder}
-      />
-    );
-  };
 
   return (
     <DndContext
@@ -351,8 +361,8 @@ export function BookmarksPage() {
         <MobileLayout
           activeTab={activeTab}
           onTabChange={setActiveTab}
-          homeContent={renderMainContent()}
-          foldersContent={renderMobileFoldersContent()}
+          homeContent={renderMainContent("bookmarks")}
+          foldersContent={renderMainContent("folders")}
           profileContent={<ProfileTab />}
         />
       ) : (
@@ -366,6 +376,8 @@ export function BookmarksPage() {
             <FoldersSidebar
               folders={folders}
               selectedFolder={selectedFolder}
+              contentMode={contentMode}
+              onSelectContentMode={setContentMode}
               onSelectFolder={setSelectedFolder}
               onAddFolder={handleAddFolder}
               onRenameFolder={handleRenameFolder}
@@ -373,7 +385,7 @@ export function BookmarksPage() {
               onSettings={() => router.push("/settings")}
             />
           </aside>
-          {renderMainContent()}
+          {renderMainContent(contentMode)}
         </div>
       )}
 

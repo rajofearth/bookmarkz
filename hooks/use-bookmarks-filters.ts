@@ -1,27 +1,28 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Bookmark } from "@/components/bookmarks/types";
+import type { Bookmark, FolderViewItem } from "@/components/bookmarks/types";
 import {
   filterBookmarksBySearch,
+  filterFoldersBySearch,
   sortBookmarksByDate,
 } from "@/lib/bookmarks-utils";
 import type { SortMode } from "./use-general-store";
 
 interface UseBookmarksFiltersArgs {
   bookmarks: Bookmark[];
+  folderViewItems: FolderViewItem[];
   selectedFolder: string;
   searchQuery: string;
   sortMode: SortMode;
-  isMobile: boolean;
 }
 
 export function useBookmarksFilters({
   bookmarks,
+  folderViewItems,
   selectedFolder,
   searchQuery,
   sortMode,
-  isMobile,
 }: UseBookmarksFiltersArgs) {
   const filteredBookmarks = useMemo(() => {
     let result = bookmarks;
@@ -36,17 +37,30 @@ export function useBookmarksFilters({
     [filteredBookmarks, sortMode],
   );
 
-  const effectiveFilteredBookmarks = useMemo(() => {
-    if (isMobile) {
-      const filtered = filterBookmarksBySearch(bookmarks, searchQuery);
-      return sortBookmarksByDate(filtered, sortMode);
-    }
-    return sortedFilteredBookmarks;
-  }, [isMobile, bookmarks, searchQuery, sortedFilteredBookmarks, sortMode]);
+  const effectiveFilteredBookmarks = sortedFilteredBookmarks;
+
+  const filteredFolders = useMemo(
+    () => filterFoldersBySearch(folderViewItems, searchQuery),
+    [folderViewItems, searchQuery],
+  );
+
+  const sortedFilteredFolders = useMemo(
+    () =>
+      sortBookmarksByDate(
+        filteredFolders.map((folder) => ({
+          ...folder,
+          createdAt: folder.latestBookmarkCreatedAt ?? folder.createdAt,
+        })),
+        sortMode,
+      ),
+    [filteredFolders, sortMode],
+  );
 
   return {
     filteredBookmarks,
     sortedFilteredBookmarks,
     effectiveFilteredBookmarks,
+    filteredFolders,
+    sortedFilteredFolders,
   };
 }
