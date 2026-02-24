@@ -383,6 +383,7 @@ export function BookmarksPage() {
             searchQuery={searchQuery}
             semanticSearchEnabled={semanticSearchEnabled}
             searchMode={searchMode}
+            isSemanticLoading={isSemanticLoading}
             onSearchModeChange={handleSearchModeChange}
             onSearchChange={(value) => {
               setSearchQuery(value);
@@ -399,6 +400,7 @@ export function BookmarksPage() {
             searchQuery={searchQuery}
             semanticSearchEnabled={semanticSearchEnabled}
             searchMode={searchMode}
+            isSemanticLoading={isSemanticLoading}
             onSearchModeChange={handleSearchModeChange}
             onSearchChange={setSearchQuery}
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}

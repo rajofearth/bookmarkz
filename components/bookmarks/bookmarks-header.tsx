@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRightIcon, FolderIcon, SearchIcon } from "lucide-react";
+import { ChevronRightIcon, FolderIcon, Loader2, SearchIcon } from "lucide-react";
 import type { ElementType, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +53,7 @@ interface DesktopBookmarksHeaderProps {
   searchQuery: string;
   semanticSearchEnabled: boolean;
   searchMode: SearchMode;
+  isSemanticLoading?: boolean;
   onSearchModeChange: (mode: SearchMode) => void;
   onSearchChange: (value: string) => void;
   onToggleSidebar: () => void;
@@ -66,6 +67,7 @@ export function DesktopBookmarksHeader({
   searchQuery,
   semanticSearchEnabled,
   searchMode,
+  isSemanticLoading = false,
   onSearchModeChange,
   onSearchChange,
   onToggleSidebar,
@@ -105,8 +107,11 @@ export function DesktopBookmarksHeader({
             placeholder="Search bookmarks..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="h-8 pl-9 text-sm"
+            className="h-8 pl-9 pr-9 text-sm"
           />
+          {isSemanticLoading ? (
+            <Loader2 className="text-muted-foreground absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin" />
+          ) : null}
         </div>
         {semanticSearchEnabled && (
           <SearchModePill
@@ -129,6 +134,7 @@ interface MobileBookmarksHeaderProps {
   searchQuery: string;
   semanticSearchEnabled: boolean;
   searchMode: SearchMode;
+  isSemanticLoading?: boolean;
   onSearchModeChange: (mode: SearchMode) => void;
   onSearchChange: (value: string) => void;
   onToggleSearch: () => void;
@@ -142,6 +148,7 @@ export function MobileBookmarksHeader({
   searchQuery,
   semanticSearchEnabled,
   searchMode,
+  isSemanticLoading = false,
   onSearchModeChange,
   onSearchChange,
   onToggleSearch,
@@ -179,9 +186,12 @@ export function MobileBookmarksHeader({
                 placeholder="Search bookmarks..."
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="h-9 w-full pl-9 text-sm"
+                className="h-9 w-full pl-9 pr-9 text-sm"
                 autoFocus={showMobileSearch}
               />
+              {isSemanticLoading ? (
+                <Loader2 className="text-muted-foreground absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin" />
+              ) : null}
             </div>
             {semanticSearchEnabled && (
               <SearchModePill

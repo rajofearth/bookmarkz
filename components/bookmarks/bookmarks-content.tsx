@@ -2,12 +2,13 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { BookmarkIcon, Loader2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
 import { FlipReveal } from "@/components/gsap/flip-reveal";
 import { ImportGuide } from "@/components/onboarding/import-guide";
 import { useGeneralStore } from "@/hooks/use-general-store";
+import type { ViewMode } from "@/hooks/use-general-store";
 import { getViewModeGridClasses } from "@/lib/bookmarks-utils";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { BookmarkCard } from "./bookmark-card";
 import { DetailsHeaderRow } from "./bookmarks-empty-details";
 import type { Bookmark, Folder } from "./types";
@@ -15,11 +16,39 @@ import type { Bookmark, Folder } from "./types";
 type SearchMode = "lexical" | "semantic";
 type SemanticStage = "idle" | "embedding" | "vectorSearch" | "rerank" | "error";
 
-function stageLabel(stage: SemanticStage) {
-  if (stage === "embedding") return "Embedding...";
-  if (stage === "vectorSearch") return "Searching...";
-  if (stage === "rerank") return "Reranking...";
-  return "Searching...";
+function semanticStageText(stage: SemanticStage) {
+  if (stage === "embedding") return "Embedding query...";
+  if (stage === "vectorSearch") return "Searching bookmarks...";
+  if (stage === "rerank") return "Reranking results...";
+  if (stage === "error") return "Search failed. Retrying...";
+  return "Searching bookmarks...";
+}
+
+function BookmarkCardSkeleton({ viewMode }: { viewMode: ViewMode }) {
+  if (viewMode === "list" || viewMode === "details") {
+    return (
+      <div className="rounded-lg border border-border/60 p-3">
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-8 rounded-md" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-3 w-2/3" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+          <Skeleton className="h-7 w-7 rounded-md" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-border/60 p-3">
+      <Skeleton className="mb-3 aspect-video w-full rounded-md" />
+      <div className="space-y-2">
+        <Skeleton className="h-3 w-3/4" />
+        <Skeleton className="h-3 w-1/2" />
+      </div>
+    </div>
+  );
 }
 
 interface BookmarksContentProps {
@@ -61,43 +90,13 @@ export function BookmarksContent({
   const viewMode = useGeneralStore((state) => state.viewMode);
   const openInNewTab = useGeneralStore((state) => state.openInNewTab);
   const showFavicons = useGeneralStore((state) => state.showFavicons);
-  const [showLatency, setShowLatency] = useState(false);
   const shouldAnimateList =
     !isSemanticLoading && searchQuery.trim().length === 0;
-  const hasQuery = searchQuery.trim().length > 0;
-  const showSemanticStrip = hasQuery && searchMode === "semantic";
-
-  useEffect(() => {
-    if (!showSemanticStrip || isSemanticLoading || semanticLatencyMs === null) {
-      setShowLatency(false);
-      return;
-    }
-    setShowLatency(true);
-    const timeoutId = window.setTimeout(() => {
-      setShowLatency(false);
-    }, 2000);
-    return () => window.clearTimeout(timeoutId);
-  }, [isSemanticLoading, semanticLatencyMs, showSemanticStrip]);
-
-  const statusText = useMemo(() => {
-    if (!showSemanticStrip) {
-      return null;
-    }
-    if (isSemanticLoading) {
-      return stageLabel(semanticStage);
-    }
-    if (!showLatency || semanticLatencyMs === null) {
-      return null;
-    }
-    return `Semantic${isIndexingIncomplete ? " · partial" : ""} · ${semanticLatencyMs}ms`;
-  }, [
-    isIndexingIncomplete,
-    isSemanticLoading,
-    semanticLatencyMs,
-    semanticStage,
-    showLatency,
-    showSemanticStrip,
-  ]);
+  const trimmedQuery = searchQuery.trim();
+  const showSemanticStatus = trimmedQuery.length > 0 && searchMode === "semantic";
+  const showSkeletonGrid = isSemanticLoading && filteredBookmarks.length === 0;
+  const isSemanticNoResults =
+    showSemanticStatus && !isSemanticLoading && filteredBookmarks.length === 0;
 
   if (isLoading) {
     return (
@@ -113,33 +112,57 @@ export function BookmarksContent({
 
   return (
     <div className="relative h-full">
-      {showSemanticStrip && statusText && (
-        <div className="sticky top-0 z-20 mb-2 rounded-md border border-border/60 bg-background/95 px-2 py-1.5 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-          <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-            {isSemanticLoading ? (
-              <Loader2 className="size-3.5 shrink-0 animate-spin" />
+      {showSemanticStatus ? (
+        <div className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+          {isSemanticLoading ? <Loader2 className="size-3.5 animate-spin" /> : null}
+          <span>
+            {isSemanticLoading
+              ? semanticStageText(semanticStage)
+              : `${filteredBookmarks.length} result${
+                  filteredBookmarks.length === 1 ? "" : "s"
+                } for "${trimmedQuery}"`}
+            {!isSemanticLoading && isIndexingIncomplete ? (
+              <span className="ml-1 text-amber-500">· partial index</span>
             ) : null}
-            <span>{statusText}</span>
-          </div>
+            {!isSemanticLoading && semanticLatencyMs !== null ? (
+              <span className="ml-1">· {semanticLatencyMs}ms</span>
+            ) : null}
+          </span>
         </div>
-      )}
-      {filteredBookmarks.length === 0 && (
+      ) : null}
+
+      {showSkeletonGrid ? (
+        <div className={cn(getViewModeGridClasses(viewMode))}>
+          {Array.from({ length: 8 }).map((_, index) => (
+            <BookmarkCardSkeleton key={`semantic-skeleton-${index}`} viewMode={viewMode} />
+          ))}
+        </div>
+      ) : null}
+
+      {!showSkeletonGrid && filteredBookmarks.length === 0 && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 text-center">
           <div className="bg-muted flex size-12 items-center justify-center rounded-lg">
             <BookmarkIcon className="text-muted-foreground size-6" />
           </div>
           <div>
-            <p className="text-sm font-medium">No bookmarks found</p>
+            <p className="text-sm font-medium">
+              {isSemanticNoResults
+                ? `No results for "${trimmedQuery}"`
+                : "No bookmarks found"}
+            </p>
             <p className="text-muted-foreground text-sm">
-              {searchQuery
-                ? "Try a different search term"
-                : "Add your first bookmark to get started"}
+              {isSemanticNoResults
+                ? "Try rephrasing your query or switch to Lexical search"
+                : searchQuery
+                  ? "Try a different search term"
+                  : "Add your first bookmark to get started"}
             </p>
           </div>
         </div>
       )}
-      {viewMode === "details" && <DetailsHeaderRow />}
-      {shouldAnimateList ? (
+
+      {!showSkeletonGrid && viewMode === "details" && <DetailsHeaderRow />}
+      {!showSkeletonGrid && shouldAnimateList ? (
         <FlipReveal
           keys={filteredBookmarks.map((b) => String(b.id))}
           showClass="block"
@@ -174,7 +197,7 @@ export function BookmarksContent({
             </AnimatePresence>
           </div>
         </FlipReveal>
-      ) : (
+      ) : !showSkeletonGrid ? (
         <div className={cn(getViewModeGridClasses(viewMode))}>
           {filteredBookmarks.map((bookmark) => (
             <div key={bookmark.id} data-flip={String(bookmark.id)}>
@@ -193,7 +216,7 @@ export function BookmarksContent({
             </div>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
