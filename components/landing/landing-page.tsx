@@ -1,0 +1,61 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { LandingFooter } from "./landing-footer";
+import { LandingFeatures } from "./landing-features";
+import { LandingHero } from "./landing-hero";
+import { LandingPricing } from "./landing-pricing";
+import { Button } from "@/components/ui/button";
+
+interface LandingPageProps {
+  isAuthenticated: boolean;
+}
+
+export function LandingPage({ isAuthenticated }: LandingPageProps) {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mq.matches);
+    const handler = () => setPrefersReducedMotion(mq.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  return (
+    <div className="min-h-svh flex flex-col bg-background">
+      {/* Nav */}
+      <nav className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-sm">
+        <div className="flex h-14 items-center justify-between px-6 max-w-6xl mx-auto">
+          <Link
+            href="/"
+            className="text-sm font-semibold text-foreground hover:text-muted-foreground transition-colors"
+          >
+            Bukmarks
+          </Link>
+          <Button asChild variant="outline" size="sm">
+            <Link href={isAuthenticated ? "/bookmarks" : "/auth"}>
+              {isAuthenticated ? "Open app" : "Get started"}
+            </Link>
+          </Button>
+        </div>
+      </nav>
+
+      {/* Main */}
+      <main className="flex-1">
+        <LandingHero
+          isAuthenticated={isAuthenticated}
+          prefersReducedMotion={prefersReducedMotion}
+        />
+        <LandingFeatures prefersReducedMotion={prefersReducedMotion} />
+        <LandingPricing
+          isAuthenticated={isAuthenticated}
+          prefersReducedMotion={prefersReducedMotion}
+        />
+      </main>
+
+      <LandingFooter />
+    </div>
+  );
+}

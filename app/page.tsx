@@ -1,5 +1,8 @@
-import { redirect } from "next/navigation";
+import { LandingPage } from "@/components/landing/landing-page";
+import { isAuthenticated } from "@/lib/auth-server";
 
 export default async function Page() {
-  redirect("/bookmarks");
+  const isAuth = await isAuthenticated();
+
+  return <LandingPage isAuthenticated={isAuth} />;
 }
