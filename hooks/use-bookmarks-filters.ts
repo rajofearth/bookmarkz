@@ -22,6 +22,7 @@ interface UseBookmarksFiltersArgs {
   searchQuery: string;
   sortMode: SortMode;
   isMobile: boolean;
+  searchModeOverride?: "lexical" | "semantic";
 }
 
 type SemanticStage = "idle" | "embedding" | "vectorSearch" | "rerank" | "error";
@@ -32,11 +33,17 @@ export function useBookmarksFilters({
   searchQuery,
   sortMode,
   isMobile,
+  searchModeOverride,
 }: UseBookmarksFiltersArgs) {
   const semanticSearch = useAction(api.actions.semanticSearchBookmarks);
   const semanticSearchEnabled = useGeneralStore(
     (state) => state.semanticSearchEnabled,
   );
+  const activeSearchMode =
+    semanticSearchEnabled && searchModeOverride !== "lexical"
+      ? "semantic"
+      : "lexical";
+  const isSemanticActive = activeSearchMode === "semantic";
   const semanticDtype = useGeneralStore((state) => state.semanticDtype);
   const [debouncedLexicalQuery, setDebouncedLexicalQuery] = useState(
     searchQuery.trim(),
@@ -76,7 +83,7 @@ export function useBookmarksFilters({
   }, [searchQuery]);
 
   useEffect(() => {
-    if (!semanticSearchEnabled) {
+    if (!isSemanticActive) {
       return;
     }
     const win = window as Window & {
@@ -111,11 +118,11 @@ export function useBookmarksFilters({
         window.clearTimeout(idleId);
       }
     };
-  }, [semanticDtype, semanticSearchEnabled]);
+  }, [isSemanticActive, semanticDtype]);
 
   useEffect(() => {
     const hasQuery = debouncedSemanticQuery.length > 0;
-    if (!hasQuery || !semanticSearchEnabled) {
+    if (!hasQuery || !isSemanticActive) {
       setSemanticIds(null);
       setSemanticStage("idle");
       return;
@@ -152,12 +159,12 @@ export function useBookmarksFilters({
             setSemanticStage("vectorSearch");
             const results = await semanticSearch({
               queryEmbedding: vector,
-              limit: 40,
+              limit: 20,
               selectedFolder:
                 !isMobile && selectedFolder !== "all"
                   ? (selectedFolder as Id<"folders">)
                   : undefined,
-              minScore: 0.2,
+              minScore: 0.35,
             });
             setSemanticStage("rerank");
             return results.map((entry) => entry.bookmark._id);
@@ -205,7 +212,7 @@ export function useBookmarksFilters({
     selectedFolder,
     semanticDtype,
     semanticSearch,
-    semanticSearchEnabled,
+    isSemanticActive,
   ]);
 
   const folderFilteredBookmarks = useMemo(() => {
@@ -239,12 +246,8 @@ export function useBookmarksFilters({
     if (semanticOrdered.length === 0) {
       return lexicalFilteredBookmarks;
     }
-
-    const semanticSet = new Set(semanticOrdered.map((bookmark) => bookmark.id));
-    const lexicalRemainder = lexicalFilteredBookmarks.filter(
-      (bookmark) => !semanticSet.has(bookmark.id),
-    );
-    return [...semanticOrdered, ...lexicalRemainder];
+    // Semantic mode should show only the highest-relevance matches.
+    return semanticOrdered.slice(0, 20);
   }, [
     folderFilteredBookmarks,
     lexicalFilteredBookmarks,
@@ -254,12 +257,12 @@ export function useBookmarksFilters({
 
   const isSemanticRankedSearch = useMemo(() => {
     return (
-      semanticSearchEnabled &&
+      isSemanticActive &&
       debouncedLexicalQuery.trim().length > 0 &&
       semanticIds !== null &&
       semanticIds.length > 0
     );
-  }, [debouncedLexicalQuery, semanticIds, semanticSearchEnabled]);
+  }, [debouncedLexicalQuery, semanticIds, isSemanticActive]);
 
   const sortedFilteredBookmarks = useMemo(() => {
     if (isSemanticRankedSearch) {
@@ -278,12 +281,12 @@ export function useBookmarksFilters({
     sortedFilteredBookmarks,
     effectiveFilteredBookmarks,
     isSemanticLoading:
-      semanticSearchEnabled &&
+      isSemanticActive &&
       debouncedSemanticQuery.length > 0 &&
       semanticStage !== "idle" &&
       semanticStage !== "error",
     semanticStage,
-    searchMode: semanticSearchEnabled ? "semantic" : "lexical",
+    searchMode: activeSearchMode,
     lastSemanticDurationMs,
   };
 }

@@ -2,80 +2,46 @@
 
 import { ChevronRightIcon, FolderIcon, SearchIcon } from "lucide-react";
 import type { ElementType, ReactNode } from "react";
-import { DotFlow } from "@/components/gsap/dot-flow";
-import { DotLoader } from "@/components/gsap/dot-loader";
-import { UnicodeSpinner } from "@/components/gsap/unicode-spinner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useGeneralStore } from "@/hooks/use-general-store";
 import { cn } from "@/lib/utils";
 import { DisplayControlsMenu } from "./display-controls-menu";
 
 type SearchMode = "lexical" | "semantic";
-type SemanticStage = "idle" | "embedding" | "vectorSearch" | "rerank" | "error";
 
-const sweepFrames = [
-  [3, 10, 17, 24, 31, 38, 45],
-  [4, 11, 18, 25, 32, 39, 46],
-  [5, 12, 19, 26, 33, 40, 47],
-  [6, 13, 20, 27, 34, 41, 48],
-];
-
-const pulseFrames = [
-  [16, 17, 18, 23, 24, 25, 30, 31, 32],
-  [10, 11, 12, 17, 18, 19, 24, 25, 26, 31, 32, 33, 38, 39, 40],
-  [
-    2, 3, 4, 9, 10, 11, 16, 17, 18, 23, 24, 25, 30, 31, 32, 37, 38, 39, 44, 45,
-    46,
-  ],
-];
-
-function SearchStatus({
+function SearchModePill({
   searchMode,
-  isSemanticLoading,
-  semanticStage,
-  semanticLatencyMs,
+  onSearchModeChange,
 }: {
   searchMode: SearchMode;
-  isSemanticLoading: boolean;
-  semanticStage: SemanticStage;
-  semanticLatencyMs: number | null;
+  onSearchModeChange: (mode: SearchMode) => void;
 }) {
-  const reducedMotion = useGeneralStore((state) => state.reducedMotion);
-  const flowItems = [
-    { title: "Embedding", frames: sweepFrames, duration: 90 },
-    { title: "Vector search", frames: pulseFrames, duration: 110 },
-    { title: "Reranking", frames: sweepFrames, duration: 90 },
-  ];
-
   return (
-    <div className="inline-flex items-center gap-2">
-      <Badge variant={searchMode === "semantic" ? "default" : "secondary"}>
-        {searchMode === "semantic" ? "Semantic" : "Lexical"}
-      </Badge>
-      {searchMode === "semantic" &&
-        isSemanticLoading &&
-        (reducedMotion ? (
-          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <UnicodeSpinner name="braille" className="font-mono" />
-            Searching
-          </span>
-        ) : semanticStage === "embedding" ? (
-          <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-            <DotLoader frames={sweepFrames} duration={90} size={2.75} />
-            Embedding
-          </span>
-        ) : (
-          <DotFlow isPlaying items={flowItems} />
-        ))}
-      {searchMode === "semantic" &&
-        !isSemanticLoading &&
-        semanticLatencyMs !== null && (
-          <span className="text-xs text-muted-foreground">
-            {semanticLatencyMs}ms
-          </span>
+    <div className="inline-flex items-center rounded-md border border-border bg-muted/40 p-0.5">
+      <button
+        type="button"
+        onClick={() => onSearchModeChange("lexical")}
+        className={cn(
+          "h-6 rounded-sm px-2 text-[11px] transition-colors",
+          searchMode === "lexical"
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground",
         )}
+      >
+        Lexical
+      </button>
+      <button
+        type="button"
+        onClick={() => onSearchModeChange("semantic")}
+        className={cn(
+          "h-6 rounded-sm px-2 text-[11px] transition-colors",
+          searchMode === "semantic"
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground",
+        )}
+      >
+        Semantic
+      </button>
     </div>
   );
 }
@@ -85,10 +51,9 @@ interface DesktopBookmarksHeaderProps {
   CurrentFolderIcon?: ElementType;
   sidebarOpen: boolean;
   searchQuery: string;
+  semanticSearchEnabled: boolean;
   searchMode: SearchMode;
-  isSemanticLoading: boolean;
-  semanticStage: SemanticStage;
-  semanticLatencyMs: number | null;
+  onSearchModeChange: (mode: SearchMode) => void;
   onSearchChange: (value: string) => void;
   onToggleSidebar: () => void;
   addBookmarkButton: ReactNode;
@@ -99,10 +64,9 @@ export function DesktopBookmarksHeader({
   CurrentFolderIcon,
   sidebarOpen,
   searchQuery,
+  semanticSearchEnabled,
   searchMode,
-  isSemanticLoading,
-  semanticStage,
-  semanticLatencyMs,
+  onSearchModeChange,
   onSearchChange,
   onToggleSidebar,
   addBookmarkButton,
@@ -132,23 +96,25 @@ export function DesktopBookmarksHeader({
         <h1 className="text-sm font-medium truncate">{currentFolderName}</h1>
       </div>
 
-      <div className="relative ml-auto max-w-xs flex-1">
-        <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
-        <Input
-          id="search-input-desktop"
-          type="search"
-          placeholder="Search bookmarks..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="h-8 pl-9 text-sm"
-        />
+      <div className="ml-auto flex max-w-md flex-1 items-center gap-2">
+        <div className="relative flex-1">
+          <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+          <Input
+            id="search-input-desktop"
+            type="search"
+            placeholder="Search bookmarks..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="h-8 pl-9 text-sm"
+          />
+        </div>
+        {semanticSearchEnabled && (
+          <SearchModePill
+            searchMode={searchMode}
+            onSearchModeChange={onSearchModeChange}
+          />
+        )}
       </div>
-      <SearchStatus
-        searchMode={searchMode}
-        isSemanticLoading={isSemanticLoading}
-        semanticStage={semanticStage}
-        semanticLatencyMs={semanticLatencyMs}
-      />
 
       <DisplayControlsMenu />
       {addBookmarkButton}
@@ -161,10 +127,9 @@ interface MobileBookmarksHeaderProps {
   CurrentFolderIcon?: ElementType;
   showMobileSearch: boolean;
   searchQuery: string;
+  semanticSearchEnabled: boolean;
   searchMode: SearchMode;
-  isSemanticLoading: boolean;
-  semanticStage: SemanticStage;
-  semanticLatencyMs: number | null;
+  onSearchModeChange: (mode: SearchMode) => void;
   onSearchChange: (value: string) => void;
   onToggleSearch: () => void;
   addBookmarkButton: ReactNode;
@@ -175,10 +140,9 @@ export function MobileBookmarksHeader({
   CurrentFolderIcon,
   showMobileSearch,
   searchQuery,
+  semanticSearchEnabled,
   searchMode,
-  isSemanticLoading,
-  semanticStage,
-  semanticLatencyMs,
+  onSearchModeChange,
   onSearchChange,
   onToggleSearch,
   addBookmarkButton,
@@ -206,24 +170,26 @@ export function MobileBookmarksHeader({
 
       {showMobileSearch && (
         <div className="px-4 pb-3 border-t border-border/50">
-          <div className="relative mb-2">
-            <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
-            <Input
-              id="search-input"
-              type="search"
-              placeholder="Search bookmarks..."
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="h-9 pl-9 text-sm w-full"
-              autoFocus={showMobileSearch}
-            />
+          <div className="mb-2 flex items-center gap-2">
+            <div className="relative flex-1">
+              <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+              <Input
+                id="search-input"
+                type="search"
+                placeholder="Search bookmarks..."
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="h-9 w-full pl-9 text-sm"
+                autoFocus={showMobileSearch}
+              />
+            </div>
+            {semanticSearchEnabled && (
+              <SearchModePill
+                searchMode={searchMode}
+                onSearchModeChange={onSearchModeChange}
+              />
+            )}
           </div>
-          <SearchStatus
-            searchMode={searchMode}
-            isSemanticLoading={isSemanticLoading}
-            semanticStage={semanticStage}
-            semanticLatencyMs={semanticLatencyMs}
-          />
         </div>
       )}
     </>

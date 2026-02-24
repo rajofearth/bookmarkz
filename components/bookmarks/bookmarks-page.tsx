@@ -11,10 +11,11 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useBookmarksData } from "@/hooks/use-bookmarks-data";
@@ -63,6 +64,10 @@ export function BookmarksPage() {
     string | null
   >(null);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [searchModeOverride, setSearchModeOverride] = useState<
+    "lexical" | "semantic"
+  >("semantic");
+  const hasShownSemanticWarningRef = useRef(false);
   const { viewMode, sortMode } = useGeneralStore();
   const {
     autoIndexing,
@@ -73,6 +78,7 @@ export function BookmarksPage() {
 
   const { bookmarks, folders, folderNameById, editableFolders, isLoading } =
     useBookmarksData();
+  const embeddingStats = useQuery(api.bookmarks.getEmbeddingIndexStats);
 
   const {
     effectiveFilteredBookmarks,
@@ -86,7 +92,68 @@ export function BookmarksPage() {
     searchQuery,
     sortMode,
     isMobile,
+    searchModeOverride,
   });
+
+  useEffect(() => {
+    if (!semanticSearchEnabled) {
+      setSearchModeOverride("lexical");
+    }
+  }, [semanticSearchEnabled]);
+
+  const handleSearchModeChange = useCallback(
+    (mode: "lexical" | "semantic") => {
+      if (!semanticSearchEnabled) {
+        return;
+      }
+      setSearchModeOverride(mode);
+    },
+    [semanticSearchEnabled],
+  );
+
+  const isIndexingIncomplete = (embeddingStats?.pendingBookmarks ?? 0) > 0;
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    const shouldWarn =
+      semanticSearchEnabled &&
+      searchMode === "semantic" &&
+      query.length > 0 &&
+      isIndexingIncomplete;
+
+    if (!shouldWarn) {
+      hasShownSemanticWarningRef.current = false;
+      return;
+    }
+
+    if (hasShownSemanticWarningRef.current) {
+      return;
+    }
+
+    hasShownSemanticWarningRef.current = true;
+    const pendingCount = embeddingStats?.pendingBookmarks ?? 0;
+    const indexedCount = embeddingStats?.indexedBookmarks ?? 0;
+    const totalCount = embeddingStats?.totalBookmarks ?? 0;
+    toast.warning(
+      `Semantic results may be incomplete — ${pendingCount} bookmarks not yet indexed`,
+      {
+        description: `${indexedCount}/${totalCount} indexed. You can run indexing in Settings.`,
+        action: {
+          label: "Index now",
+          onClick: () => router.push("/settings"),
+        },
+      },
+    );
+  }, [
+    embeddingStats?.indexedBookmarks,
+    embeddingStats?.pendingBookmarks,
+    embeddingStats?.totalBookmarks,
+    isIndexingIncomplete,
+    router,
+    searchMode,
+    searchQuery,
+    semanticSearchEnabled,
+  ]);
 
   useEffect(() => {
     if (searchParams.get("tab") === "profile") {
@@ -314,10 +381,9 @@ export function BookmarksPage() {
             CurrentFolderIcon={effectiveCurrentFolder?.icon}
             showMobileSearch={showMobileSearch}
             searchQuery={searchQuery}
+            semanticSearchEnabled={semanticSearchEnabled}
             searchMode={searchMode}
-            isSemanticLoading={isSemanticLoading}
-            semanticStage={semanticStage}
-            semanticLatencyMs={lastSemanticDurationMs}
+            onSearchModeChange={handleSearchModeChange}
             onSearchChange={(value) => {
               setSearchQuery(value);
               if (value === "") setShowMobileSearch(false);
@@ -331,10 +397,9 @@ export function BookmarksPage() {
             CurrentFolderIcon={effectiveCurrentFolder?.icon}
             sidebarOpen={sidebarOpen}
             searchQuery={searchQuery}
+            semanticSearchEnabled={semanticSearchEnabled}
             searchMode={searchMode}
-            isSemanticLoading={isSemanticLoading}
-            semanticStage={semanticStage}
-            semanticLatencyMs={lastSemanticDurationMs}
+            onSearchModeChange={handleSearchModeChange}
             onSearchChange={setSearchQuery}
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
             addBookmarkButton={addBookmarkButton}
@@ -350,7 +415,11 @@ export function BookmarksPage() {
           folderNameById={folderNameById}
           editableFolders={editableFolders}
           searchQuery={searchQuery}
+          searchMode={searchMode}
           isSemanticLoading={isSemanticLoading}
+          semanticStage={semanticStage}
+          semanticLatencyMs={lastSemanticDurationMs}
+          isIndexingIncomplete={isIndexingIncomplete}
           onEditBookmark={setEditingBookmark}
           onDeleteBookmark={handleDeleteBookmark}
           onMoveBookmark={handleMoveBookmark}
