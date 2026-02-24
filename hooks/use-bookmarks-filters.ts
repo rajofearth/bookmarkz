@@ -39,7 +39,7 @@ export function useBookmarksFilters({
   const semanticSearchEnabled = useGeneralStore(
     (state) => state.semanticSearchEnabled,
   );
-  const activeSearchMode =
+  const activeSearchMode: "lexical" | "semantic" =
     semanticSearchEnabled && searchModeOverride !== "lexical"
       ? "semantic"
       : "lexical";
@@ -123,6 +123,7 @@ export function useBookmarksFilters({
   useEffect(() => {
     const hasQuery = debouncedSemanticQuery.length > 0;
     if (!hasQuery || !isSemanticActive) {
+      latestRequestRef.current += 1; // invalidate any in-flight request
       setSemanticIds(null);
       setSemanticStage("idle");
       return;

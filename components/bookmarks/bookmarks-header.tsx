@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronRightIcon, FolderIcon, Loader2, SearchIcon } from "lucide-react";
-import type { ElementType, ReactNode } from "react";
+import { useEffect, useState, type ElementType, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -73,6 +73,22 @@ export function DesktopBookmarksHeader({
   onToggleSidebar,
   addBookmarkButton,
 }: DesktopBookmarksHeaderProps) {
+  const [draftQuery, setDraftQuery] = useState(searchQuery);
+
+  useEffect(() => {
+    setDraftQuery(searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (draftQuery !== searchQuery) {
+        onSearchChange(draftQuery);
+      }
+    }, 80);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [draftQuery, onSearchChange, searchQuery]);
+
   return (
     <div className="flex items-center gap-3 px-4 py-3">
       <Button
@@ -103,10 +119,12 @@ export function DesktopBookmarksHeader({
           <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
           <Input
             id="search-input-desktop"
-            type="search"
+            type="text"
+            inputMode="search"
+            autoComplete="off"
             placeholder="Search bookmarks..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
+            value={draftQuery}
+            onChange={(e) => setDraftQuery(e.target.value)}
             className="h-8 pl-9 pr-9 text-sm"
           />
           {isSemanticLoading ? (
@@ -154,6 +172,22 @@ export function MobileBookmarksHeader({
   onToggleSearch,
   addBookmarkButton,
 }: MobileBookmarksHeaderProps) {
+  const [draftQuery, setDraftQuery] = useState(searchQuery);
+
+  useEffect(() => {
+    setDraftQuery(searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (draftQuery !== searchQuery) {
+        onSearchChange(draftQuery);
+      }
+    }, 80);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [draftQuery, onSearchChange, searchQuery]);
+
   return (
     <>
       <div className="flex items-center gap-2 px-4 py-3">
@@ -182,10 +216,12 @@ export function MobileBookmarksHeader({
               <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
               <Input
                 id="search-input"
-                type="search"
+                type="text"
+                inputMode="search"
+                autoComplete="off"
                 placeholder="Search bookmarks..."
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
+                value={draftQuery}
+                onChange={(e) => setDraftQuery(e.target.value)}
                 className="h-9 w-full pl-9 pr-9 text-sm"
                 autoFocus={showMobileSearch}
               />
