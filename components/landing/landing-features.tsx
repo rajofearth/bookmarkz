@@ -72,7 +72,7 @@ export function LandingFeatures({
       ref={ref}
       className="px-6 py-20 lg:py-28 scroll-mt-20"
     >
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <motion.h2
           className="text-2xl sm:text-3xl font-semibold text-center text-foreground"
           initial={{ opacity: 0, y: 16 }}
@@ -94,11 +94,11 @@ export function LandingFeatures({
           Save, organize, and find your links with ease.
         </motion.p>
 
-        <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-16">
           {FEATURES.map((feature, i) => (
             <motion.div
               key={feature.title}
-              className="rounded-lg border border-border bg-card p-6"
+              className="rounded-lg border border-border bg-card p-6 flex flex-col items-center text-center"
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{
@@ -107,7 +107,7 @@ export function LandingFeatures({
                 ease: [0.25, 0.46, 0.45, 0.94],
               }}
             >
-              <div className="flex size-14 items-center justify-center mb-4 overflow-hidden">
+              <div className="flex size-14 items-center justify-center mb-4 overflow-hidden shrink-0">
                 {feature.image ? (
                   <Image
                     src={feature.image}
@@ -120,7 +120,7 @@ export function LandingFeatures({
                   <feature.icon className="size-6 text-muted-foreground" />
                 ) : null}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center gap-2 flex-wrap">
                 <h3 className="text-sm font-medium text-foreground">
                   {feature.title}
                 </h3>

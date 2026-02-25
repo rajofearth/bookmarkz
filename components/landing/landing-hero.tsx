@@ -27,11 +27,19 @@ export function LandingHero({
     <section className="relative min-h-[85vh] flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-16 px-6 py-16 lg:py-24 overflow-hidden">
       {/* Content */}
       <div className="flex flex-col items-center lg:items-start text-center lg:text-left max-w-xl order-2 lg:order-1">
+        <motion.p
+          className="text-sm text-muted-foreground mb-4"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration, delay: delay(0), ease }}
+        >
+          Available on Web • Extension coming soon
+        </motion.p>
         <motion.h1
           className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-foreground"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration, delay: delay(0), ease }}
+          transition={{ duration, delay: delay(0.05), ease }}
         >
           Your bookmarks, organized.
         </motion.h1>
@@ -39,7 +47,7 @@ export function LandingHero({
           className="mt-4 text-muted-foreground text-base sm:text-lg leading-relaxed"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration, delay: delay(0.08), ease }}
+          transition={{ duration, delay: delay(0.1), ease }}
         >
           Save links, build folders, find anything. Simple and fast.
         </motion.p>
@@ -47,7 +55,7 @@ export function LandingHero({
           className="mt-8 flex flex-col sm:flex-row gap-4"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration, delay: delay(0.16), ease }}
+          transition={{ duration, delay: delay(0.15), ease }}
         >
           <Button asChild size="lg" className="text-base">
             <Link href={isAuthenticated ? "/bookmarks" : "/auth"}>

@@ -20,7 +20,7 @@ export function LandingPricing({
 
   return (
     <section ref={ref} className="px-6 py-20 lg:py-28 bg-muted/30">
-      <div className="max-w-2xl mx-auto text-center">
+      <div className="max-w-2xl mx-auto flex flex-col items-center text-center">
         <motion.h2
           className="text-2xl sm:text-3xl font-semibold text-foreground"
           initial={{ opacity: 0, y: 16 }}

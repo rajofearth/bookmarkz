@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { LandingFooter } from "./landing-footer";
+import { LandingComingSoon } from "./landing-coming-soon";
 import { LandingFeatures } from "./landing-features";
+import { LandingFooter } from "./landing-footer";
 import { LandingHero } from "./landing-hero";
+import { LandingHighlights } from "./landing-highlights";
+import { LandingMockup } from "./landing-mockup";
 import { LandingPricing } from "./landing-pricing";
 import { Button } from "@/components/ui/button";
 
@@ -48,11 +51,14 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
           isAuthenticated={isAuthenticated}
           prefersReducedMotion={prefersReducedMotion}
         />
+        <LandingMockup prefersReducedMotion={prefersReducedMotion} />
         <LandingFeatures prefersReducedMotion={prefersReducedMotion} />
+        <LandingHighlights prefersReducedMotion={prefersReducedMotion} />
         <LandingPricing
           isAuthenticated={isAuthenticated}
           prefersReducedMotion={prefersReducedMotion}
         />
+        <LandingComingSoon prefersReducedMotion={prefersReducedMotion} />
       </main>
 
       <LandingFooter />
