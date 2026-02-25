@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { motion, useInView } from "motion/react";
 import { useRef } from "react";
@@ -19,8 +20,31 @@ export function LandingPricing({
   const duration = prefersReducedMotion ? 0 : 0.45;
 
   return (
-    <section ref={ref} className="px-6 py-20 lg:py-28 bg-muted/30">
-      <div className="max-w-2xl mx-auto flex flex-col items-center text-center">
+    <section
+      ref={ref}
+      className="relative px-6 py-20 lg:py-28 overflow-hidden isolate"
+    >
+      {/* Background: image layer */}
+      <div className="absolute inset-0 z-0" aria-hidden>
+        <Image
+          src="/landing-bg.png"
+          alt=""
+          fill
+          className="object-cover object-center"
+          sizes="100vw"
+          priority={false}
+        />
+      </div>
+      {/* Gradient overlay - soft fade at top and bottom (avoids harsh/blurry look) */}
+      <div
+        className="absolute inset-0 z-[1]"
+        style={{
+          background:
+            "linear-gradient(to bottom, var(--background) 0%, color-mix(in oklch, var(--background) 85%, transparent) 12%, color-mix(in oklch, var(--background) 30%, transparent) 28%, transparent 40%, transparent 60%, color-mix(in oklch, var(--background) 30%, transparent) 72%, color-mix(in oklch, var(--background) 85%, transparent) 88%, var(--background) 100%)",
+        }}
+        aria-hidden
+      />
+      <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center text-center rounded-2xl px-8 py-10 sm:px-10 sm:py-12 bg-background/70 backdrop-blur-md border border-border/40 shadow-xl shadow-black/5">
         <motion.h2
           className="text-2xl sm:text-3xl font-semibold text-foreground"
           initial={{ opacity: 0, y: 16 }}
@@ -30,7 +54,7 @@ export function LandingPricing({
           Simple pricing
         </motion.h2>
         <motion.p
-          className="mt-4 text-muted-foreground"
+          className="mt-4 text-foreground/80"
           initial={{ opacity: 0, y: 12 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{

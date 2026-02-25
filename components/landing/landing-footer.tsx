@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { motion, useInView } from "motion/react";
 import { useRef } from "react";
@@ -10,28 +9,7 @@ export function LandingFooter() {
   const inView = useInView(ref, { once: true, margin: "-50px" });
 
   return (
-    <footer
-      ref={ref}
-      className="relative border-t border-border px-6 py-8 overflow-hidden"
-    >
-      {/* Background with landing-bg.png and gradient overlay */}
-      <div className="absolute inset-0 -z-10" aria-hidden>
-        <Image
-          src="/landing-bg.png"
-          alt=""
-          fill
-          className="object-cover object-bottom"
-          sizes="100vw"
-          priority={false}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to bottom, transparent 0%, var(--background) 40%)",
-          }}
-        />
-      </div>
+    <footer ref={ref} className="border-t border-border px-6 py-8 bg-background">
       <motion.div
         className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4"
         initial={{ opacity: 0 }}

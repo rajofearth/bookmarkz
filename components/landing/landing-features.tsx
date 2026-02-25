@@ -98,7 +98,7 @@ export function LandingFeatures({
           {FEATURES.map((feature, i) => (
             <motion.div
               key={feature.title}
-              className="rounded-lg border border-border bg-card p-6 flex flex-col items-center text-center"
+              className="rounded-lg border border-border p-6 flex flex-col items-center text-center"
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{
