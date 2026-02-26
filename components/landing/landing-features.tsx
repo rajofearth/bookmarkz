@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 const FEATURES: { image: string; title: string; description: string; badge?: string }[] = [
   { image: "/folder-hand-drawn.png", title: "Folders & organization", description: "Organize links into nested folders. Drag and drop to keep everything tidy." },
   { image: "/search-hand-drawn.png", title: "On-device indexing & semantic search", description: "Bookmarks are indexed on your device. Find anything with search across titles, URLs, and descriptions." },
-  { image: "/auot-metadata-description-hand-drawn.png", title: "Auto metadata & descriptions", description: "Favicons, previews, and descriptions pulled directly from each page—no third-party metadata APIs." },
+  { image: "/auto-metadata-descriptions-hand-drawn.png", title: "Auto metadata & descriptions", description: "Favicons, previews, and descriptions pulled directly from each page—no third-party metadata APIs." },
   { image: "/browser-import-hand-drawn.png", title: "Browser import", description: "Import your existing bookmarks from Chrome, Firefox, or any browser export." },
   { image: "/theme-hand-drawn.png", title: "Light & dark theme", description: "Switch between light and dark mode, or follow your system preference." },
   { image: "/github-hand-drawn.png", title: "GitHub Sync", description: "Planned: sync your bookmarks directly to your GitHub account.", badge: "Planned" },
