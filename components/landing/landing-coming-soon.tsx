@@ -1,45 +1,26 @@
 "use client";
 
+import { Chrome, Github, Phone } from "lucide-react";
 import { motion, useInView } from "motion/react";
 import { useRef } from "react";
-import { Puzzle, Github, Chrome, Phone } from "lucide-react";
+
+const ITEMS = [
+  { icon: Chrome, title: "Browser extension", description: "Quickly save links to your bookmarks from any page. One click with our browser extension on desktop.", available: true },
+  { icon: Github, title: "GitHub Sync", description: "Sync your bookmarks to a GitHub repository. Version control, backup, and share your reading list.", available: false },
+  { icon: Phone, title: "Mobile app (iOS & Android)", description: "Coming soon to iOS and Android.", available: false },
+];
+
+const EASE = [0.25, 0.46, 0.45, 0.94] as const;
 
 interface LandingComingSoonProps {
   prefersReducedMotion?: boolean;
 }
 
-const COMING_SOON_ITEMS = [
-  {
-    icon: Chrome,
-    title: "Browser extension",
-    description:
-      "Quickly save links to your bookmarks from any page. One click with our browser extension on desktop.",
-    available: true,
-  },
-  {
-    icon: Github,
-    title: "GitHub Sync",
-    description:
-      "Sync your bookmarks to a GitHub repository. Version control, backup, and share your reading list.",
-    available: false,
-  },
-  {
-    icon: Phone,
-    title: "Mobile app (iOS & Android)",
-    description:
-      "Coming soon to iOS and Android.",
-    available: false,
-  }
-];
-
-export function LandingComingSoon({
-  prefersReducedMotion = false,
-}: LandingComingSoonProps) {
+export function LandingComingSoon({ prefersReducedMotion = false }: LandingComingSoonProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.15 });
   const duration = prefersReducedMotion ? 0 : 0.45;
   const stagger = prefersReducedMotion ? 0 : 0.1;
-  const ease = [0.25, 0.46, 0.45, 0.94] as const;
 
   return (
     <section ref={ref} id="coming-soon" className="px-6 py-12 lg:py-20 scroll-mt-20">
@@ -48,7 +29,7 @@ export function LandingComingSoon({
           className="text-2xl font-semibold text-center text-foreground mb-8"
           initial={{ opacity: 0, y: 16 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration, ease }}
+          transition={{ duration, ease: EASE }}
         >
           Coming soon
         </motion.h2>
@@ -56,7 +37,7 @@ export function LandingComingSoon({
         <div className="relative pt-0 pb-8">
           <div className="max-h-[280px] overflow-hidden relative">
             <div className="space-y-4">
-              {COMING_SOON_ITEMS.map((item, i) => (
+              {ITEMS.map((item, i) => (
                 <motion.div
                   key={item.title}
                   className={`rounded-xl p-5 border border-border ${
@@ -69,7 +50,7 @@ export function LandingComingSoon({
                   transition={{
                     duration,
                     delay: stagger + i * 0.1,
-                    ease,
+                    ease: EASE,
                   }}
                 >
                   <div className="flex items-center gap-3 mb-2">
@@ -113,7 +94,7 @@ export function LandingComingSoon({
             className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 z-10 flex justify-center"
             initial={{ opacity: 0 }}
             animate={inView ? { opacity: 1 } : {}}
-            transition={{ duration, delay: stagger + 0.2, ease }}
+            transition={{ duration, delay: stagger + 0.2, ease: EASE }}
           >
             <a
               href="#coming-soon"

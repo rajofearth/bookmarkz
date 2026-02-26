@@ -13,15 +13,15 @@ interface LandingHeroProps {
   prefersReducedMotion?: boolean;
 }
 
-const ease = [0.25, 0.46, 0.45, 0.94] as const;
+const EASE = [0.25, 0.46, 0.45, 0.94] as const;
 
 export function LandingHero({
   isAuthenticated,
   prefersReducedMotion = false,
 }: LandingHeroProps) {
   const [imageError, setImageError] = useState(false);
-  const duration = prefersReducedMotion ? 0 : 0.45;
-  const delay = (d: number) => (prefersReducedMotion ? 0 : d);
+  const d = prefersReducedMotion ? 0 : 0.45;
+  const delay = (n: number) => (prefersReducedMotion ? 0 : n);
 
   return (
     <section className="relative min-h-[85vh] flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-16 px-6 py-16 lg:py-24 overflow-hidden">
@@ -31,7 +31,7 @@ export function LandingHero({
           className="text-sm text-muted-foreground mb-4"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration, delay: delay(0), ease }}
+          transition={{ duration: d, delay: delay(0), ease: EASE }}
         >
           Available on Web • Extension coming soon
         </motion.p>
@@ -39,7 +39,7 @@ export function LandingHero({
           className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-foreground"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration, delay: delay(0.05), ease }}
+          transition={{ duration: d, delay: delay(0.05), ease: EASE }}
         >
           Your bookmarks, organized.
         </motion.h1>
@@ -47,7 +47,7 @@ export function LandingHero({
           className="mt-4 text-muted-foreground text-base sm:text-lg leading-relaxed"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration, delay: delay(0.1), ease }}
+          transition={{ duration: d, delay: delay(0.1), ease: EASE }}
         >
           Save links, build folders, find anything. Simple and fast.
         </motion.p>
@@ -55,7 +55,7 @@ export function LandingHero({
           className="mt-8 flex flex-col sm:flex-row gap-4"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration, delay: delay(0.15), ease }}
+          transition={{ duration: d, delay: delay(0.15), ease: EASE }}
         >
           <Button asChild size="lg" className="text-base">
             <Link href={isAuthenticated ? "/bookmarks" : "/auth"}>
@@ -76,7 +76,7 @@ export function LandingHero({
         className="relative w-full max-w-md lg:max-w-lg order-1 lg:order-2"
         initial={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: duration + 0.1, delay: delay(0.1), ease }}
+        transition={{ duration: d + 0.1, delay: delay(0.1), ease: EASE }}
       >
         <div className="relative aspect-square max-h-[320px] lg:max-h-[400px] mx-auto">
           {!imageError ? (
@@ -90,73 +90,20 @@ export function LandingHero({
               onError={() => setImageError(true)}
             />
           ) : null}
-          <SketchPlaceholderFallback
-            className={cn(!imageError && "hidden")}
+          <div
+            className={cn("absolute inset-0 flex items-center justify-center", !imageError && "hidden")}
             aria-hidden={!imageError}
-          />
+          >
+            <svg viewBox="0 0 400 400" fill="none" className="w-full h-full text-foreground/25 dark:text-foreground/15">
+              <path d="M120 280 Q140 200 160 180 L180 160 Q200 150 220 160 L240 180 Q260 200 280 220 L280 320 L120 320 Z" stroke="currentColor" strokeWidth="2" strokeDasharray="6 4" fill="none" />
+              <rect x="140" y="200" width="160" height="100" rx="4" stroke="currentColor" strokeWidth="1.5" fill="none" />
+              <rect x="150" y="210" width="140" height="70" rx="2" fill="currentColor" fillOpacity="0.06" />
+              <path d="M80 120 L100 80 L120 120 L100 100 Z" stroke="currentColor" strokeWidth="1.5" fill="none" />
+              <path d="M320 140 L340 100 L360 140 L340 120 Z" stroke="currentColor" strokeWidth="1.5" fill="none" />
+            </svg>
+          </div>
         </div>
       </motion.div>
     </section>
-  );
-}
-
-/** SVG placeholder when image fails to load - sketch-style aesthetic */
-function SketchPlaceholderFallback({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
-  return (
-    <div
-      className={cn("absolute inset-0 flex items-center justify-center", className)}
-      {...props}
-    >
-      <svg
-        viewBox="0 0 400 400"
-        fill="none"
-        className="w-full h-full text-foreground/25 dark:text-foreground/15"
-      >
-        {/* Person silhouette - sketch style */}
-        <path
-          d="M120 280 Q140 200 160 180 L180 160 Q200 150 220 160 L240 180 Q260 200 280 220 L280 320 L120 320 Z"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeDasharray="6 4"
-          fill="none"
-        />
-        {/* Laptop */}
-        <rect
-          x="140"
-          y="200"
-          width="160"
-          height="100"
-          rx="4"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          fill="none"
-        />
-        <rect
-          x="150"
-          y="210"
-          width="140"
-          height="70"
-          rx="2"
-          fill="currentColor"
-          fillOpacity="0.06"
-        />
-        {/* Bookmark icons */}
-        <path
-          d="M80 120 L100 80 L120 120 L100 100 Z"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          fill="none"
-        />
-        <path
-          d="M320 140 L340 100 L360 140 L340 120 Z"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          fill="none"
-        />
-      </svg>
-    </div>
   );
 }

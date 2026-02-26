@@ -17,32 +17,24 @@ interface LandingPageProps {
 
 export function LandingPage({ isAuthenticated }: LandingPageProps) {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     setPrefersReducedMotion(mq.matches);
-    const handler = () => setPrefersReducedMotion(mq.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
+    const h = () => setPrefersReducedMotion(mq.matches);
+    mq.addEventListener("change", h);
+    return () => mq.removeEventListener("change", h);
   }, []);
 
   return (
     <div className="min-h-svh flex flex-col bg-background">
-      {/* Nav */}
       <motion.nav
         className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-sm"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{
-          duration: prefersReducedMotion ? 0 : 0.35,
-          ease: [0.25, 0.46, 0.45, 0.94],
-        }}
+        transition={{ duration: prefersReducedMotion ? 0 : 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
         <div className="flex h-14 items-center justify-between px-6 max-w-6xl mx-auto">
-          <Link
-            href="/"
-            className="text-sm font-semibold text-foreground hover:text-muted-foreground transition-colors"
-          >
+          <Link href="/" className="text-sm font-semibold text-foreground hover:text-muted-foreground transition-colors">
             Bukmarks
           </Link>
           <Button asChild variant="outline" size="sm">
@@ -53,7 +45,6 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
         </div>
       </motion.nav>
 
-      {/* Main */}
       <main className="flex-1">
         <LandingHero
           isAuthenticated={isAuthenticated}
