@@ -35,12 +35,12 @@ export function LandingPricing({
           priority={false}
         />
       </div>
-      {/* Gradient overlay - soft fade at top and bottom (avoids harsh/blurry look) */}
+      {/* Progressive gradient overlay - incremental fade at top and bottom */}
       <div
         className="absolute inset-0 z-[1]"
         style={{
           background:
-            "linear-gradient(to bottom, var(--background) 0%, color-mix(in oklch, var(--background) 85%, transparent) 12%, color-mix(in oklch, var(--background) 30%, transparent) 28%, transparent 40%, transparent 60%, color-mix(in oklch, var(--background) 30%, transparent) 72%, color-mix(in oklch, var(--background) 85%, transparent) 88%, var(--background) 100%)",
+            "linear-gradient(to bottom, var(--background) 0%, color-mix(in oklch, var(--background) 96%, transparent) 4%, color-mix(in oklch, var(--background) 88%, transparent) 10%, color-mix(in oklch, var(--background) 70%, transparent) 16%, color-mix(in oklch, var(--background) 45%, transparent) 24%, color-mix(in oklch, var(--background) 20%, transparent) 32%, transparent 40%, transparent 60%, color-mix(in oklch, var(--background) 20%, transparent) 68%, color-mix(in oklch, var(--background) 45%, transparent) 76%, color-mix(in oklch, var(--background) 70%, transparent) 84%, color-mix(in oklch, var(--background) 88%, transparent) 90%, color-mix(in oklch, var(--background) 96%, transparent) 96%, var(--background) 100%)",
         }}
         aria-hidden
       />
