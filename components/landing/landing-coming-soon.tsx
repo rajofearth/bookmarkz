@@ -1,13 +1,14 @@
 "use client";
 
-import { Chrome, Github, Phone } from "lucide-react";
+import { Chrome, Github, Smartphone } from "lucide-react";
+import Link from "next/link";
 import { motion, useInView } from "motion/react";
 import { useRef } from "react";
 
 const ITEMS = [
   { icon: Chrome, title: "Browser extension", description: "Quickly save links to your bookmarks from any page. One click with our browser extension on desktop.", available: true },
   { icon: Github, title: "GitHub Sync", description: "Sync your bookmarks to a GitHub repository. Version control, backup, and share your reading list.", available: false },
-  { icon: Phone, title: "Mobile app (iOS & Android)", description: "Coming soon to iOS and Android.", available: false },
+  { icon: Smartphone, title: "Mobile app (iOS & Android)", description: "Coming soon to iOS and Android.", available: false },
 ];
 
 const EASE = [0.25, 0.46, 0.45, 0.94] as const;
@@ -96,12 +97,12 @@ export function LandingComingSoon({ prefersReducedMotion = false }: LandingComin
             animate={inView ? { opacity: 1 } : {}}
             transition={{ duration, delay: stagger + 0.2, ease: EASE }}
           >
-            <a
-              href="#coming-soon"
+            <Link
+              href="/roadmap"
               className="text-xs text-foreground border border-border px-6 py-2 rounded-full hover:bg-muted/50 transition-colors duration-300 bg-background"
             >
               View roadmap
-            </a>
+            </Link>
           </motion.div>
         </div>
       </div>

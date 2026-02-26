@@ -23,6 +23,12 @@ export function LandingFooter() {
           Bukmarks
         </Link>
         <div className="flex items-center gap-6">
+          <Link
+            href="/roadmap"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Roadmap
+          </Link>
           <a
             href="#"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
