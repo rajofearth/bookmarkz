@@ -76,14 +76,29 @@ export function TermsPage() {
                   {section.title}
                 </h2>
                 <div className="space-y-3">
-                  {section.content.map((paragraph, j) => (
-                    <p
-                      key={j}
-                      className="text-sm text-muted-foreground leading-relaxed"
-                    >
-                      {paragraph}
+                  {section.title === "Contact" ? (
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      For questions about these Terms of Service, contact us via{" "}
+                      <a
+                        href="https://yashrajmaher.vercel.app"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline underline-offset-2 text-foreground"
+                      >
+                        yashrajmaher.vercel.app
+                      </a>
+                      .
                     </p>
-                  ))}
+                  ) : (
+                    section.content.map((paragraph, j) => (
+                      <p
+                        key={j}
+                        className="text-sm text-muted-foreground leading-relaxed"
+                      >
+                        {paragraph}
+                      </p>
+                    ))
+                  )}
                 </div>
               </motion.div>
             ))}
