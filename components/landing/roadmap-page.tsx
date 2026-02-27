@@ -1,5 +1,6 @@
 "use client";
 
+import { BukmarksLogo } from "@/components/bukmarks-logo";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
@@ -33,12 +34,7 @@ export function RoadmapPage({ isAuthenticated }: RoadmapPageProps) {
         }}
       >
         <div className="flex h-14 items-center justify-between px-6 max-w-6xl mx-auto">
-          <Link
-            href="/"
-            className="text-sm font-semibold text-foreground hover:text-muted-foreground transition-colors"
-          >
-            Bukmarks
-          </Link>
+          <BukmarksLogo href="/" showLabel />
           <Button asChild variant="outline" size="sm">
             <Link href={isAuthenticated ? "/bookmarks" : "/auth"}>
               {isAuthenticated ? "Open app" : "Get started"}

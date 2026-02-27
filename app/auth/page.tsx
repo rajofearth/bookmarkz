@@ -1,5 +1,6 @@
 "use client";
 
+import { BukmarksLogo } from "@/components/bukmarks-logo";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { AuthForm } from "@/components/auth";
@@ -19,7 +20,8 @@ export default function AuthPage() {
 
   return (
     <div className="flex min-h-svh w-full flex-1 flex-col items-center justify-center bg-background px-6 py-12">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm flex flex-col items-center gap-8">
+        <BukmarksLogo size="lg" showLabel />
         <AuthForm />
 
         {/* Footer */}

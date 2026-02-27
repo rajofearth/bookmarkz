@@ -1,5 +1,6 @@
 "use client";
 
+import { BukmarksLogo } from "@/components/bukmarks-logo";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { LandingFooter } from "./landing-footer";
@@ -14,12 +15,7 @@ export function LegalPageLayout({ title, children }: LegalPageLayoutProps) {
     <div className="min-h-svh flex flex-col bg-background">
       <header className="border-b border-border/50 bg-background px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <Link
-            href="/"
-            className="text-sm font-semibold text-foreground hover:text-muted-foreground transition-colors"
-          >
-            Bukmarks
-          </Link>
+          <BukmarksLogo href="/" showLabel />
           <motion.span
             className="text-sm text-muted-foreground"
             initial={{ opacity: 0 }}

@@ -11,8 +11,38 @@ const fontSans = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bukmarks",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://bukmarks.app"
+  ),
+  title: { default: "Bukmarks", template: "%s | Bukmarks" },
   description: "Organize and manage your bookmarks with ease",
+  keywords: [
+    "bookmarks",
+    "save links",
+    "organize bookmarks",
+    "bookmark manager",
+  ],
+  authors: [{ name: "Yashraj Maher", url: "https://yashrajmaher.vercel.app" }],
+  creator: "Yashraj Maher",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    siteName: "Bukmarks",
+    images: [
+      {
+        url: "/bukmarks-icon-light.png",
+        width: 512,
+        height: 512,
+        alt: "Bukmarks",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "Bukmarks",
+    description: "Organize and manage your bookmarks with ease",
+  },
+  robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {

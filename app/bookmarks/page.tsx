@@ -5,7 +5,7 @@ import { BookmarksPage } from "@/components/bookmarks/bookmarks-page";
 import { isAuthenticated } from "@/lib/auth-server";
 
 export const metadata: Metadata = {
-  title: "Bookmarks | Bukmarks",
+  title: "Bookmarks",
   description: "View and manage your saved bookmarks",
 };
 

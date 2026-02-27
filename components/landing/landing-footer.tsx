@@ -1,5 +1,6 @@
 "use client";
 
+import { BukmarksLogo } from "@/components/bukmarks-logo";
 import Link from "next/link";
 import { motion, useInView } from "motion/react";
 import { useRef } from "react";
@@ -16,12 +17,7 @@ export function LandingFooter() {
         animate={inView ? { opacity: 1 } : {}}
         transition={{ duration: 0.4 }}
       >
-        <Link
-          href="/"
-          className="text-sm font-medium text-foreground hover:text-muted-foreground transition-colors"
-        >
-          Bukmarks
-        </Link>
+        <BukmarksLogo href="/" showLabel />
         <div className="flex items-center gap-6">
           <Link
             href="/roadmap"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "convex/react";
+import { BukmarksLogo } from "@/components/bukmarks-logo";
 import {
   ArrowLeft,
   HardDriveDownload,

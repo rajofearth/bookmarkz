@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
+import { BukmarksLogo } from "@/components/bukmarks-logo";
+import { Button } from "@/components/ui/button";
 import { LandingComingSoon } from "./landing-coming-soon";
 import { LandingFeatures } from "./landing-features";
 import { LandingFooter } from "./landing-footer";
 import { LandingHero } from "./landing-hero";
 import { LandingMockup } from "./landing-mockup";
 import { LandingPricing } from "./landing-pricing";
-import { Button } from "@/components/ui/button";
 
 interface LandingPageProps {
   isAuthenticated: boolean;
@@ -34,9 +35,7 @@ export function LandingPage({ isAuthenticated }: LandingPageProps) {
         transition={{ duration: prefersReducedMotion ? 0 : 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
         <div className="flex h-14 items-center justify-between px-6 max-w-6xl mx-auto">
-          <Link href="/" className="text-sm font-semibold text-foreground hover:text-muted-foreground transition-colors">
-            Bukmarks
-          </Link>
+          <BukmarksLogo href="/" showLabel />
           <Button asChild variant="outline" size="sm">
             <Link href={isAuthenticated ? "/bookmarks" : "/auth"}>
               {isAuthenticated ? "Open app" : "Get started"}
