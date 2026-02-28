@@ -56,7 +56,7 @@ export function LandingComingSoon({ prefersReducedMotion = false }: LandingComin
                   }
                   transition={{
                     duration,
-                    delay: stagger + i * 0.1,
+                    delay: 0.1 + i * stagger,
                     ease: EASE,
                   }}
                 >
