@@ -22,6 +22,7 @@ const AddFolderDialog = dynamic(
 );
 
 import { FolderIconDisplay } from "@/components/bookmarks/folder-icon";
+import { BukmarksLogo } from "@/components/bukmarks-logo";
 import { UserProfile } from "@/components/bookmarks/user-profile";
 import {
   AlertDialog,
@@ -301,11 +302,14 @@ export function FoldersSidebar({
 }: FoldersSidebarProps) {
   return (
     <div className={cn("flex h-full flex-col", className)}>
-      <div className="flex items-center justify-between p-4">
-        <h2 id="folders-sidebar-label" className="text-sm font-medium">
-          Folders
-        </h2>
-        <AddFolderDialog onSubmit={onAddFolder} />
+      <div className="flex flex-col gap-4 p-4 border-b border-border">
+        <div className="flex items-center justify-between">
+          <span id="folders-sidebar-label" className="sr-only">
+            Folders
+          </span>
+          <BukmarksLogo href="/" size="sm" showLabel />
+          <AddFolderDialog onSubmit={onAddFolder} />
+        </div>
       </div>
       <nav
         className="flex-1 overflow-y-auto px-2 min-h-0"
