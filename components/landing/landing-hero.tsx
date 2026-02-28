@@ -24,9 +24,10 @@ export function LandingHero({
   const delay = (n: number) => (prefersReducedMotion ? 0 : n);
 
   return (
-    <section className="relative min-h-[85vh] flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-16 px-6 py-16 lg:py-24 overflow-hidden">
+    <section className="relative min-h-[85vh] flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-16 py-16 lg:py-24 overflow-hidden">
+      <div className="w-full max-w-6xl mx-auto px-6 flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-16">
       {/* Content */}
-      <div className="flex flex-col items-center lg:items-start text-center lg:text-left max-w-xl order-2 lg:order-1">
+      <div className="flex flex-col items-center lg:items-start text-center lg:text-left max-w-xl order-2 lg:order-1 flex-1">
         <motion.p
           className="text-sm text-muted-foreground mb-4"
           initial={{ opacity: 0, y: 16 }}
@@ -104,6 +105,7 @@ export function LandingHero({
           </div>
         </div>
       </motion.div>
+      </div>
     </section>
   );
 }
