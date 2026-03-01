@@ -1,10 +1,11 @@
 "use client";
 
 import { useMutation } from "convex/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useGeneralStore } from "@/hooks/use-general-store";
+import { useSemanticIndexerStore } from "@/hooks/use-semantic-indexer-store";
 import { embedBookmarkDocument } from "@/lib/embedding-client";
 import {
   buildBookmarkEmbeddingText,
@@ -54,11 +55,19 @@ export function useSemanticIndexer() {
     (state) => state.semanticSearchEnabled,
   );
 
-  const [isRunning, setIsRunning] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [processedCount, setProcessedCount] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
-  const [errorCount, setErrorCount] = useState(0);
+  const {
+    isRunning,
+    isPaused,
+    processedCount,
+    totalCount,
+    errorCount,
+    setRunning,
+    setPaused,
+    setProcessedCount,
+    setTotalCount,
+    setErrorCount,
+    resetProgress,
+  } = useSemanticIndexerStore();
 
   const queueRef = useRef<BookmarkForIndex[]>([]);
   const forceRef = useRef(false);
@@ -74,11 +83,10 @@ export function useSemanticIndexer() {
     queueRef.current = [];
     pausedRef.current = false;
     runningRef.current = false;
-    setIsRunning(false);
-    setIsPaused(false);
-    setProcessedCount(0);
-    setTotalCount(0);
-  }, [semanticSearchEnabled]);
+    setRunning(false);
+    setPaused(false);
+    resetProgress();
+  }, [semanticSearchEnabled, setRunning, setPaused, resetProgress]);
 
   const indexBookmark = useCallback(
     async (bookmark: BookmarkForIndex, force = false) => {
@@ -120,9 +128,9 @@ export function useSemanticIndexer() {
       return;
     }
     runningRef.current = true;
-    setIsRunning(true);
+    setRunning(true);
     pausedRef.current = false;
-    setIsPaused(false);
+    setPaused(false);
 
     while (queueRef.current.length > 0) {
       if (!semanticEnabledRef.current) {
@@ -142,28 +150,26 @@ export function useSemanticIndexer() {
         setErrorCount((value) => value + 1);
         console.error("Semantic index failed for bookmark", next.id, error);
       } finally {
-        setProcessedCount((value) => value + 1);
+        setProcessedCount((prev) => prev + 1);
       }
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
 
     runningRef.current = false;
-    setIsRunning(false);
-  }, [indexBookmark]);
+    setRunning(false);
+  }, [indexBookmark, setRunning, setPaused, setProcessedCount, setErrorCount]);
 
   const startBackfill = useCallback(
     (bookmarks: BookmarkForIndex[], force = false) => {
       if (!semanticEnabledRef.current) {
         queueRef.current = [];
-        setProcessedCount(0);
-        setTotalCount(0);
-        setIsPaused(false);
-        setIsRunning(false);
+        resetProgress();
+        setPaused(false);
+        setRunning(false);
         return;
       }
       if (bookmarks.length === 0) {
-        setProcessedCount(0);
-        setTotalCount(0);
+        resetProgress();
         return;
       }
       forceRef.current = force;
@@ -173,13 +179,13 @@ export function useSemanticIndexer() {
       setTotalCount(bookmarks.length);
       void runQueue();
     },
-    [runQueue],
+    [runQueue, resetProgress, setPaused, setRunning, setProcessedCount, setErrorCount, setTotalCount],
   );
 
   const pauseBackfill = useCallback(() => {
     pausedRef.current = true;
-    setIsPaused(true);
-  }, []);
+    setPaused(true);
+  }, [setPaused]);
 
   const resumeBackfill = useCallback(() => {
     if (!semanticEnabledRef.current) {
@@ -189,9 +195,9 @@ export function useSemanticIndexer() {
       return;
     }
     pausedRef.current = false;
-    setIsPaused(false);
+    setPaused(false);
     void runQueue();
-  }, [runQueue]);
+  }, [runQueue, setPaused]);
 
   const clearBookmarkHash = useCallback(
     async (bookmarkId: string) => {
