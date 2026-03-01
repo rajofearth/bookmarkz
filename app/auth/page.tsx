@@ -1,5 +1,7 @@
 "use client";
 
+import { BukmarksLogo } from "@/components/bukmarks-logo";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { AuthForm } from "@/components/auth";
@@ -19,25 +21,26 @@ export default function AuthPage() {
 
   return (
     <div className="flex min-h-svh w-full flex-1 flex-col items-center justify-center bg-background px-6 py-12">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm flex flex-col items-center gap-8">
+        <BukmarksLogo size="lg" showLabel />
         <AuthForm />
 
         {/* Footer */}
         <p className="mt-8 text-center text-xs text-muted-foreground/60">
           By continuing, you agree to our{" "}
-          <a
-            href="#"
+          <Link
+            href="/terms"
             className="underline underline-offset-2 hover:text-muted-foreground"
           >
             Terms of Service
-          </a>{" "}
+          </Link>{" "}
           and{" "}
-          <a
-            href="#"
+          <Link
+            href="/privacy"
             className="underline underline-offset-2 hover:text-muted-foreground"
           >
             Privacy Policy
-          </a>
+          </Link>
         </p>
       </div>
     </div>

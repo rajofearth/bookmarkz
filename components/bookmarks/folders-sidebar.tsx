@@ -2,7 +2,12 @@
 
 import { useDndContext, useDroppable } from "@dnd-kit/core";
 import { AnimatePresence, motion } from "framer-motion";
-import { MoreHorizontalIcon, PencilIcon, TrashIcon } from "lucide-react";
+import {
+  LayoutGridIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  TrashIcon,
+} from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import type { DragData, Folder } from "@/components/bookmarks/types";
@@ -17,6 +22,7 @@ const AddFolderDialog = dynamic(
 );
 
 import { FolderIconDisplay } from "@/components/bookmarks/folder-icon";
+import { BukmarksLogo } from "@/components/bukmarks-logo";
 import { UserProfile } from "@/components/bookmarks/user-profile";
 import {
   AlertDialog,
@@ -30,17 +36,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
-  Editable,
-  EditableArea,
-  EditableInput,
-  EditablePreview,
-} from "@/components/ui/editable";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Editable,
+  EditableArea,
+  EditableInput,
+  EditablePreview,
+} from "@/components/ui/editable";
 import {
   Item,
   ItemActions,
@@ -54,6 +60,8 @@ import { cn } from "@/lib/utils";
 interface FoldersSidebarProps {
   folders: Folder[];
   selectedFolder: string;
+  contentMode: "bookmarks" | "folders";
+  onSelectContentMode: (mode: "bookmarks" | "folders") => void;
   onSelectFolder: (folderId: string) => void;
   onAddFolder?: (name: string) => void;
   onRenameFolder?: (folderId: string, newName: string) => void;
@@ -66,16 +74,19 @@ interface FoldersSidebarProps {
 interface DroppableFolderItemProps {
   folder: Folder;
   selectedFolder: string;
+  contentMode: "bookmarks" | "folders";
   onSelectFolder: (folderId: string) => void;
   onRenameFolder?: (folderId: string, newName: string) => void;
   onDeleteFolder?: (folderId: string) => void;
 }
 
-const ICON_BUTTON_WIDTH = "1.5rem"; /* 24px - keep badge alignment across rows */
+const ICON_BUTTON_WIDTH =
+  "1.5rem"; /* 24px - keep badge alignment across rows */
 
 function DroppableFolderItem({
   folder,
   selectedFolder,
+  contentMode,
   onSelectFolder,
   onRenameFolder,
   onDeleteFolder,
@@ -117,7 +128,9 @@ function DroppableFolderItem({
         ref={droppable ? setNodeRef : undefined}
         className={cn(
           "cursor-pointer rounded-md px-2 transition-all",
-          selectedFolder === folder.id && "bg-accent",
+          contentMode === "bookmarks" &&
+            selectedFolder === folder.id &&
+            "bg-accent",
           droppable &&
             isDraggingBookmark &&
             "border border-dashed border-border/60 bg-accent/40",
@@ -128,13 +141,18 @@ function DroppableFolderItem({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
+        {/* biome-ignore lint/a11y/useSemanticElements: This row contains nested interactive controls (rename + actions). */}
         <div
           role="button"
           tabIndex={0}
           onClick={handleRowClick}
           onKeyDown={handleRowKeyDown}
           className="relative flex w-full items-center gap-2 outline-none"
-          aria-current={selectedFolder === folder.id ? "true" : undefined}
+          aria-current={
+            contentMode === "bookmarks" && selectedFolder === folder.id
+              ? "true"
+              : undefined
+          }
         >
           <AnimatePresence>
             {isHovered && (
@@ -200,7 +218,10 @@ function DroppableFolderItem({
                       <MoreHorizontalIcon className="size-4" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuContent
+                    align="end"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {onRenameFolder && (
                       <DropdownMenuItem
                         onClick={(e) => {
@@ -228,7 +249,10 @@ function DroppableFolderItem({
                 </DropdownMenu>
               )}
             </span>
-            <Badge variant="secondary" className="text-xs tabular-nums shrink-0">
+            <Badge
+              variant="secondary"
+              className="text-xs tabular-nums shrink-0"
+            >
               {folder.count}
             </Badge>
           </ItemActions>
@@ -240,7 +264,8 @@ function DroppableFolderItem({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete folder</AlertDialogTitle>
             <AlertDialogDescription>
-              Delete folder &quot;{folder.name}&quot;? All {folder.count} bookmark
+              Delete folder &quot;{folder.name}&quot;? All {folder.count}{" "}
+              bookmark
               {folder.count === 1 ? "" : "s"} in this folder will be permanently
               deleted.
             </AlertDialogDescription>
@@ -266,6 +291,8 @@ function DroppableFolderItem({
 export function FoldersSidebar({
   folders,
   selectedFolder,
+  contentMode,
+  onSelectContentMode,
   onSelectFolder,
   onAddFolder,
   onRenameFolder,
@@ -275,11 +302,14 @@ export function FoldersSidebar({
 }: FoldersSidebarProps) {
   return (
     <div className={cn("flex h-full flex-col", className)}>
-      <div className="flex items-center justify-between p-4">
-        <h2 id="folders-sidebar-label" className="text-sm font-medium">
-          Folders
-        </h2>
-        <AddFolderDialog onSubmit={onAddFolder} />
+      <div className="flex flex-col gap-4 p-4 border-b border-border">
+        <div className="flex items-center justify-between">
+          <span id="folders-sidebar-label" className="sr-only">
+            Folders
+          </span>
+          <BukmarksLogo href="/" size="sm" showLabel />
+          <AddFolderDialog onSubmit={onAddFolder} />
+        </div>
       </div>
       <nav
         className="flex-1 overflow-y-auto px-2 min-h-0"
@@ -287,12 +317,33 @@ export function FoldersSidebar({
         aria-labelledby="folders-sidebar-label"
       >
         <ItemGroup className="gap-0.5">
+          <Item
+            size="xs"
+            className={cn(
+              "cursor-pointer rounded-md px-2 transition-all",
+              contentMode === "folders" && "bg-accent",
+            )}
+            onClick={() => onSelectContentMode("folders")}
+          >
+            <ItemMedia className="text-muted-foreground">
+              <LayoutGridIcon className="size-4" />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle className="truncate text-sm font-normal">
+                Folders
+              </ItemTitle>
+            </ItemContent>
+          </Item>
           {folders.map((folder) => (
             <DroppableFolderItem
               key={folder.id}
               folder={folder}
               selectedFolder={selectedFolder}
-              onSelectFolder={onSelectFolder}
+              contentMode={contentMode}
+              onSelectFolder={(folderId) => {
+                onSelectContentMode("bookmarks");
+                onSelectFolder(folderId);
+              }}
               onRenameFolder={onRenameFolder}
               onDeleteFolder={onDeleteFolder}
             />

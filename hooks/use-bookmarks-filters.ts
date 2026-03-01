@@ -1,13 +1,16 @@
 "use client";
 
-import { useAction } from "convex/react";
-import { startTransition, useEffect, useMemo, useRef, useState } from "react";
-import type { Bookmark } from "@/components/bookmarks/types";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import { useGeneralStore } from "@/hooks/use-general-store";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  startTransition,
+} from "react";
+import type { Bookmark, FolderViewItem } from "@/components/bookmarks/types";
 import {
   filterBookmarksBySearch,
+  filterFoldersBySearch,
   sortBookmarksByDate,
 } from "@/lib/bookmarks-utils";
 import {
@@ -15,9 +18,14 @@ import {
   warmupEmbeddingModel,
 } from "@/lib/embedding-client";
 import type { SortMode } from "./use-general-store";
+import { useAction } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { useGeneralStore } from "./use-general-store";
 
 interface UseBookmarksFiltersArgs {
   bookmarks: Bookmark[];
+  folderViewItems: FolderViewItem[];
   selectedFolder: string;
   searchQuery: string;
   sortMode: SortMode;
@@ -29,11 +37,12 @@ type SemanticStage = "idle" | "embedding" | "vectorSearch" | "rerank" | "error";
 
 export function useBookmarksFilters({
   bookmarks,
+  folderViewItems,
   selectedFolder,
   searchQuery,
   sortMode,
   isMobile,
-  searchModeOverride,
+  searchModeOverride = "semantic",
 }: UseBookmarksFiltersArgs) {
   const semanticSearch = useAction(api.actions.semanticSearchBookmarks);
   const semanticSearchEnabled = useGeneralStore(
@@ -274,18 +283,31 @@ export function useBookmarksFilters({
   }, [filteredBookmarks, isSemanticRankedSearch, sortMode]);
 
   const effectiveFilteredBookmarks = useMemo(() => {
+    if (isMobile) {
+      const filtered = filterBookmarksBySearch(bookmarks, searchQuery);
+      return sortBookmarksByDate(filtered, sortMode);
+    }
     return sortedFilteredBookmarks;
-  }, [sortedFilteredBookmarks]);
+  }, [isMobile, bookmarks, searchQuery, sortedFilteredBookmarks, sortMode]);
+
+  const sortedFilteredFolders = useMemo(() => {
+    const filtered = filterFoldersBySearch(folderViewItems, searchQuery);
+    return [...filtered].sort((a, b) => {
+      const aTime = (a.latestBookmarkCreatedAt ?? a.createdAt).getTime();
+      const bTime = (b.latestBookmarkCreatedAt ?? b.createdAt).getTime();
+      return sortMode === "newest" ? bTime - aTime : aTime - bTime;
+    });
+  }, [folderViewItems, searchQuery, sortMode]);
+
+  const isSemanticLoading =
+    isSemanticActive && semanticStage !== "idle";
 
   return {
     filteredBookmarks,
     sortedFilteredBookmarks,
     effectiveFilteredBookmarks,
-    isSemanticLoading:
-      isSemanticActive &&
-      debouncedSemanticQuery.length > 0 &&
-      semanticStage !== "idle" &&
-      semanticStage !== "error",
+    sortedFilteredFolders,
+    isSemanticLoading,
     semanticStage,
     searchMode: activeSearchMode,
     lastSemanticDurationMs,

@@ -55,9 +55,10 @@ interface DesktopBookmarksHeaderProps {
   searchMode: SearchMode;
   isSemanticLoading?: boolean;
   onSearchModeChange: (mode: SearchMode) => void;
+  searchPlaceholder?: string;
   onSearchChange: (value: string) => void;
   onToggleSidebar: () => void;
-  addBookmarkButton: ReactNode;
+  actionButton?: ReactNode;
 }
 
 export function DesktopBookmarksHeader({
@@ -69,9 +70,10 @@ export function DesktopBookmarksHeader({
   searchMode,
   isSemanticLoading = false,
   onSearchModeChange,
+  searchPlaceholder = "Search bookmarks...",
   onSearchChange,
   onToggleSidebar,
-  addBookmarkButton,
+  actionButton,
 }: DesktopBookmarksHeaderProps) {
   const [draftQuery, setDraftQuery] = useState(searchQuery);
 
@@ -122,7 +124,7 @@ export function DesktopBookmarksHeader({
             type="text"
             inputMode="search"
             autoComplete="off"
-            placeholder="Search bookmarks..."
+            placeholder={searchPlaceholder}
             value={draftQuery}
             onChange={(e) => setDraftQuery(e.target.value)}
             className="h-8 pl-9 pr-9 text-sm"
@@ -140,7 +142,7 @@ export function DesktopBookmarksHeader({
       </div>
 
       <DisplayControlsMenu />
-      {addBookmarkButton}
+      {actionButton}
     </div>
   );
 }
@@ -154,9 +156,10 @@ interface MobileBookmarksHeaderProps {
   searchMode: SearchMode;
   isSemanticLoading?: boolean;
   onSearchModeChange: (mode: SearchMode) => void;
+  searchPlaceholder?: string;
   onSearchChange: (value: string) => void;
   onToggleSearch: () => void;
-  addBookmarkButton: ReactNode;
+  actionButton?: ReactNode;
 }
 
 export function MobileBookmarksHeader({
@@ -168,9 +171,10 @@ export function MobileBookmarksHeader({
   searchMode,
   isSemanticLoading = false,
   onSearchModeChange,
+  searchPlaceholder = "Search bookmarks...",
   onSearchChange,
   onToggleSearch,
-  addBookmarkButton,
+  actionButton,
 }: MobileBookmarksHeaderProps) {
   const [draftQuery, setDraftQuery] = useState(searchQuery);
 
@@ -205,7 +209,7 @@ export function MobileBookmarksHeader({
             <SearchIcon className="size-4" />
           </Button>
           <DisplayControlsMenu />
-          {addBookmarkButton}
+          {actionButton}
         </div>
       </div>
 
@@ -219,7 +223,7 @@ export function MobileBookmarksHeader({
                 type="text"
                 inputMode="search"
                 autoComplete="off"
-                placeholder="Search bookmarks..."
+                placeholder={searchPlaceholder}
                 value={draftQuery}
                 onChange={(e) => setDraftQuery(e.target.value)}
                 className="h-9 w-full pl-9 pr-9 text-sm"

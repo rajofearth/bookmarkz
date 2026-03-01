@@ -51,3 +51,12 @@ export function filterBookmarksBySearch<
       (b.description?.toLowerCase().includes(q) ?? false),
   );
 }
+
+export function filterFoldersBySearch<T extends { name: string }>(
+  items: T[],
+  query: string,
+): T[] {
+  if (!query) return items;
+  const q = query.toLowerCase();
+  return items.filter((folder) => folder.name.toLowerCase().includes(q));
+}
