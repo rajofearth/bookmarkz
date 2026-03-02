@@ -156,10 +156,7 @@ export const semanticSearchBookmarks = action({
         limit: topK,
         filter: (q) =>
           args.selectedFolder
-            ? q.and(
-                q.eq("userId", user._id),
-                q.eq("folderId", args.selectedFolder),
-              )
+            ? q.eq("folderId", args.selectedFolder)
             : q.eq("userId", user._id),
       },
     );
