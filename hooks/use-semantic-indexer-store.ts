@@ -9,30 +9,40 @@ export type ModelLoadingStage =
   | "done";
 
 interface SemanticIndexerState {
+  // ── Run state ───────────────────────────────────────────────────────
   isRunning: boolean;
   isPaused: boolean;
   processedCount: number;
   totalCount: number;
   errorCount: number;
+
+  // ── Model loading ───────────────────────────────────────────────────
+  /** True once the model is fully loaded for this run */
+  modelReady: boolean;
   modelLoadingStage: ModelLoadingStage;
   modelLoadingProgress: number;
-  modelLoadingFile: string | null;
-  modelLoadingLoaded: number;
-  modelLoadingTotal: number;
-  modelLoadingSpeedBytesPerSec: number;
   modelLoadingDtype: string | null;
+  modelLoadingSpeedBytesPerSec: number;
+  /** Per-file download progress: filename → { loaded, total } */
+  fileProgress: Record<string, { loaded: number; total: number }>;
+
+  // ── Error ───────────────────────────────────────────────────────────
+  error: string | null;
+
+  // ── Actions ─────────────────────────────────────────────────────────
   setRunning: (running: boolean) => void;
   setPaused: (paused: boolean) => void;
   setProcessedCount: (count: number | ((prev: number) => number)) => void;
   setTotalCount: (count: number) => void;
   setErrorCount: (count: number | ((prev: number) => number)) => void;
+  setModelReady: (ready: boolean) => void;
   setModelLoadingStage: (stage: ModelLoadingStage) => void;
   setModelLoadingProgress: (progress: number) => void;
-  setModelLoadingFile: (file: string | null) => void;
-  setModelLoadingLoaded: (loaded: number) => void;
-  setModelLoadingTotal: (total: number) => void;
   setModelLoadingSpeedBytesPerSec: (speed: number) => void;
   setModelLoadingDtype: (dtype: string | null) => void;
+  setFileProgress: (file: string, loaded: number, total: number) => void;
+  setError: (error: string | null) => void;
+  resetModelState: () => void;
   resetProgress: () => void;
 }
 
@@ -43,13 +53,14 @@ export const useSemanticIndexerStore = create<SemanticIndexerState>()(
     processedCount: 0,
     totalCount: 0,
     errorCount: 0,
+    modelReady: false,
     modelLoadingStage: "idle",
     modelLoadingProgress: 0,
-    modelLoadingFile: null,
-    modelLoadingLoaded: 0,
-    modelLoadingTotal: 0,
-    modelLoadingSpeedBytesPerSec: 0,
     modelLoadingDtype: null,
+    modelLoadingSpeedBytesPerSec: 0,
+    fileProgress: {},
+    error: null,
+
     setRunning: (running) => set({ isRunning: running }),
     setPaused: (paused) => set({ isPaused: paused }),
     setProcessedCount: (count) =>
@@ -62,30 +73,44 @@ export const useSemanticIndexerStore = create<SemanticIndexerState>()(
       set((state) => ({
         errorCount: typeof count === "function" ? count(state.errorCount) : count,
       })),
+    setModelReady: (modelReady) => set({ modelReady }),
     setModelLoadingStage: (modelLoadingStage) =>
       set({ modelLoadingStage }),
     setModelLoadingProgress: (modelLoadingProgress) =>
       set({ modelLoadingProgress }),
-    setModelLoadingFile: (modelLoadingFile) => set({ modelLoadingFile }),
-    setModelLoadingLoaded: (modelLoadingLoaded) =>
-      set({ modelLoadingLoaded }),
-    setModelLoadingTotal: (modelLoadingTotal) =>
-      set({ modelLoadingTotal }),
     setModelLoadingSpeedBytesPerSec: (modelLoadingSpeedBytesPerSec) =>
       set({ modelLoadingSpeedBytesPerSec }),
     setModelLoadingDtype: (modelLoadingDtype) => set({ modelLoadingDtype }),
+    setFileProgress: (file, loaded, total) =>
+      set((state) => ({
+        fileProgress: {
+          ...state.fileProgress,
+          [file]: { loaded, total },
+        },
+      })),
+    setError: (error) => set({ error }),
+    resetModelState: () =>
+      set({
+        modelReady: false,
+        modelLoadingStage: "idle",
+        modelLoadingProgress: 0,
+        modelLoadingDtype: null,
+        modelLoadingSpeedBytesPerSec: 0,
+        fileProgress: {},
+        error: null,
+      }),
     resetProgress: () =>
       set({
         processedCount: 0,
         totalCount: 0,
         errorCount: 0,
+        modelReady: false,
         modelLoadingStage: "idle",
         modelLoadingProgress: 0,
-        modelLoadingFile: null,
-        modelLoadingLoaded: 0,
-        modelLoadingTotal: 0,
-        modelLoadingSpeedBytesPerSec: 0,
         modelLoadingDtype: null,
+        modelLoadingSpeedBytesPerSec: 0,
+        fileProgress: {},
+        error: null,
       }),
   }),
 );

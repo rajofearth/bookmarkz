@@ -10,6 +10,7 @@ import {
   type ModelLoadingStage,
 } from "@/hooks/use-semantic-indexer-store";
 import { embedBookmarkDocument } from "@/lib/embedding-client";
+import { loadEmbeddingBundle } from "@/lib/embedding-runtime";
 import {
   buildBookmarkEmbeddingText,
   EMBEDDING_DIM,
@@ -69,13 +70,14 @@ export function useSemanticIndexer() {
     setProcessedCount,
     setTotalCount,
     setErrorCount,
+    setModelReady,
     setModelLoadingStage,
     setModelLoadingProgress,
-    setModelLoadingFile,
-    setModelLoadingLoaded,
-    setModelLoadingTotal,
     setModelLoadingSpeedBytesPerSec,
     setModelLoadingDtype,
+    setFileProgress,
+    setError,
+    resetModelState,
     resetProgress,
   } = useSemanticIndexerStore();
 
@@ -84,8 +86,11 @@ export function useSemanticIndexer() {
   const runningRef = useRef(false);
   const pausedRef = useRef(false);
   const semanticEnabledRef = useRef(semanticSearchEnabled);
-  const lastLoadedRef = useRef(0);
-  const lastTimeRef = useRef(0);
+
+  // Aggregate speed tracking refs
+  const fileLoadedRef = useRef<Record<string, number>>({});
+  const aggLastLoadedRef = useRef(0);
+  const aggLastTimeRef = useRef(0);
 
   useEffect(() => {
     semanticEnabledRef.current = semanticSearchEnabled;
@@ -100,6 +105,76 @@ export function useSemanticIndexer() {
     resetProgress();
   }, [semanticSearchEnabled, setRunning, setPaused, resetProgress]);
 
+  // ── Model loading progress callback ─────────────────────────────────
+  // Used ONLY during the single model-load call at the start of a run
+  const createModelProgressCallback = useCallback(() => {
+    // Reset aggregate tracking for a fresh model load
+    fileLoadedRef.current = {};
+    aggLastLoadedRef.current = 0;
+    aggLastTimeRef.current = 0;
+
+    return (info: {
+      status?: string;
+      progress?: number;
+      file?: string;
+      loaded?: number;
+      total?: number;
+    }) => {
+      // Map TransformersJS status to our stages
+      // "done" fires per-file (more files may still be downloading)
+      // "ready" fires once when the entire pipeline is fully loaded
+      const stage: ModelLoadingStage =
+        info.status === "initiate" ? "initiate" :
+          info.status === "download" ? "download" :
+            info.status === "progress" ? "progress" :
+              info.status === "loading" ? "loading" :
+                info.status === "ready" ? "done" :
+                  info.status === "done" ? "progress" : // per-file done
+                    "progress";
+      setModelLoadingStage(stage);
+      setModelLoadingDtype(semanticDtype);
+
+      if (typeof info.progress === "number") {
+        setModelLoadingProgress(info.progress);
+      }
+
+      // Per-file progress → store so UI can aggregate
+      const file = info.file;
+      const loaded = info.loaded ?? 0;
+      const total = info.total ?? 0;
+      if (file && typeof info.loaded === "number" && typeof info.total === "number" && total > 0) {
+        setFileProgress(file, loaded, total);
+        fileLoadedRef.current[file] = loaded;
+      }
+
+      // Aggregate speed across all files
+      const aggLoaded = Object.values(fileLoadedRef.current)
+        .reduce((s: number, v: number) => s + v, 0);
+      const now = performance.now() / 1000;
+      if (
+        aggLastTimeRef.current > 0 &&
+        aggLoaded > aggLastLoadedRef.current &&
+        now > aggLastTimeRef.current
+      ) {
+        const elapsed = now - aggLastTimeRef.current;
+        const delta = aggLoaded - aggLastLoadedRef.current;
+        if (delta > 0 && elapsed > 0.1) {
+          setModelLoadingSpeedBytesPerSec(delta / elapsed);
+        }
+      }
+      aggLastLoadedRef.current = aggLoaded;
+      aggLastTimeRef.current = now;
+    };
+  }, [
+    semanticDtype,
+    setModelLoadingStage,
+    setModelLoadingProgress,
+    setModelLoadingDtype,
+    setFileProgress,
+    setModelLoadingSpeedBytesPerSec,
+  ]);
+
+  // ── Embed a single bookmark (model already loaded) ──────────────────
   const indexBookmark = useCallback(
     async (bookmark: BookmarkForIndex, force = false) => {
       if (!semanticEnabledRef.current) {
@@ -114,101 +189,29 @@ export function useSemanticIndexer() {
         }
       }
 
-      const progressCallback = (info: {
-        status?: string;
-        progress?: number;
-        file?: string;
-        loaded?: number;
-        total?: number;
-      }) => {
-        const stage: ModelLoadingStage =
-          info.status === "initiate" ||
-          info.status === "download" ||
-          info.status === "progress" ||
-          info.status === "loading" ||
-          info.status === "done" ||
-          info.status === "ready"
-            ? info.status === "ready"
-              ? "done"
-              : info.status
-            : "progress";
-        setModelLoadingStage(stage);
-        setModelLoadingDtype(semanticDtype);
+      // No progressCallback — model is already loaded, this just runs inference
+      const { vector, dtype } = await embedBookmarkDocument(
+        text,
+        semanticDtype,
+      );
+      await upsertEmbedding({
+        bookmarkId: bookmark.id as Id<"bookmarks">,
+        embedding: vector,
+        embeddingDim: EMBEDDING_DIM,
+        embeddingModel: EMBEDDING_MODEL_ID,
+        embeddingDtype: dtype,
+        contentHash,
+      });
 
-        if (typeof info.progress === "number") {
-          setModelLoadingProgress(info.progress);
-        }
-        if (info.file !== undefined) {
-          setModelLoadingFile(info.file ?? null);
-        }
-
-        const loaded = info.loaded ?? 0;
-        const total = info.total ?? 0;
-        if (typeof info.loaded === "number") {
-          setModelLoadingLoaded(loaded);
-        }
-        if (typeof info.total === "number" && info.total > 0) {
-          setModelLoadingTotal(total);
-        }
-
-        const now = performance.now() / 1000;
-        if (
-          lastTimeRef.current > 0 &&
-          loaded > lastLoadedRef.current &&
-          now > lastTimeRef.current
-        ) {
-          const elapsed = now - lastTimeRef.current;
-          const delta = loaded - lastLoadedRef.current;
-          if (delta > 0 && elapsed > 0.1) {
-            setModelLoadingSpeedBytesPerSec(delta / elapsed);
-          }
-        }
-        lastLoadedRef.current = loaded;
-        lastTimeRef.current = now;
-      };
-
-      try {
-        const { vector, dtype } = await embedBookmarkDocument(
-          text,
-          semanticDtype,
-          progressCallback,
-        );
-        await upsertEmbedding({
-          bookmarkId: bookmark.id as Id<"bookmarks">,
-          embedding: vector,
-          embeddingDim: EMBEDDING_DIM,
-          embeddingModel: EMBEDDING_MODEL_ID,
-          embeddingDtype: dtype,
-          contentHash,
-        });
-
-        const hashCache = getHashCache();
-        hashCache[bookmark.id] = contentHash;
-        setHashCache(hashCache);
-        return { skipped: false };
-      } finally {
-        setModelLoadingStage("idle");
-        setModelLoadingProgress(0);
-        setModelLoadingFile(null);
-        setModelLoadingLoaded(0);
-        setModelLoadingTotal(0);
-        setModelLoadingSpeedBytesPerSec(0);
-        setModelLoadingDtype(null);
-      }
+      const hashCache = getHashCache();
+      hashCache[bookmark.id] = contentHash;
+      setHashCache(hashCache);
+      return { skipped: false };
     },
-    [
-      semanticDtype,
-      upsertEmbedding,
-      setModelLoadingStage,
-      setModelLoadingProgress,
-      setModelLoadingFile,
-      setModelLoadingLoaded,
-      setModelLoadingTotal,
-      setModelLoadingSpeedBytesPerSec,
-      setModelLoadingDtype,
-    ],
+    [semanticDtype, upsertEmbedding],
   );
 
+  // ── Queue runner ─────────────────────────────────────────────────────
   const runQueue = useCallback(async () => {
     if (runningRef.current) {
       return;
@@ -217,7 +220,26 @@ export function useSemanticIndexer() {
     setRunning(true);
     pausedRef.current = false;
     setPaused(false);
+    setError(null);
 
+    // ── Phase 1: Load model ONCE ────────────────────────────────────
+    resetModelState();
+    setModelLoadingStage("initiate");
+
+    try {
+      const progressCb = createModelProgressCallback();
+      await loadEmbeddingBundle(semanticDtype, progressCb);
+      setModelReady(true);
+      setModelLoadingStage("done");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to load model";
+      setError(msg);
+      runningRef.current = false;
+      setRunning(false);
+      return;
+    }
+
+    // ── Phase 2: Index bookmarks ────────────────────────────────────
     while (queueRef.current.length > 0) {
       if (!semanticEnabledRef.current) {
         queueRef.current = [];
@@ -246,7 +268,19 @@ export function useSemanticIndexer() {
       runningRef.current = false;
       setRunning(false);
     }
-  }, [indexBookmark, setRunning, setPaused, setProcessedCount, setErrorCount]);
+  }, [
+    indexBookmark,
+    createModelProgressCallback,
+    semanticDtype,
+    setRunning,
+    setPaused,
+    setProcessedCount,
+    setErrorCount,
+    setModelReady,
+    setModelLoadingStage,
+    setError,
+    resetModelState,
+  ]);
 
   const startBackfill = useCallback(
     (bookmarks: BookmarkForIndex[], force = false) => {
@@ -275,6 +309,16 @@ export function useSemanticIndexer() {
     pausedRef.current = true;
     setPaused(true);
   }, [setPaused]);
+
+  /** Stops indexing entirely — clears the queue so the run ends. */
+  const stopBackfill = useCallback(() => {
+    queueRef.current = [];
+    pausedRef.current = true;
+    runningRef.current = false;
+    setPaused(false);
+    setRunning(false);
+    resetProgress();
+  }, [setPaused, setRunning, resetProgress]);
 
   const resumeBackfill = useCallback(() => {
     if (!semanticEnabledRef.current) {
@@ -312,6 +356,7 @@ export function useSemanticIndexer() {
       startBackfill,
       pauseBackfill,
       resumeBackfill,
+      stopBackfill,
       clearBookmarkHash,
     }),
     [
@@ -327,6 +372,7 @@ export function useSemanticIndexer() {
       startBackfill,
       pauseBackfill,
       resumeBackfill,
+      stopBackfill,
       clearBookmarkHash,
     ],
   );
