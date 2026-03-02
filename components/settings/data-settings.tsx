@@ -321,7 +321,7 @@ export function DataSettings() {
                     onDragLeave={handleDragLeave}
                     onClick={() => fileInputRef.current?.click()}
                     className={cn(
-                      "relative cursor-pointer rounded-xl border-2 border-dashed px-6 py-8 text-center transition-all duration-200",
+                      "relative w-full cursor-pointer rounded-xl border-2 border-dashed px-6 py-8 text-center transition-all duration-200",
                       isDragging
                         ? "border-foreground/30 bg-muted/60 scale-[1.01]"
                         : "border-border hover:border-foreground/20 hover:bg-muted/30",
