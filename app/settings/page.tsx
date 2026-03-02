@@ -4,7 +4,7 @@ import { SettingsPage } from "@/components/settings/settings-page";
 import { isAuthenticated } from "@/lib/auth-server";
 
 export const metadata: Metadata = {
-  title: "Settings | Bukmarks",
+  title: "Settings",
   description: "Manage your account and application settings",
 };
 

@@ -40,6 +40,7 @@ import {
 } from "@/lib/bookmark-exporter";
 import { cn } from "@/lib/utils";
 import { SectionHeader } from "./section-header";
+import { SemanticSearchSettings } from "./semantic-search-settings";
 
 type ExportState = "idle" | "exporting" | "done" | "error";
 type DeleteState = "idle" | "deleting" | "done" | "error";
@@ -268,6 +269,19 @@ export function DataSettings() {
           </div>
         </motion.div>
 
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.35,
+            delay: 0.12,
+            ease: [0.25, 0.46, 0.45, 0.94],
+          }}
+          className={cn("pt-4", isMobile && "pt-3")}
+        >
+          <SemanticSearchSettings />
+        </motion.div>
+
         <Separator className="my-0" />
 
         {/* ── Import Section ─────────────────────────────────── */}
@@ -292,33 +306,45 @@ export function DataSettings() {
             {/* Dropzone */}
             {(importState.status === "idle" ||
               importState.status === "error") && (
-              <motion.div
-                key="dropzone"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-3"
-              >
-                <div
-                  onDrop={handleDrop}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onClick={() => fileInputRef.current?.click()}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      fileInputRef.current?.click();
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  className={cn(
-                    "relative cursor-pointer rounded-xl border-2 border-dashed px-6 py-8 text-center transition-all duration-200",
-                    isDragging
-                      ? "border-foreground/30 bg-muted/60 scale-[1.01]"
-                      : "border-border hover:border-foreground/20 hover:bg-muted/30",
-                  )}
+                <motion.div
+                  key="dropzone"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-3"
                 >
+                  <button
+                    type="button"
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={cn(
+                      "relative w-full cursor-pointer rounded-xl border-2 border-dashed px-6 py-8 text-center transition-all duration-200",
+                      isDragging
+                        ? "border-foreground/30 bg-muted/60 scale-[1.01]"
+                        : "border-border hover:border-foreground/20 hover:bg-muted/30",
+                    )}
+                  >
+                    <div className="flex flex-col items-center gap-3">
+                      <motion.div
+                        className={cn(
+                          "flex size-10 items-center justify-center rounded-lg transition-colors",
+                          isDragging ? "bg-foreground/10" : "bg-muted",
+                        )}
+                        animate={isDragging ? { scale: 1.08 } : { scale: 1 }}
+                      >
+                        <Upload className="size-4 text-muted-foreground" />
+                      </motion.div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Drop your file here</p>
+                        <p className="text-xs text-muted-foreground">
+                          or click to pick it
+                        </p>
+                      </div>
+                    </div>
+                  </button>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -328,37 +354,18 @@ export function DataSettings() {
                     aria-label="Upload bookmark file"
                   />
 
-                  <div className="flex flex-col items-center gap-3">
+                  {importState.status === "error" && (
                     <motion.div
-                      className={cn(
-                        "flex size-10 items-center justify-center rounded-lg transition-colors",
-                        isDragging ? "bg-foreground/10" : "bg-muted",
-                      )}
-                      animate={isDragging ? { scale: 1.08 } : { scale: 1 }}
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-xs text-destructive"
                     >
-                      <Upload className="size-4 text-muted-foreground" />
+                      <AlertCircle className="size-3.5 mt-0.5 shrink-0" />
+                      <span>{importState.message}</span>
                     </motion.div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">Drop your file here</p>
-                      <p className="text-xs text-muted-foreground">
-                        or click to pick it
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {importState.status === "error" && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-xs text-destructive"
-                  >
-                    <AlertCircle className="size-3.5 mt-0.5 shrink-0" />
-                    <span>{importState.message}</span>
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
+                  )}
+                </motion.div>
+              )}
 
             {/* Parsing */}
             {importState.status === "parsing" && (
@@ -527,7 +534,7 @@ export function DataSettings() {
 
           <div
             className={cn(
-              "rounded-xl border border-destructive/20 bg-destructive/[0.03]",
+              "rounded-xl border border-destructive/20 bg-destructive/3",
               isMobile ? "p-4" : "p-5",
             )}
           >

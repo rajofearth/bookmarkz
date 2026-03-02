@@ -11,16 +11,18 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useBookmarksData } from "@/hooks/use-bookmarks-data";
 import { useBookmarksFilters } from "@/hooks/use-bookmarks-filters";
 import { useGeneralStore } from "@/hooks/use-general-store";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSemanticIndexer } from "@/hooks/use-semantic-indexer";
 import { FOLDER_ID_ALL, toConvexFolderId } from "@/lib/bookmarks-utils";
 import { cn } from "@/lib/utils";
 import { BookmarkCard } from "./bookmark-card";
@@ -35,6 +37,7 @@ import { FoldersSidebar } from "./folders-sidebar";
 import { MetadataFetcher } from "./metadata-fetcher";
 import { MobileLayout } from "./mobile-layout";
 import { ProfileTab } from "./profile-tab";
+import type { SearchMode } from "./search-types";
 import type { Bookmark, DragData } from "./types";
 
 const AddBookmarkDialog = dynamic(
@@ -69,7 +72,16 @@ export function BookmarksPage() {
     "home",
   );
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [searchModeOverride, setSearchModeOverride] =
+    useState<SearchMode>("semantic");
+  const hasShownSemanticWarningRef = useRef(false);
   const { viewMode, sortMode } = useGeneralStore();
+  const {
+    autoIndexing,
+    semanticSearchEnabled,
+    indexBookmark,
+    clearBookmarkHash,
+  } = useSemanticIndexer();
 
   const {
     bookmarks,
@@ -79,15 +91,94 @@ export function BookmarksPage() {
     folderViewItems,
     isLoading,
   } = useBookmarksData();
+  const embeddingStats = useQuery(api.bookmarks.getEmbeddingIndexStats);
+  const isFolderSearchMode =
+    (isMobile ? activeTab === "folders" : contentMode === "folders") &&
+    Array.isArray(folderViewItems);
 
-  const { effectiveFilteredBookmarks, sortedFilteredFolders } =
-    useBookmarksFilters({
-      bookmarks,
-      folderViewItems,
-      selectedFolder,
-      searchQuery,
-      sortMode,
-    });
+  const {
+    effectiveFilteredBookmarks,
+    sortedFilteredFolders,
+    isSemanticLoading,
+    semanticStage,
+    searchMode,
+    lastSemanticDurationMs,
+  } = useBookmarksFilters({
+    bookmarks,
+    folderViewItems,
+    selectedFolder,
+    searchQuery,
+    sortMode,
+    isMobile,
+    searchModeOverride: isFolderSearchMode ? false : searchModeOverride,
+  });
+
+  useEffect(() => {
+    if (!semanticSearchEnabled) {
+      setSearchModeOverride("lexical");
+    }
+  }, [semanticSearchEnabled]);
+
+  const handleSearchModeChange = useCallback(
+    (mode: SearchMode) => {
+      if (!semanticSearchEnabled) {
+        return;
+      }
+      setSearchModeOverride(mode);
+    },
+    [semanticSearchEnabled],
+  );
+
+  const pendingCount = embeddingStats?.pendingBookmarks ?? 0;
+  const staleCount = embeddingStats?.staleBookmarks ?? 0;
+  const indexedCount = embeddingStats?.indexedBookmarks ?? 0;
+  const totalCount = embeddingStats?.totalBookmarks ?? 0;
+  const isIndexingIncomplete = pendingCount + staleCount > 0;
+
+  useEffect(() => {
+    if (isFolderSearchMode) {
+      hasShownSemanticWarningRef.current = false;
+      return;
+    }
+    const query = searchQuery.trim();
+    const shouldWarn =
+      semanticSearchEnabled &&
+      searchMode === "semantic" &&
+      query.length > 0 &&
+      isIndexingIncomplete;
+
+    if (!shouldWarn) {
+      hasShownSemanticWarningRef.current = false;
+      return;
+    }
+
+    if (hasShownSemanticWarningRef.current) {
+      return;
+    }
+
+    hasShownSemanticWarningRef.current = true;
+    toast.warning(
+      `Semantic results may be incomplete — ${pendingCount} pending, ${staleCount} stale`,
+      {
+        description: `${indexedCount}/${totalCount} indexed. You can run indexing in Settings.`,
+        action: {
+          label: "Index now",
+          onClick: () => router.push("/settings"),
+        },
+      },
+    );
+  }, [
+    indexedCount,
+    pendingCount,
+    staleCount,
+    totalCount,
+    isIndexingIncomplete,
+    router,
+    searchMode,
+    searchQuery,
+    semanticSearchEnabled,
+    isFolderSearchMode,
+  ]);
 
   useEffect(() => {
     if (searchParams.get("tab") === "profile") {
@@ -115,18 +206,21 @@ export function BookmarksPage() {
     (f) => f.id === effectiveSelectedFolder,
   );
 
-  const handleMoveBookmark = async (bookmarkId: string, folderId: string) => {
-    const convexFolderId = toConvexFolderId(folderId);
-    if (!convexFolderId) return;
-    try {
-      await updateBookmarkMutation({
-        bookmarkId: bookmarkId as Id<"bookmarks">,
-        folderId: convexFolderId,
-      });
-    } catch (error) {
-      console.error("Failed to move bookmark:", error);
-    }
-  };
+  const handleMoveBookmark = useCallback(
+    async (bookmarkId: string, folderId: string) => {
+      const convexFolderId = toConvexFolderId(folderId);
+      if (!convexFolderId) return;
+      try {
+        await updateBookmarkMutation({
+          bookmarkId: bookmarkId as Id<"bookmarks">,
+          folderId: convexFolderId,
+        });
+      } catch (error) {
+        console.error("Failed to move bookmark:", error);
+      }
+    },
+    [updateBookmarkMutation],
+  );
 
   const handleAddBookmark = async (data: {
     url: string;
@@ -137,7 +231,7 @@ export function BookmarksPage() {
     folderId: string;
   }) => {
     try {
-      await createBookmarkMutation({
+      const createdBookmarkId = await createBookmarkMutation({
         url: data.url,
         title: data.title,
         favicon: data.favicon ?? undefined,
@@ -145,6 +239,19 @@ export function BookmarksPage() {
         description: data.description ?? undefined,
         folderId: toConvexFolderId(data.folderId),
       });
+      if (autoIndexing && semanticSearchEnabled) {
+        void indexBookmark({
+          id: createdBookmarkId,
+          title: data.title,
+          url: data.url,
+          description: data.description ?? undefined,
+        }).catch((error) => {
+          console.error(
+            "Semantic auto-index failed after bookmark create:",
+            error,
+          );
+        });
+      }
     } catch (error) {
       console.error("Failed to create bookmark:", error);
     }
@@ -202,20 +309,39 @@ export function BookmarksPage() {
         description: data.description ?? undefined,
         folderId: toConvexFolderId(data.folderId),
       });
+      if (autoIndexing && semanticSearchEnabled) {
+        void indexBookmark({
+          id: bookmarkId,
+          title: data.title,
+          url: data.url,
+          description: data.description ?? undefined,
+        }).catch((error) => {
+          console.error(
+            "Semantic auto-index failed after bookmark update:",
+            error,
+          );
+        });
+      }
     } catch (error) {
       console.error("Failed to update bookmark:", error);
     }
   };
 
-  const handleDeleteBookmark = async (bookmark: Bookmark) => {
-    try {
-      await deleteBookmarkMutation({
-        bookmarkId: bookmark.id as Id<"bookmarks">,
-      });
-    } catch (error) {
-      console.error("Failed to delete bookmark:", error);
-    }
-  };
+  const handleDeleteBookmark = useCallback(
+    async (bookmark: Bookmark) => {
+      try {
+        await deleteBookmarkMutation({
+          bookmarkId: bookmark.id as Id<"bookmarks">,
+        });
+        void clearBookmarkHash(bookmark.id).catch((error) => {
+          console.error("Failed to clear semantic bookmark hash:", error);
+        });
+      } catch (error) {
+        console.error("Failed to delete bookmark:", error);
+      }
+    },
+    [clearBookmarkHash, deleteBookmarkMutation],
+  );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const activeData = event.active.data.current as DragData | null;
@@ -289,6 +415,12 @@ export function BookmarksPage() {
             }
             showMobileSearch={showMobileSearch}
             searchQuery={searchQuery}
+            semanticSearchEnabled={
+              mode === "bookmarks" ? semanticSearchEnabled : false
+            }
+            searchMode={searchMode}
+            isSemanticLoading={isSemanticLoading}
+            onSearchModeChange={handleSearchModeChange}
             searchPlaceholder={
               mode === "folders" ? "Search folders..." : "Search bookmarks..."
             }
@@ -311,6 +443,12 @@ export function BookmarksPage() {
             }
             sidebarOpen={sidebarOpen}
             searchQuery={searchQuery}
+            semanticSearchEnabled={
+              mode === "bookmarks" ? semanticSearchEnabled : false
+            }
+            searchMode={searchMode}
+            isSemanticLoading={isSemanticLoading}
+            onSearchModeChange={handleSearchModeChange}
             searchPlaceholder={
               mode === "folders" ? "Search folders..." : "Search bookmarks..."
             }
@@ -340,6 +478,11 @@ export function BookmarksPage() {
             folderNameById={folderNameById}
             editableFolders={editableFolders}
             searchQuery={searchQuery}
+            searchMode={searchMode}
+            isSemanticLoading={isSemanticLoading}
+            semanticStage={semanticStage}
+            semanticLatencyMs={lastSemanticDurationMs}
+            isIndexingIncomplete={isIndexingIncomplete}
             onEditBookmark={setEditingBookmark}
             onDeleteBookmark={handleDeleteBookmark}
             onMoveBookmark={handleMoveBookmark}

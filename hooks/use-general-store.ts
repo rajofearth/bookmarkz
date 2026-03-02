@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { EmbeddingDtype } from "@/lib/semantic-search";
 
 export type ViewMode = "normal" | "compact" | "list" | "details";
 export type SortMode = "newest" | "oldest";
@@ -8,6 +9,9 @@ interface GeneralSettingsState {
   openInNewTab: boolean;
   showFavicons: boolean;
   reducedMotion: boolean;
+  semanticDtype: EmbeddingDtype;
+  semanticAutoIndexing: boolean;
+  semanticSearchEnabled: boolean;
   viewMode: ViewMode;
   sortMode: SortMode;
   updateSettings: (
@@ -15,6 +19,9 @@ interface GeneralSettingsState {
       openInNewTab: boolean;
       showFavicons: boolean;
       reducedMotion: boolean;
+      semanticDtype: EmbeddingDtype;
+      semanticAutoIndexing: boolean;
+      semanticSearchEnabled: boolean;
       viewMode: ViewMode;
       sortMode: SortMode;
     }>,
@@ -27,6 +34,9 @@ export const useGeneralStore = create<GeneralSettingsState>()(
       openInNewTab: true,
       showFavicons: true,
       reducedMotion: false,
+      semanticDtype: "q4",
+      semanticAutoIndexing: true,
+      semanticSearchEnabled: true,
       viewMode: "normal",
       sortMode: "newest",
       updateSettings: (newSettings) =>
