@@ -8,10 +8,13 @@ export type ModelLoadingStage =
   | "loading"
   | "done";
 
+export type IndexerRunMode = "manual" | "background";
+
 interface SemanticIndexerState {
   // ── Run state ───────────────────────────────────────────────────────
   isRunning: boolean;
   isPaused: boolean;
+  activeMode: IndexerRunMode | null;
   processedCount: number;
   totalCount: number;
   errorCount: number;
@@ -32,6 +35,7 @@ interface SemanticIndexerState {
   // ── Actions ─────────────────────────────────────────────────────────
   setRunning: (running: boolean) => void;
   setPaused: (paused: boolean) => void;
+  setActiveMode: (mode: IndexerRunMode | null) => void;
   setProcessedCount: (count: number | ((prev: number) => number)) => void;
   setTotalCount: (count: number) => void;
   setErrorCount: (count: number | ((prev: number) => number)) => void;
@@ -50,6 +54,7 @@ export const useSemanticIndexerStore = create<SemanticIndexerState>()(
   (set) => ({
     isRunning: false,
     isPaused: false,
+    activeMode: null,
     processedCount: 0,
     totalCount: 0,
     errorCount: 0,
@@ -63,6 +68,7 @@ export const useSemanticIndexerStore = create<SemanticIndexerState>()(
 
     setRunning: (running) => set({ isRunning: running }),
     setPaused: (paused) => set({ isPaused: paused }),
+    setActiveMode: (activeMode) => set({ activeMode }),
     setProcessedCount: (count) =>
       set((state) => ({
         processedCount:
@@ -71,11 +77,11 @@ export const useSemanticIndexerStore = create<SemanticIndexerState>()(
     setTotalCount: (totalCount) => set({ totalCount }),
     setErrorCount: (count) =>
       set((state) => ({
-        errorCount: typeof count === "function" ? count(state.errorCount) : count,
+        errorCount:
+          typeof count === "function" ? count(state.errorCount) : count,
       })),
     setModelReady: (modelReady) => set({ modelReady }),
-    setModelLoadingStage: (modelLoadingStage) =>
-      set({ modelLoadingStage }),
+    setModelLoadingStage: (modelLoadingStage) => set({ modelLoadingStage }),
     setModelLoadingProgress: (modelLoadingProgress) =>
       set({ modelLoadingProgress }),
     setModelLoadingSpeedBytesPerSec: (modelLoadingSpeedBytesPerSec) =>
@@ -104,6 +110,7 @@ export const useSemanticIndexerStore = create<SemanticIndexerState>()(
         processedCount: 0,
         totalCount: 0,
         errorCount: 0,
+        activeMode: null,
         modelReady: false,
         modelLoadingStage: "idle",
         modelLoadingProgress: 0,

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { ConvexClientProvider } from "@/app/ConvexClientProvider";
+import { SemanticAutoIndexer } from "@/components/semantic/semantic-auto-indexer";
 import { ThemeProvider } from "@/components/theme-provider";
 import { getToken } from "@/lib/auth-server";
 
@@ -12,7 +13,7 @@ const fontSans = localFont({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://bukmarks.vercel.app"
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://bukmarks.vercel.app",
   ),
   title: { default: "Bukmarks", template: "%s | Bukmarks" },
   description: "Organize and manage your bookmarks with ease",
@@ -75,6 +76,7 @@ export default async function RootLayout({
             disableTransitionOnChange
           >
             {children}
+            <SemanticAutoIndexer />
           </ThemeProvider>
         </ConvexClientProvider>
       </body>

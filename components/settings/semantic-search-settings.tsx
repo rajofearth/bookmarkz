@@ -25,6 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/convex/_generated/api";
 import { useGeneralStore } from "@/hooks/use-general-store";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useSemanticIndexer } from "@/hooks/use-semantic-indexer";
 import { useSemanticIndexerStore } from "@/hooks/use-semantic-indexer-store";
 import { EMBEDDING_MODEL_ID, type EmbeddingDtype } from "@/lib/semantic-search";
@@ -86,6 +87,7 @@ function ProgressDisplay({
   totalCount,
   errorCount,
   indexEta,
+  isMobile,
   error,
 }: {
   phase: Phase;
@@ -98,6 +100,7 @@ function ProgressDisplay({
   totalCount: number;
   errorCount: number;
   indexEta: string;
+  isMobile: boolean;
   error: string | null;
 }) {
   // ── Model loading ─────────────────────────────────────────────────
@@ -181,6 +184,7 @@ function ProgressDisplay({
   if (phase === "indexing" || phase === "done") {
     const pct =
       totalCount > 0 ? Math.round((processedCount / totalCount) * 100) : 0;
+    const showEtaInline = Boolean(indexEta) && !isMobile;
     return (
       <div className="space-y-1.5">
         <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -192,7 +196,7 @@ function ProgressDisplay({
           ) : (
             <span>
               Indexing {processedCount} / {totalCount}
-              {indexEta && (
+              {showEtaInline && (
                 <span className="text-muted-foreground/70"> · {indexEta}</span>
               )}
             </span>
@@ -200,6 +204,9 @@ function ProgressDisplay({
           <span className="shrink-0 tabular-nums">{pct}%</span>
         </div>
         <ProgressBar value={pct} />
+        {indexEta && isMobile && (
+          <p className="text-[11px] text-muted-foreground/70">ETA {indexEta}</p>
+        )}
         {errorCount > 0 && (
           <p className="text-xs text-destructive">Failed: {errorCount}</p>
         )}
@@ -356,6 +363,7 @@ function ModelCacheManager({
 // ─── Main Component ──────────────────────────────────────────────────
 
 export function SemanticSearchSettings() {
+  const isMobile = useIsMobile();
   const embeddingStats = useQuery(api.bookmarks.getEmbeddingIndexStats);
   const bookmarks = useQuery(api.bookmarks.getBookmarks);
 
@@ -569,6 +577,7 @@ export function SemanticSearchSettings() {
                 totalCount={totalCount}
                 errorCount={errorCount}
                 indexEta={indexEta}
+                isMobile={isMobile}
                 error={error}
               />
             </motion.div>
