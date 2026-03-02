@@ -267,6 +267,12 @@ function ModelCacheManager({ fileProgress }: { fileProgress: Record<string, { lo
     // Initial load
     useEffect(() => { void refresh(); }, [refresh]);
 
+    // Refresh when modelReady flips to true (download just finished)
+    const modelReady = useSemanticIndexerStore((s) => s.modelReady);
+    useEffect(() => {
+        if (modelReady) void refresh();
+    }, [modelReady, refresh]);
+
     // Refresh when a new file appears in fileProgress (file completed → written to cache)
     useEffect(() => {
         const fileCount = Object.keys(fileProgress).length;
