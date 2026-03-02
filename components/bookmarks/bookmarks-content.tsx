@@ -15,6 +15,16 @@ import type { Bookmark, Folder } from "./types";
 
 type SearchMode = "lexical" | "semantic";
 type SemanticStage = "idle" | "embedding" | "vectorSearch" | "rerank" | "error";
+const SKELETON_KEYS = [
+  "skeleton-1",
+  "skeleton-2",
+  "skeleton-3",
+  "skeleton-4",
+  "skeleton-5",
+  "skeleton-6",
+  "skeleton-7",
+  "skeleton-8",
+] as const;
 
 function semanticStageText(stage: SemanticStage) {
   if (stage === "embedding") return "Embedding query...";
@@ -133,8 +143,8 @@ export function BookmarksContent({
 
       {showSkeletonGrid ? (
         <div className={cn(getViewModeGridClasses(viewMode))}>
-          {Array.from({ length: 8 }).map((_, index) => (
-            <BookmarkCardSkeleton key={`semantic-skeleton-${index}`} viewMode={viewMode} />
+          {SKELETON_KEYS.map((id) => (
+            <BookmarkCardSkeleton key={id} viewMode={viewMode} />
           ))}
         </div>
       ) : null}

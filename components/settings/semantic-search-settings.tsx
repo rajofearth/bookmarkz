@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { EMBEDDING_MODEL_ID } from "@/lib/semantic-search";
+import { EMBEDDING_MODEL_ID, type EmbeddingDtype } from "@/lib/semantic-search";
 import {
     Select,
     SelectContent,
@@ -33,7 +33,7 @@ import { formatBytes } from "@/lib/utils";
 // ─── Helpers ─────────────────────────────────────────────────────────
 
 function formatEta(seconds: number): string {
-    if (!isFinite(seconds) || seconds <= 0) return "";
+    if (!Number.isFinite(seconds) || seconds <= 0) return "";
     if (seconds < 60) return `~${Math.ceil(seconds)}s left`;
     const mins = Math.floor(seconds / 60);
     const secs = Math.ceil(seconds % 60);
@@ -231,6 +231,14 @@ async function getModelCacheSize(): Promise<number> {
         for (const req of modelKeys) {
             const res = await cache.match(req);
             if (!res) continue;
+            const contentLengthHeader = res.headers.get("content-length");
+            const contentLength = contentLengthHeader
+                ? Number.parseInt(contentLengthHeader, 10)
+                : Number.NaN;
+            if (Number.isFinite(contentLength) && contentLength >= 0) {
+                total += contentLength;
+                continue;
+            }
             const blob = await res.blob();
             total += blob.size;
         }
@@ -434,7 +442,7 @@ export function SemanticSearchSettings() {
                     <Select
                         value={semanticDtype}
                         onValueChange={(value) =>
-                            updateSettings({ semanticDtype: value as "q4" | "q8" | "fp32" })
+                            updateSettings({ semanticDtype: value as EmbeddingDtype })
                         }
                     >
                         <SelectTrigger className="w-24 h-8 text-xs">
@@ -452,8 +460,12 @@ export function SemanticSearchSettings() {
 
                 {/* Enabled toggle */}
                 <div className={rowClass}>
-                    <span className="text-sm">Semantic search enabled</span>
+                    <span id="semantic-search-label" className="text-sm">
+                        Semantic search enabled
+                    </span>
                     <Switch
+                        id="semantic-search-switch"
+                        aria-labelledby="semantic-search-label"
                         checked={semanticSearchEnabled}
                         onCheckedChange={(checked) =>
                             updateSettings({ semanticSearchEnabled: checked })
@@ -465,8 +477,12 @@ export function SemanticSearchSettings() {
 
                 {/* Auto-index toggle */}
                 <div className={rowClass}>
-                    <span className="text-sm">Auto-index on add / edit</span>
+                    <span id="semantic-auto-index-label" className="text-sm">
+                        Auto-index on add / edit
+                    </span>
                     <Switch
+                        id="semantic-auto-index-switch"
+                        aria-labelledby="semantic-auto-index-label"
                         checked={semanticAutoIndexing}
                         onCheckedChange={(checked) =>
                             updateSettings({ semanticAutoIndexing: checked })
@@ -580,8 +596,12 @@ export function SemanticSearchSettings() {
                     {phase !== "error" && (
                         <button
                             type="button"
-                            onClick={() => handleStart(true)}
-                            disabled={isRunning}
+                            onClick={() => {
+                                if (canIndex) {
+                                    handleStart(true);
+                                }
+                            }}
+                            disabled={!canIndex || isRunning}
                             className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isRunning ? (

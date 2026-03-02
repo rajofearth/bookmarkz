@@ -387,43 +387,66 @@ export const getEmbeddingIndexStats = query({
       };
     }
 
-    const [bookmarks, embeddings] = await Promise.all([
-      ctx.db
+    const bookmarkHashesById = new Map<Id<"bookmarks">, string>();
+    let totalBookmarks = 0;
+    let bookmarkCursor: string | null = null;
+
+    while (true) {
+      const bookmarkPage = await ctx.db
         .query("bookmarks")
         .withIndex("by_user_id", (q) => q.eq("userId", user._id))
-        .collect(),
-      ctx.db
-        .query("bookmarkEmbeddings")
-        .withIndex("by_user_id", (q) => q.eq("userId", user._id))
-        .collect(),
-    ]);
-
-    const embeddingsByBookmarkId = new Map(
-      embeddings.map((embedding) => [embedding.bookmarkId, embedding]),
-    );
-
-    let staleBookmarks = 0;
-    for (const bookmark of bookmarks) {
-      const embedding = embeddingsByBookmarkId.get(bookmark._id);
-      if (!embedding) {
-        continue;
+        .paginate({
+          cursor: bookmarkCursor,
+          numItems: 256,
+        });
+      for (const bookmark of bookmarkPage.page) {
+        totalBookmarks += 1;
+        bookmarkHashesById.set(
+          bookmark._id,
+          hashBookmarkText(buildBookmarkSemanticText(bookmark)),
+        );
       }
-      const currentHash = hashBookmarkText(buildBookmarkSemanticText(bookmark));
-      if (embedding.contentHash !== currentHash) {
-        staleBookmarks += 1;
+      if (bookmarkPage.isDone) {
+        break;
       }
+      bookmarkCursor = bookmarkPage.continueCursor;
     }
 
-    const indexedBookmarks = embeddingsByBookmarkId.size;
+    let indexedBookmarks = 0;
+    let staleBookmarks = 0;
+    let lastIndexedAt: number | null = null;
+    let embeddingCursor: string | null = null;
+
+    while (true) {
+      const embeddingPage = await ctx.db
+        .query("bookmarkEmbeddings")
+        .withIndex("by_user_id", (q) => q.eq("userId", user._id))
+        .paginate({
+          cursor: embeddingCursor,
+          numItems: 256,
+        });
+      for (const embedding of embeddingPage.page) {
+        indexedBookmarks += 1;
+        if (lastIndexedAt === null || embedding.updatedAt > lastIndexedAt) {
+          lastIndexedAt = embedding.updatedAt;
+        }
+        const currentHash = bookmarkHashesById.get(embedding.bookmarkId);
+        if (currentHash && embedding.contentHash !== currentHash) {
+          staleBookmarks += 1;
+        }
+      }
+      if (embeddingPage.isDone) {
+        break;
+      }
+      embeddingCursor = embeddingPage.continueCursor;
+    }
+
     return {
-      totalBookmarks: bookmarks.length,
+      totalBookmarks,
       indexedBookmarks,
-      pendingBookmarks: Math.max(bookmarks.length - indexedBookmarks, 0),
+      pendingBookmarks: Math.max(totalBookmarks - indexedBookmarks, 0),
       staleBookmarks,
-      lastIndexedAt:
-        embeddings.length > 0
-          ? Math.max(...embeddings.map((embedding) => embedding.updatedAt))
-          : null,
+      lastIndexedAt,
     };
   },
 });

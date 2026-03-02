@@ -92,6 +92,9 @@ export function BookmarksPage() {
     isLoading,
   } = useBookmarksData();
   const embeddingStats = useQuery(api.bookmarks.getEmbeddingIndexStats);
+  const isFolderSearchMode =
+    (isMobile ? activeTab === "folders" : contentMode === "folders") &&
+    Array.isArray(folderViewItems);
 
   const {
     effectiveFilteredBookmarks,
@@ -107,7 +110,7 @@ export function BookmarksPage() {
     searchQuery,
     sortMode,
     isMobile,
-    searchModeOverride,
+    searchModeOverride: isFolderSearchMode ? false : searchModeOverride,
   });
 
   useEffect(() => {
@@ -129,6 +132,10 @@ export function BookmarksPage() {
   const isIndexingIncomplete = (embeddingStats?.pendingBookmarks ?? 0) > 0;
 
   useEffect(() => {
+    if (isFolderSearchMode) {
+      hasShownSemanticWarningRef.current = false;
+      return;
+    }
     const query = searchQuery.trim();
     const shouldWarn =
       semanticSearchEnabled &&
@@ -168,6 +175,7 @@ export function BookmarksPage() {
     searchMode,
     searchQuery,
     semanticSearchEnabled,
+    isFolderSearchMode,
   ]);
 
   useEffect(() => {

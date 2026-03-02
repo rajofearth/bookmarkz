@@ -93,7 +93,7 @@ function BookmarkCardComponent({
         <DropdownMenuItem asChild>
           <a
             href={bookmark.url}
-            target={openInNewTab ? "_blank" : "_self"}
+            target={openInNewTab ? "_blank" : undefined}
             rel={openInNewTab ? "noopener noreferrer" : undefined}
           >
             <ExternalLinkIcon className="size-4" />
@@ -207,8 +207,8 @@ function BookmarkCardComponent({
           <div className="min-w-0 flex-1">
             <a
               href={bookmark.url}
-              target="_blank"
-              rel="noopener noreferrer"
+              target={openInNewTab ? "_blank" : undefined}
+              rel={openInNewTab ? "noopener noreferrer" : undefined}
               className="truncate text-sm font-medium leading-tight block"
             >
               {bookmark.title}
@@ -272,8 +272,8 @@ function BookmarkCardComponent({
       >
         <a
           href={bookmark.url}
-          target="_blank"
-          rel="noopener noreferrer"
+          target={openInNewTab ? "_blank" : undefined}
+          rel={openInNewTab ? "noopener noreferrer" : undefined}
           className="flex items-center gap-2 p-2 sm:p-2.5"
         >
           {faviconEl}
@@ -322,8 +322,8 @@ function BookmarkCardComponent({
       {showOgImage && (
         <a
           href={bookmark.url}
-          target="_blank"
-          rel="noopener noreferrer"
+          target={openInNewTab ? "_blank" : undefined}
+          rel={openInNewTab ? "noopener noreferrer" : undefined}
           className="block relative aspect-[1.91/1] w-full overflow-hidden bg-muted/50"
         >
           {bookmark.ogImage &&
@@ -353,7 +353,11 @@ function BookmarkCardComponent({
       <div className="flex items-start gap-2.5 p-3 sm:p-3.5">
         {faviconEl}
         <div className="min-w-0 flex-1">
-          <a href={bookmark.url} target="_blank" rel="noopener noreferrer">
+          <a
+            href={bookmark.url}
+            target={openInNewTab ? "_blank" : undefined}
+            rel={openInNewTab ? "noopener noreferrer" : undefined}
+          >
             <p className="truncate text-sm font-medium leading-snug sm:text-[15px]">
               {bookmark.title}
             </p>

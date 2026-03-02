@@ -9,6 +9,30 @@ import { DisplayControlsMenu } from "./display-controls-menu";
 
 type SearchMode = "lexical" | "semantic";
 
+function useDebouncedSearch(
+  searchQuery: string,
+  onSearchChange: (value: string) => void,
+  delay = 80,
+) {
+  const [draftQuery, setDraftQuery] = useState(searchQuery);
+
+  useEffect(() => {
+    setDraftQuery(searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (draftQuery !== searchQuery) {
+        onSearchChange(draftQuery);
+      }
+    }, delay);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [delay, draftQuery, onSearchChange, searchQuery]);
+
+  return [draftQuery, setDraftQuery] as const;
+}
+
 function SearchModePill({
   searchMode,
   onSearchModeChange,
@@ -75,21 +99,10 @@ export function DesktopBookmarksHeader({
   onToggleSidebar,
   actionButton,
 }: DesktopBookmarksHeaderProps) {
-  const [draftQuery, setDraftQuery] = useState(searchQuery);
-
-  useEffect(() => {
-    setDraftQuery(searchQuery);
-  }, [searchQuery]);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      if (draftQuery !== searchQuery) {
-        onSearchChange(draftQuery);
-      }
-    }, 80);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [draftQuery, onSearchChange, searchQuery]);
+  const [draftQuery, setDraftQuery] = useDebouncedSearch(
+    searchQuery,
+    onSearchChange,
+  );
 
   return (
     <div className="flex items-center gap-3 px-4 py-3">
@@ -176,21 +189,10 @@ export function MobileBookmarksHeader({
   onToggleSearch,
   actionButton,
 }: MobileBookmarksHeaderProps) {
-  const [draftQuery, setDraftQuery] = useState(searchQuery);
-
-  useEffect(() => {
-    setDraftQuery(searchQuery);
-  }, [searchQuery]);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      if (draftQuery !== searchQuery) {
-        onSearchChange(draftQuery);
-      }
-    }, 80);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [draftQuery, onSearchChange, searchQuery]);
+  const [draftQuery, setDraftQuery] = useDebouncedSearch(
+    searchQuery,
+    onSearchChange,
+  );
 
   return (
     <>

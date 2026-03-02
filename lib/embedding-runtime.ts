@@ -89,7 +89,14 @@ export async function loadEmbeddingBundle(
   for (const dtype of dtypeOrder) {
     const cacheKey = `${EMBEDDING_MODEL_ID}:${dtype}`;
     if (loadedBundlePromise && loadedBundleKey === cacheKey) {
-      return loadedBundlePromise;
+      try {
+        return await loadedBundlePromise;
+      } catch (error) {
+        loadedBundlePromise = null;
+        loadedBundleKey = "";
+        lastError = error;
+        continue;
+      }
     }
 
     loadedBundleKey = cacheKey;
@@ -149,6 +156,7 @@ export async function loadEmbeddingBundle(
       return await loadedBundlePromise;
     } catch (error) {
       loadedBundlePromise = null;
+      loadedBundleKey = "";
       lastError = error;
     }
   }

@@ -93,7 +93,16 @@ async function requestWorker(payload: Omit<WorkerRequest, "id">) {
 
   const response = await new Promise<WorkerResponse>((resolve, reject) => {
     pendingRequests.set(id, { resolve, reject });
-    getWorker().postMessage(message);
+    try {
+      getWorker().postMessage(message);
+    } catch (error) {
+      pendingRequests.delete(id);
+      reject(
+        error instanceof Error
+          ? error
+          : new Error("Failed to post message to embedding worker"),
+      );
+    }
   });
 
   if (!response.ok) {

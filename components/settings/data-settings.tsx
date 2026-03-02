@@ -327,15 +327,6 @@ export function DataSettings() {
                         : "border-border hover:border-foreground/20 hover:bg-muted/30",
                     )}
                   >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".html,.htm"
-                      onChange={handleFileInput}
-                      className="sr-only"
-                      aria-label="Upload bookmark file"
-                    />
-
                     <div className="flex flex-col items-center gap-3">
                       <motion.div
                         className={cn(
@@ -354,6 +345,14 @@ export function DataSettings() {
                       </div>
                     </div>
                   </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".html,.htm"
+                    onChange={handleFileInput}
+                    className="sr-only"
+                    aria-label="Upload bookmark file"
+                  />
 
                   {importState.status === "error" && (
                     <motion.div

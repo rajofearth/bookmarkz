@@ -154,12 +154,7 @@ export const semanticSearchBookmarks = action({
       {
         vector: args.queryEmbedding,
         limit: topK,
-        // Convex vector search supports a single equality filter expression.
-        // Prefer folder scoping when present to avoid wasting top-K on other folders.
-        filter: (q) =>
-          args.selectedFolder
-            ? q.eq("folderId", args.selectedFolder)
-            : q.eq("userId", user._id),
+        filter: (q) => q.eq("userId", user._id),
       },
     );
 
@@ -223,7 +218,9 @@ export const semanticSearchBookmarks = action({
         if (!bookmark) {
           return null;
         }
-        // Defensive fallback in case data changes between vector search and fetch.
+        if (bookmark.userId !== user._id) {
+          return null;
+        }
         if (args.selectedFolder && bookmark.folderId !== args.selectedFolder) {
           return null;
         }

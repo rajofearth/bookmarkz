@@ -10,10 +10,12 @@ export function cn(...inputs: ClassValue[]) {
  * Uses 1024-based units.
  */
 export function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
+  const safeBytes = Number.isFinite(bytes) && bytes > 0 ? bytes : 0;
+  if (safeBytes === 0) return "0 B";
   const units = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  const value = bytes / Math.pow(1024, i);
+  const rawIndex = Math.floor(Math.log(safeBytes) / Math.log(1024));
+  const i = Math.min(Math.max(rawIndex, 0), units.length - 1);
+  const value = safeBytes / 1024 ** i;
   const decimals = i >= 2 ? 1 : 0;
   return `${value.toFixed(decimals)} ${units[i]}`;
 }

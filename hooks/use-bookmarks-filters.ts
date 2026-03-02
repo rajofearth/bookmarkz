@@ -30,7 +30,7 @@ interface UseBookmarksFiltersArgs {
   searchQuery: string;
   sortMode: SortMode;
   isMobile: boolean;
-  searchModeOverride?: "lexical" | "semantic";
+  searchModeOverride?: "lexical" | "semantic" | false | null;
 }
 
 type SemanticStage = "idle" | "embedding" | "vectorSearch" | "rerank" | "error";
@@ -42,14 +42,18 @@ export function useBookmarksFilters({
   searchQuery,
   sortMode,
   isMobile,
-  searchModeOverride = "semantic",
+  searchModeOverride,
 }: UseBookmarksFiltersArgs) {
   const semanticSearch = useAction(api.actions.semanticSearchBookmarks);
   const semanticSearchEnabled = useGeneralStore(
     (state) => state.semanticSearchEnabled,
   );
+  const resolvedSearchModeOverride =
+    searchModeOverride === undefined || searchModeOverride === null
+      ? "semantic"
+      : searchModeOverride;
   const activeSearchMode: "lexical" | "semantic" =
-    semanticSearchEnabled && searchModeOverride !== "lexical"
+    semanticSearchEnabled && resolvedSearchModeOverride === "semantic"
       ? "semantic"
       : "lexical";
   const isSemanticActive = activeSearchMode === "semantic";
@@ -150,41 +154,60 @@ export function useBookmarksFilters({
       return;
     }
     setSemanticIds(null);
-    setSemanticStage("embedding");
 
     const requestId = latestRequestRef.current + 1;
     latestRequestRef.current = requestId;
     let cancelled = false;
     const startedAt = lastInputAtRef.current || performance.now();
+    let pending!: Promise<string[]>;
+    pending = Promise.resolve().then(async () => {
+      if (
+        semanticInFlightRef.current.get(semanticKey) !== pending ||
+        latestRequestRef.current !== requestId
+      ) {
+        return [];
+      }
+      setSemanticStage("embedding");
+      const { vector } = await embedBookmarkQuery(
+        debouncedSemanticQuery,
+        semanticDtype,
+      );
+      if (
+        semanticInFlightRef.current.get(semanticKey) !== pending ||
+        latestRequestRef.current !== requestId
+      ) {
+        return [];
+      }
+      setSemanticStage("vectorSearch");
+      const results = await semanticSearch({
+        queryEmbedding: vector,
+        limit: 20,
+        selectedFolder:
+          !isMobile && selectedFolder !== "all"
+            ? (selectedFolder as Id<"folders">)
+            : undefined,
+        minScore: 0.35,
+      });
+      if (
+        semanticInFlightRef.current.get(semanticKey) !== pending ||
+        latestRequestRef.current !== requestId
+      ) {
+        return [];
+      }
+      setSemanticStage("rerank");
+      return results.map((entry) => entry.bookmark._id);
+    });
+    semanticInFlightRef.current.set(semanticKey, pending);
+
+    const isActiveRequest = () =>
+      !cancelled &&
+      latestRequestRef.current === requestId &&
+      semanticInFlightRef.current.get(semanticKey) === pending;
+
     (async () => {
       try {
-        let pending = semanticInFlightRef.current.get(semanticKey);
-        if (!pending) {
-          pending = (async () => {
-            setSemanticStage("embedding");
-            const { vector } = await embedBookmarkQuery(
-              debouncedSemanticQuery,
-              semanticDtype,
-            );
-            setSemanticStage("vectorSearch");
-            const results = await semanticSearch({
-              queryEmbedding: vector,
-              limit: 20,
-              selectedFolder:
-                !isMobile && selectedFolder !== "all"
-                  ? (selectedFolder as Id<"folders">)
-                  : undefined,
-              minScore: 0.35,
-            });
-            setSemanticStage("rerank");
-            return results.map((entry) => entry.bookmark._id);
-          })();
-          semanticInFlightRef.current.set(semanticKey, pending);
-        }
-
         const nextIds = await pending;
-        semanticInFlightRef.current.delete(semanticKey);
-        if (cancelled || latestRequestRef.current !== requestId) {
+        if (!isActiveRequest()) {
           return;
         }
         if (process.env.NODE_ENV !== "production") {
@@ -205,10 +228,14 @@ export function useBookmarksFilters({
         });
         setSemanticStage("idle");
       } catch (error) {
-        semanticInFlightRef.current.delete(semanticKey);
+        if (!isActiveRequest()) {
+          return;
+        }
         setSemanticStage("error");
-        if (!cancelled && latestRequestRef.current === requestId) {
-          console.error("Semantic search failed", error);
+        console.error("Semantic search failed", error);
+      } finally {
+        if (semanticInFlightRef.current.get(semanticKey) === pending) {
+          semanticInFlightRef.current.delete(semanticKey);
         }
       }
     })();
@@ -284,11 +311,22 @@ export function useBookmarksFilters({
 
   const effectiveFilteredBookmarks = useMemo(() => {
     if (isMobile) {
-      const filtered = filterBookmarksBySearch(bookmarks, searchQuery);
+      const base = isSemanticRankedSearch ? sortedFilteredBookmarks : bookmarks;
+      const filtered = filterBookmarksBySearch(base, searchQuery);
+      if (isSemanticRankedSearch) {
+        return filtered;
+      }
       return sortBookmarksByDate(filtered, sortMode);
     }
     return sortedFilteredBookmarks;
-  }, [isMobile, bookmarks, searchQuery, sortedFilteredBookmarks, sortMode]);
+  }, [
+    isMobile,
+    bookmarks,
+    searchQuery,
+    sortedFilteredBookmarks,
+    sortMode,
+    isSemanticRankedSearch,
+  ]);
 
   const sortedFilteredFolders = useMemo(() => {
     const filtered = filterFoldersBySearch(folderViewItems, searchQuery);
@@ -300,7 +338,7 @@ export function useBookmarksFilters({
   }, [folderViewItems, searchQuery, sortMode]);
 
   const isSemanticLoading =
-    isSemanticActive && semanticStage !== "idle";
+    isSemanticActive && semanticStage !== "idle" && semanticStage !== "error";
 
   return {
     filteredBookmarks,

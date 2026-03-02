@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { EmbeddingDtype } from "@/lib/semantic-search";
 
 export type ViewMode = "normal" | "compact" | "list" | "details";
 export type SortMode = "newest" | "oldest";
@@ -8,7 +9,7 @@ interface GeneralSettingsState {
   openInNewTab: boolean;
   showFavicons: boolean;
   reducedMotion: boolean;
-  semanticDtype: "q4" | "q8" | "fp32";
+  semanticDtype: EmbeddingDtype;
   semanticAutoIndexing: boolean;
   semanticSearchEnabled: boolean;
   viewMode: ViewMode;
@@ -18,7 +19,7 @@ interface GeneralSettingsState {
       openInNewTab: boolean;
       showFavicons: boolean;
       reducedMotion: boolean;
-      semanticDtype: "q4" | "q8" | "fp32";
+      semanticDtype: EmbeddingDtype;
       semanticAutoIndexing: boolean;
       semanticSearchEnabled: boolean;
       viewMode: ViewMode;
