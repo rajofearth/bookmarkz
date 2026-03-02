@@ -251,7 +251,8 @@ async function getModelCacheSize(): Promise<number> {
       total += blob.size;
     }
     return total;
-  } catch {
+  } catch (error) {
+    console.debug("semantic-search-settings: cache parse/read failed", error);
     return 0;
   }
 }
@@ -265,8 +266,8 @@ async function deleteModelCache(): Promise<void> {
       req.url.includes(EMBEDDING_MODEL_ID),
     );
     await Promise.all(modelKeys.map((req) => cache.delete(req)));
-  } catch {
-    // ignore
+  } catch (error) {
+    console.debug("semantic-search-settings: cache delete failed", error);
   }
 }
 
@@ -627,7 +628,7 @@ export function SemanticSearchSettings() {
           )}
 
           {/* Paused: Resume */}
-          {isPaused && (
+          {isPaused && phase !== "error" && processedCount < totalCount && (
             <button
               type="button"
               onClick={resumeBackfill}

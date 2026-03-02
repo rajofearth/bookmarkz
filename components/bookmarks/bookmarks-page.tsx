@@ -245,6 +245,11 @@ export function BookmarksPage() {
           title: data.title,
           url: data.url,
           description: data.description ?? undefined,
+        }).catch((error) => {
+          console.error(
+            "Semantic auto-index failed after bookmark create:",
+            error,
+          );
         });
       }
     } catch (error) {
@@ -310,6 +315,11 @@ export function BookmarksPage() {
           title: data.title,
           url: data.url,
           description: data.description ?? undefined,
+        }).catch((error) => {
+          console.error(
+            "Semantic auto-index failed after bookmark update:",
+            error,
+          );
         });
       }
     } catch (error) {
@@ -323,7 +333,9 @@ export function BookmarksPage() {
         await deleteBookmarkMutation({
           bookmarkId: bookmark.id as Id<"bookmarks">,
         });
-        void clearBookmarkHash(bookmark.id);
+        void clearBookmarkHash(bookmark.id).catch((error) => {
+          console.error("Failed to clear semantic bookmark hash:", error);
+        });
       } catch (error) {
         console.error("Failed to delete bookmark:", error);
       }

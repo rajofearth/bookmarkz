@@ -447,9 +447,7 @@ export const upsertBookmarkEmbedding = mutation({
 
     const serverComputedContentHash = getBookmarkContentHash(bookmark);
     if (args.contentHash !== serverComputedContentHash) {
-      console.warn("Client contentHash mismatch", {
-        bookmarkId: args.bookmarkId,
-      });
+      throw new Error("Bookmark content hash mismatch");
     }
 
     const existing = await ctx.db
