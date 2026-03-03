@@ -8,6 +8,12 @@
     "https://bukmarks.vercel.app/*",
     "http://localhost:3000/*"
   ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "extension@bukmarks.app",
+      "strict_min_version": "109.0"
+    }
+  },
   "action": {
     "default_popup": "popup.html"
   },

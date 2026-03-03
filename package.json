@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "biome check",
-    "format": "biome format --write"
+    "format": "biome format --write",
+    "extension:package": "pwsh -File ./scripts/package-extension.ps1 -Browser all",
+    "extension:package:chrome": "pwsh -File ./scripts/package-extension.ps1 -Browser chrome",
+    "extension:package:firefox": "pwsh -File ./scripts/package-extension.ps1 -Browser firefox"
   },
   "dependencies": {
     "@base-ui/react": "^1.1.0",

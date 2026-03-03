@@ -8,6 +8,16 @@ A fast, cross‑platform bookmark dashboard that imports your messy Chromium boo
 - **Organized views**: Browse bookmarks by folders with a layout optimized for quick scanning.
 - **Search & filtering**: Quickly find links with full‑text style search and filters.
 - **Keyboard‑friendly**: Built to be fast to navigate without leaving the keyboard.
+- **Browser extension flow**: Desktop users can install the Bukmarks extension for quick page save and full browser bookmark import.
+
+### Browser Extension (Manual Install)
+
+The extension is intentionally unpublished (no Chrome Web Store / AMO listing yet). Users install it as an unpacked extension.
+
+- Install guide page in the app: `/extension`
+- Download assets are served from GitHub Releases:
+  - `https://github.com/rajofearth/bukmarks/releases/latest/download/bukmarks-extension-chrome.zip`
+  - `https://github.com/rajofearth/bukmarks/releases/latest/download/bukmarks-extension-firefox.zip`
 
 ### Tech Stack
 
@@ -46,6 +56,9 @@ A fast, cross‑platform bookmark dashboard that imports your messy Chromium boo
 - **`pnpm start`** – Start the production server.
 - **`pnpm lint`** – Run Biome checks.
 - **`pnpm format`** – Format with Biome.
+- **`pnpm extension:package`** – Build both Chrome and Firefox extension ZIP assets.
+- **`pnpm extension:package:chrome`** – Build Chrome extension ZIP only.
+- **`pnpm extension:package:firefox`** – Build Firefox extension ZIP only.
 
 ### License
 

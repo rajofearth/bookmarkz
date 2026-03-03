@@ -12,7 +12,9 @@ import {
 } from "@dnd-kit/core";
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { useMutation, useQuery } from "convex/react";
+import { X } from "lucide-react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -20,6 +22,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useBookmarksData } from "@/hooks/use-bookmarks-data";
 import { useBookmarksFilters } from "@/hooks/use-bookmarks-filters";
+import { useExtensionInstallDetection } from "@/hooks/use-extension-install-detection";
 import { useGeneralStore } from "@/hooks/use-general-store";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSemanticIndexer } from "@/hooks/use-semantic-indexer";
@@ -60,6 +63,10 @@ export function BookmarksPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
+  const {
+    showBanner: showExtensionBanner,
+    dismissBanner: dismissExtensionBanner,
+  } = useExtensionInstallDetection(isMobile);
   const [selectedFolder, setSelectedFolder] = useState<string>(FOLDER_ID_ALL);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -404,6 +411,30 @@ export function BookmarksPage() {
 
   const renderMainContent = (mode: "bookmarks" | "folders") => (
     <main className="flex flex-1 flex-col min-h-0 overflow-hidden">
+      {showExtensionBanner ? (
+        <div className="border-border/70 bg-card/60 border-b px-4 py-2.5">
+          <div className="mx-auto flex w-full max-w-5xl items-center gap-2 text-sm">
+            <p className="text-muted-foreground min-w-0 flex-1">
+              Install our{" "}
+              <Link
+                href="/extension"
+                className="text-foreground underline underline-offset-2"
+              >
+                browser extension
+              </Link>{" "}
+              to save links from any page.
+            </p>
+            <button
+              type="button"
+              onClick={dismissExtensionBanner}
+              className="text-muted-foreground hover:text-foreground inline-flex size-7 items-center justify-center rounded-md border border-transparent transition-colors"
+              aria-label="Dismiss extension prompt"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+      ) : null}
       <header className="border-border border-b bg-background">
         {isMobile ? (
           <MobileBookmarksHeader

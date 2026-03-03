@@ -1,4 +1,8 @@
-import { createClient, type AuthFunctions,type GenericCtx } from "@convex-dev/better-auth";
+import {
+  type AuthFunctions,
+  createClient,
+  type GenericCtx,
+} from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth/minimal";
 import { components, internal } from "./_generated/api";
@@ -6,39 +10,48 @@ import type { DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 import authConfig from "./auth.config";
 
-const siteUrl = process.env.SITE_URL!;
+const siteUrl = process.env.SITE_URL ?? "https://bukmarks.vercel.app";
+const isProduction = !siteUrl.startsWith("http://localhost");
+const trustedOrigins = Array.from(
+  new Set([siteUrl, "https://bukmarks.vercel.app", "http://localhost:3000"]),
+);
 
 // The component client has methods needed for integrating Convex with Better Auth,
 // as well as helper methods for general use.
-export const authComponent: ReturnType<typeof createClient<DataModel>> = createClient<DataModel>(components.betterAuth, {
-  authFunctions: (internal as { auth: AuthFunctions }).auth,
-  triggers: {
-    user: {
-      onCreate: async (ctx, doc) => {
-        await ctx.db.insert("profiles", {
-          userId: doc._id,
-          name: doc.name ?? undefined,
-          email: doc.email ?? undefined,
-          image: doc.image ?? undefined,
-        });
-      },
-      onDelete: async (ctx, doc) => {
-        const profile = await ctx.db
-          .query("profiles")
-          .withIndex("by_user_id", (q) => q.eq("userId", doc._id))
-          .unique();
-        if (profile) {
-          await ctx.db.delete(profile._id);
-        }
+export const authComponent: ReturnType<typeof createClient<DataModel>> =
+  createClient<DataModel>(components.betterAuth, {
+    authFunctions: (internal as { auth: AuthFunctions }).auth,
+    triggers: {
+      user: {
+        onCreate: async (ctx, doc) => {
+          await ctx.db.insert("profiles", {
+            userId: doc._id,
+            name: doc.name ?? undefined,
+            email: doc.email ?? undefined,
+            image: doc.image ?? undefined,
+          });
+        },
+        onDelete: async (ctx, doc) => {
+          const profile = await ctx.db
+            .query("profiles")
+            .withIndex("by_user_id", (q) => q.eq("userId", doc._id))
+            .unique();
+          if (profile) {
+            await ctx.db.delete(profile._id);
+          }
+        },
       },
     },
-  },
-});
+  });
 export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
 
 export const createAuth = (ctx: GenericCtx<DataModel>) => {
   return betterAuth({
     baseURL: siteUrl,
+    trustedOrigins,
+    defaultCookieAttributes: isProduction
+      ? { sameSite: "none", secure: true }
+      : { sameSite: "lax", secure: false },
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: false,

@@ -1,0 +1,32 @@
+name: Release Extension Packages
+
+on:
+  push:
+    tags:
+      - "ext-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build extension ZIP assets
+        shell: pwsh
+        run: ./scripts/package-extension.ps1 -Browser all
+
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Bukmarks Extension ${{ github.ref_name }}
+          files: |
+            bukmarks-extension-chrome.zip
+            bukmarks-extension-firefox.zip
+          overwrite_files: true
+          generate_release_notes: true

@@ -38,12 +38,60 @@ const res = {
       { status: 401 },
     ),
   badRequest: (error: string) => NextResponse.json({ error }, { status: 400 }),
+  forbidden: (error: string) => NextResponse.json({ error }, { status: 403 }),
   serverError: () =>
     NextResponse.json(
       { error: "Failed to import bookmarks." },
       { status: 500 },
     ),
 };
+
+const EXTENSION_ORIGIN_PREFIXES = [
+  "chrome-extension://",
+  "moz-extension://",
+] as const;
+
+function normalizeOrigin(origin: string): string {
+  return origin.replace(/\/+$/, "");
+}
+
+function getAllowedWebOrigins(): Set<string> {
+  const configuredOrigin =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    "https://bukmarks.vercel.app";
+
+  return new Set(
+    [
+      configuredOrigin,
+      "https://bukmarks.vercel.app",
+      "http://localhost:3000",
+    ].map(normalizeOrigin),
+  );
+}
+
+function isAllowedOrigin(origin: string): boolean {
+  const normalized = normalizeOrigin(origin);
+  if (
+    EXTENSION_ORIGIN_PREFIXES.some((prefix) => normalized.startsWith(prefix))
+  ) {
+    return true;
+  }
+  return getAllowedWebOrigins().has(normalized);
+}
+
+function validateRequestOrigin(request: NextRequest): NextResponse | null {
+  const origin = request.headers.get("origin");
+  if (!origin) {
+    return null;
+  }
+
+  if (isAllowedOrigin(origin)) {
+    return null;
+  }
+
+  return res.forbidden("Disallowed request origin.");
+}
 
 // --- Validation ---
 
@@ -181,13 +229,23 @@ async function createFolderMap(
 
 // --- Handlers ---
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
+  const originError = validateRequestOrigin(request);
+  if (originError) {
+    return originError;
+  }
+
   const authenticated = await isAuthenticated();
   return NextResponse.json({ authenticated });
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const originError = validateRequestOrigin(request);
+    if (originError) {
+      return originError;
+    }
+
     const authenticated = await isAuthenticated();
     if (!authenticated) {
       return res.unauthorized();

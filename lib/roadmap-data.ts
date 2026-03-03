@@ -13,8 +13,8 @@ export const ROADMAP_ITEMS: {
     icon: Chrome,
     title: "Browser extension",
     description:
-      "Quickly save links to your bookmarks from any page. One click with our browser extension on desktop.",
-    status: "in-progress",
+      "Available now. Save links from any page and import browser bookmarks with the Bukmarks extension.",
+    status: "done",
   },
   {
     icon: Github,
