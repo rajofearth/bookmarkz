@@ -89,23 +89,32 @@ async function getEmbeddingIndexStatsState(
   ctx: Pick<QueryCtx, "db">,
   userId: string,
 ): Promise<EmbeddingIndexStatsState | null> {
-  const stats = await ctx.db
+  const statsRows = await ctx.db
     .query("embeddingIndexStats")
     .withIndex("by_user_id", (q) => q.eq("userId", userId))
-    .first();
-  if (!stats) {
+    .collect();
+
+  if (statsRows.length === 0) {
     return null;
   }
+
+  const canonicalStats = statsRows.sort((a, b) => {
+    if (a._creationTime !== b._creationTime) {
+      return a._creationTime - b._creationTime;
+    }
+    return String(a._id).localeCompare(String(b._id));
+  })[0];
+
   return {
-    id: stats._id,
-    totalBookmarks: stats.totalBookmarks,
-    indexedBookmarks: stats.indexedBookmarks,
-    staleBookmarks: stats.staleBookmarks,
-    lastIndexedAt: stats.lastIndexedAt,
+    id: canonicalStats._id,
+    totalBookmarks: canonicalStats.totalBookmarks,
+    indexedBookmarks: canonicalStats.indexedBookmarks,
+    staleBookmarks: canonicalStats.staleBookmarks,
+    lastIndexedAt: canonicalStats.lastIndexedAt,
   };
 }
 
-async function ensureEmbeddingIndexStatsState(
+async function ensureEmbeddingIndexStatsStateForDelta(
   ctx: Pick<MutationCtx, "db">,
   userId: string,
 ): Promise<EmbeddingIndexStatsState> {
@@ -113,20 +122,61 @@ async function ensureEmbeddingIndexStatsState(
   if (existing) {
     return existing;
   }
-  const computed = await computeEmbeddingStatsFromSource(ctx, userId);
+
   const id = await ctx.db.insert("embeddingIndexStats", {
     userId,
-    totalBookmarks: computed.totalBookmarks,
-    indexedBookmarks: computed.indexedBookmarks,
-    staleBookmarks: computed.staleBookmarks,
-    lastIndexedAt: computed.lastIndexedAt,
+    totalBookmarks: 0,
+    indexedBookmarks: 0,
+    staleBookmarks: 0,
+    lastIndexedAt: null,
   });
+
   return {
     id,
-    totalBookmarks: computed.totalBookmarks,
-    indexedBookmarks: computed.indexedBookmarks,
-    staleBookmarks: computed.staleBookmarks,
-    lastIndexedAt: computed.lastIndexedAt,
+    totalBookmarks: 0,
+    indexedBookmarks: 0,
+    staleBookmarks: 0,
+    lastIndexedAt: null,
+  };
+}
+
+async function repairEmbeddingIndexStatsFromSource(
+  ctx: Pick<MutationCtx, "db">,
+  userId: string,
+): Promise<EmbeddingIndexStatsState> {
+  const repaired = await computeEmbeddingStatsFromSource(ctx, userId);
+  const statsRows = await ctx.db
+    .query("embeddingIndexStats")
+    .withIndex("by_user_id", (q) => q.eq("userId", userId))
+    .collect();
+
+  if (statsRows.length === 0) {
+    const id = await ctx.db.insert("embeddingIndexStats", {
+      userId,
+      totalBookmarks: repaired.totalBookmarks,
+      indexedBookmarks: repaired.indexedBookmarks,
+      staleBookmarks: repaired.staleBookmarks,
+      lastIndexedAt: repaired.lastIndexedAt,
+    });
+    return { id, ...repaired };
+  }
+
+  const [canonicalStats, ...duplicateStats] = statsRows.sort((a, b) => {
+    if (a._creationTime !== b._creationTime) {
+      return a._creationTime - b._creationTime;
+    }
+    return String(a._id).localeCompare(String(b._id));
+  });
+
+  await ctx.db.patch(canonicalStats._id, repaired);
+
+  for (const duplicate of duplicateStats) {
+    await ctx.db.delete(duplicate._id);
+  }
+
+  return {
+    id: canonicalStats._id,
+    ...repaired,
   };
 }
 
@@ -153,11 +203,11 @@ async function applyEmbeddingIndexStatsDelta(
     recomputeLastIndexedAt?: boolean;
   },
 ) {
-  let stats = await ensureEmbeddingIndexStatsState(ctx, userId);
+  let stats = await ensureEmbeddingIndexStatsStateForDelta(ctx, userId);
   if (!hasValidEmbeddingStatsCounts(stats)) {
-    const repaired = await computeEmbeddingStatsFromSource(ctx, userId);
-    await ctx.db.patch(stats.id, repaired);
-    stats = { id: stats.id, ...repaired };
+    const normalized = normalizeEmbeddingStatsCounts(stats);
+    await ctx.db.patch(stats.id, normalized);
+    stats = { ...stats, ...normalized };
   }
   const nextCounts = normalizeEmbeddingStatsCounts({
     totalBookmarks: stats.totalBookmarks + (delta.totalBookmarks ?? 0),
@@ -682,6 +732,28 @@ export const getEmbeddingIndexStats = query({
       pendingBookmarks: Math.max(totalBookmarks - indexedBookmarks, 0),
       staleBookmarks,
       lastIndexedAt,
+    };
+  },
+});
+
+export const repairEmbeddingIndexStats = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await authComponent.getAuthUser(ctx);
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+
+    const repaired = await repairEmbeddingIndexStatsFromSource(ctx, user._id);
+    return {
+      totalBookmarks: repaired.totalBookmarks,
+      indexedBookmarks: repaired.indexedBookmarks,
+      pendingBookmarks: Math.max(
+        repaired.totalBookmarks - repaired.indexedBookmarks,
+        0,
+      ),
+      staleBookmarks: repaired.staleBookmarks,
+      lastIndexedAt: repaired.lastIndexedAt,
     };
   },
 });

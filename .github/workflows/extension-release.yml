@@ -5,6 +5,11 @@ on:
     tags:
       - "ext-v*"
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to publish (must start with ext-v)"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -17,14 +22,50 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Resolve release tag
+        id: release_tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="${{ github.event.inputs.release_tag }}"
+          fi
+
+          if [ -z "$TAG" ]; then
+            echo "Release tag is required." >&2
+            exit 1
+          fi
+
+          if [[ "$TAG" != ext-v* ]]; then
+            echo "Release tag must start with 'ext-v'." >&2
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - name: Build extension ZIP assets
         shell: pwsh
         run: ./scripts/package-extension.ps1 -Browser all
 
+      - name: Verify packaged assets
+        shell: bash
+        run: |
+          test -f bukmarks-extension-chrome.zip || {
+            echo "Missing bukmarks-extension-chrome.zip" >&2
+            exit 1
+          }
+          test -f bukmarks-extension-firefox.zip || {
+            echo "Missing bukmarks-extension-firefox.zip" >&2
+            exit 1
+          }
+
       - name: Publish release assets
         uses: softprops/action-gh-release@v2
         with:
-          name: Bukmarks Extension ${{ github.ref_name }}
+          name: Bukmarks Extension ${{ steps.release_tag.outputs.tag }}
+          tag_name: ${{ steps.release_tag.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           files: |
             bukmarks-extension-chrome.zip
             bukmarks-extension-firefox.zip

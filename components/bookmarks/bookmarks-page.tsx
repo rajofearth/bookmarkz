@@ -82,6 +82,7 @@ export function BookmarksPage() {
   const [searchModeOverride, setSearchModeOverride] =
     useState<SearchMode>("semantic");
   const hasShownSemanticWarningRef = useRef(false);
+  const hasTriggeredStatsRepairRef = useRef(false);
   const { viewMode, sortMode } = useGeneralStore();
   const {
     autoIndexing,
@@ -200,6 +201,28 @@ export function BookmarksPage() {
   const createFolderMutation = useMutation(api.bookmarks.createFolder);
   const updateFolderMutation = useMutation(api.bookmarks.updateFolder);
   const deleteFolderMutation = useMutation(api.bookmarks.deleteFolder);
+  const repairEmbeddingIndexStatsMutation = useMutation(
+    api.bookmarks.repairEmbeddingIndexStats,
+  );
+
+  useEffect(() => {
+    if (hasTriggeredStatsRepairRef.current || typeof window === "undefined") {
+      return;
+    }
+
+    const repairKey = "bukmarks.embedding-index-stats-repair.v1";
+    if (window.sessionStorage.getItem(repairKey) === "done") {
+      hasTriggeredStatsRepairRef.current = true;
+      return;
+    }
+
+    hasTriggeredStatsRepairRef.current = true;
+    window.sessionStorage.setItem(repairKey, "done");
+    void repairEmbeddingIndexStatsMutation({}).catch((error) => {
+      window.sessionStorage.removeItem(repairKey);
+      console.error("Failed to repair embedding index stats:", error);
+    });
+  }, [repairEmbeddingIndexStatsMutation]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
