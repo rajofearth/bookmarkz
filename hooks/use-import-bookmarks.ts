@@ -1,11 +1,26 @@
 "use client";
 
-import { useMutation } from "convex/react";
 import { useCallback, useRef, useState } from "react";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import { parseBookmarkHtml } from "@/lib/bookmark-parser";
-import { IMPORT_CHUNK_SIZE } from "@/lib/import-constants";
+
+type ImportFolderPayload = {
+  id: string;
+  name: string;
+  parentId: null;
+};
+
+type ImportBookmarkPayload = {
+  title: string;
+  url: string;
+  folderId?: string;
+  addDate?: number;
+};
+
+type ImportResponse = {
+  count?: number;
+  movedCount?: number;
+  error?: string;
+};
 
 export type ImportState =
   | { status: "idle" }
@@ -27,9 +42,6 @@ export function useImportBookmarks() {
   });
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const batchCreateBookmarks = useMutation(api.bookmarks.batchCreateBookmarks);
-  const createFolder = useMutation(api.bookmarks.createFolder);
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.name.endsWith(".html") && !file.name.endsWith(".htm")) {
@@ -74,6 +86,55 @@ export function useImportBookmarks() {
     }
   }, []);
 
+  const buildImportPayload = useCallback(
+    (
+      raw: ReturnType<typeof parseBookmarkHtml>,
+    ): {
+      folders: ImportFolderPayload[];
+      bookmarks: ImportBookmarkPayload[];
+    } => {
+      const folderNameToId = new Map<string, string>();
+      const folders: ImportFolderPayload[] = [];
+      let folderIndex = 0;
+
+      const getFolderId = (folderName: string) => {
+        const existingId = folderNameToId.get(folderName);
+        if (existingId) {
+          return existingId;
+        }
+
+        const folderId = `f-${folderIndex}`;
+        folderIndex += 1;
+        folderNameToId.set(folderName, folderId);
+        folders.push({
+          id: folderId,
+          name: folderName,
+          parentId: null,
+        });
+        return folderId;
+      };
+
+      for (const folderName of raw.folders) {
+        getFolderId(folderName);
+      }
+
+      const bookmarks: ImportBookmarkPayload[] = raw.bookmarks.map(
+        (bookmark) => ({
+          title: bookmark.title,
+          url: bookmark.url,
+          addDate:
+            typeof bookmark.addDate === "number"
+              ? bookmark.addDate * 1000
+              : undefined,
+          folderId: bookmark.folder ? getFolderId(bookmark.folder) : undefined,
+        }),
+      );
+
+      return { folders, bookmarks };
+    },
+    [],
+  );
+
   const handleImport = useCallback(async () => {
     if (importState.status !== "previewing") return;
 
@@ -88,46 +149,42 @@ export function useImportBookmarks() {
     });
 
     try {
-      const folderMap = new Map<string, Id<"folders">>();
-      for (const folderName of raw.folders) {
-        const folderId = await createFolder({ name: folderName });
-        folderMap.set(folderName, folderId);
+      const payload = buildImportPayload(raw);
+      const response = await fetch("/api/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      let responseData: ImportResponse | null = null;
+      try {
+        responseData = (await response.json()) as ImportResponse;
+      } catch {
+        responseData = null;
       }
 
-      let imported = 0;
-
-      for (let i = 0; i < raw.bookmarks.length; i += IMPORT_CHUNK_SIZE) {
-        const chunk = raw.bookmarks.slice(i, i + IMPORT_CHUNK_SIZE);
-        const bookmarksToCreate = chunk.map((b) => ({
-          title: b.title,
-          url: b.url,
-          addDate: b.addDate != null ? b.addDate * 1000 : undefined,
-          folderId: b.folder ? folderMap.get(b.folder) : undefined,
-        }));
-
-        await batchCreateBookmarks({ bookmarks: bookmarksToCreate });
-        imported += chunk.length;
-
-        setImportState({
-          status: "importing",
-          fileName: importState.fileName,
-          imported,
-          total,
-        });
+      if (!response.ok) {
+        throw new Error(responseData?.error || "Failed to import bookmarks.");
       }
+
+      const imported = Number(responseData?.count ?? 0);
 
       setImportState({
         status: "done",
         imported,
-        folders: raw.folders.length,
+        folders: payload.folders.length,
       });
-    } catch {
+    } catch (error) {
       setImportState({
         status: "error",
-        message: "Something went wrong. Please try again.",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Something went wrong. Please try again.",
       });
     }
-  }, [importState, batchCreateBookmarks, createFolder]);
+  }, [buildImportPayload, importState]);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {

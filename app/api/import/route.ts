@@ -20,6 +20,7 @@ interface BookmarkInput {
   title: string;
   url: string;
   folderId?: string;
+  addDate?: number;
   favicon?: string;
   ogImage?: string;
 }
@@ -119,6 +120,10 @@ function parseFolders(raw: unknown): FolderInput[] {
   }));
 }
 
+function normalizeFolderNameForKey(name: string): string {
+  return name.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 /** Returns validated bookmarks or null if any item is invalid. */
 function parseBookmarks(raw: unknown): BookmarkInput[] | null {
   if (!Array.isArray(raw)) return null;
@@ -137,10 +142,16 @@ function parseBookmarks(raw: unknown): BookmarkInput[] | null {
       typeof folderIdRaw === "string" || typeof folderIdRaw === "number"
         ? String(folderIdRaw)
         : undefined;
+    const addDateRaw = (b as { addDate?: unknown }).addDate;
+    const addDate =
+      typeof addDateRaw === "number" && Number.isFinite(addDateRaw)
+        ? addDateRaw
+        : undefined;
     out.push({
       title: (b as BookmarkInput).title,
       url: (b as BookmarkInput).url,
       folderId,
+      addDate,
       favicon:
         typeof (b as BookmarkInput).favicon === "string"
           ? (b as BookmarkInput).favicon
@@ -183,7 +194,22 @@ function folderKey(
   parentId: Id<"folders"> | undefined | null,
   name: string,
 ): string {
-  return `${parentId ?? "root"}::${name}`;
+  return `${parentId ?? "root"}::${normalizeFolderNameForKey(name)}`;
+}
+
+/**
+ * De-duplicate bookmark rows by exact URL within a single import payload.
+ * Last occurrence wins to avoid stale title/folder assignments.
+ */
+function dedupeBookmarksInPayload(bookmarks: BookmarkInput[]): BookmarkInput[] {
+  const byUrl = new Map<string, BookmarkInput>();
+  for (const bookmark of bookmarks) {
+    if (byUrl.has(bookmark.url)) {
+      byUrl.delete(bookmark.url);
+    }
+    byUrl.set(bookmark.url, bookmark);
+  }
+  return Array.from(byUrl.values());
 }
 
 async function buildExistingFolderLookup(): Promise<
@@ -269,10 +295,11 @@ export async function POST(request: NextRequest) {
       return res.badRequest("No bookmarks to import.");
     }
 
-    const bookmarks = parseBookmarks(raw);
-    if (bookmarks === null) {
+    const parsedBookmarks = parseBookmarks(raw);
+    if (parsedBookmarks === null) {
       return res.badRequest("Each bookmark must have a title and url.");
     }
+    const bookmarks = dedupeBookmarksInPayload(parsedBookmarks);
 
     const folders = parseFolders(body.folders);
     const existingFolderLookup =
@@ -297,6 +324,7 @@ export async function POST(request: NextRequest) {
     const mappedBookmarks = bookmarks.map((b) => ({
       title: b.title,
       url: b.url,
+      addDate: b.addDate,
       folderId: b.folderId ? chromeFolderIdToAppId.get(b.folderId) : undefined,
       favicon: b.favicon,
       ogImage: b.ogImage,
