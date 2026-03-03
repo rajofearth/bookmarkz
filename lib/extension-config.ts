@@ -1,5 +1,5 @@
 export const EXTENSION_RELEASE_BASE =
-  "https://github.com/rajofearth/bukmarks/releases/latest/download";
+  "https://github.com/rajofearth/bukmarks/releases/download/ext-v1.1.0";
 
 export const CHROME_EXTENSION_ZIP_URL = `${EXTENSION_RELEASE_BASE}/bukmarks-extension-chrome.zip`;
 

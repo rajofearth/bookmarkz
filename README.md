@@ -16,8 +16,8 @@ The extension is intentionally unpublished (no Chrome Web Store / AMO listing ye
 
 - Install guide page in the app: `/extension`
 - Download assets are served from GitHub Releases:
-  - `https://github.com/rajofearth/bukmarks/releases/latest/download/bukmarks-extension-chrome.zip`
-  - `https://github.com/rajofearth/bukmarks/releases/latest/download/bukmarks-extension-firefox.zip`
+  - `https://github.com/rajofearth/bukmarks/releases/download/ext-v1.1.0/bukmarks-extension-chrome.zip`
+  - `https://github.com/rajofearth/bukmarks/releases/download/ext-v1.1.0/bukmarks-extension-firefox.zip`
 
 ### Tech Stack
 
