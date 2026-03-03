@@ -22,10 +22,48 @@ type EmbeddingIndexStatsState = {
   lastIndexedAt: number | null;
 };
 
+type EmbeddingIndexStatsCounts = Pick<
+  EmbeddingIndexStatsState,
+  "totalBookmarks" | "indexedBookmarks" | "staleBookmarks"
+>;
+
+type EmbeddingIndexStatsSnapshot = Omit<EmbeddingIndexStatsState, "id">;
+
 const MAX_IDS_BATCH = 100;
 
 function clampNonNegative(value: number) {
   return value < 0 ? 0 : value;
+}
+
+function hasValidEmbeddingStatsCounts(
+  stats: EmbeddingIndexStatsCounts,
+): boolean {
+  return (
+    stats.totalBookmarks >= 0 &&
+    stats.indexedBookmarks >= 0 &&
+    stats.staleBookmarks >= 0 &&
+    stats.indexedBookmarks <= stats.totalBookmarks &&
+    stats.staleBookmarks <= stats.indexedBookmarks
+  );
+}
+
+function normalizeEmbeddingStatsCounts(
+  stats: EmbeddingIndexStatsCounts,
+): EmbeddingIndexStatsCounts {
+  const totalBookmarks = clampNonNegative(stats.totalBookmarks);
+  const indexedBookmarks = Math.min(
+    clampNonNegative(stats.indexedBookmarks),
+    totalBookmarks,
+  );
+  const staleBookmarks = Math.min(
+    clampNonNegative(stats.staleBookmarks),
+    indexedBookmarks,
+  );
+  return {
+    totalBookmarks,
+    indexedBookmarks,
+    staleBookmarks,
+  };
 }
 
 function getBookmarkContentHash(bookmark: {
@@ -75,19 +113,20 @@ async function ensureEmbeddingIndexStatsState(
   if (existing) {
     return existing;
   }
+  const computed = await computeEmbeddingStatsFromSource(ctx, userId);
   const id = await ctx.db.insert("embeddingIndexStats", {
     userId,
-    totalBookmarks: 0,
-    indexedBookmarks: 0,
-    staleBookmarks: 0,
-    lastIndexedAt: null,
+    totalBookmarks: computed.totalBookmarks,
+    indexedBookmarks: computed.indexedBookmarks,
+    staleBookmarks: computed.staleBookmarks,
+    lastIndexedAt: computed.lastIndexedAt,
   });
   return {
     id,
-    totalBookmarks: 0,
-    indexedBookmarks: 0,
-    staleBookmarks: 0,
-    lastIndexedAt: null,
+    totalBookmarks: computed.totalBookmarks,
+    indexedBookmarks: computed.indexedBookmarks,
+    staleBookmarks: computed.staleBookmarks,
+    lastIndexedAt: computed.lastIndexedAt,
   };
 }
 
@@ -114,16 +153,17 @@ async function applyEmbeddingIndexStatsDelta(
     recomputeLastIndexedAt?: boolean;
   },
 ) {
-  const stats = await ensureEmbeddingIndexStatsState(ctx, userId);
-  const nextTotal = clampNonNegative(
-    stats.totalBookmarks + (delta.totalBookmarks ?? 0),
-  );
-  const nextIndexed = clampNonNegative(
-    stats.indexedBookmarks + (delta.indexedBookmarks ?? 0),
-  );
-  const staleCandidate = clampNonNegative(
-    stats.staleBookmarks + (delta.staleBookmarks ?? 0),
-  );
+  let stats = await ensureEmbeddingIndexStatsState(ctx, userId);
+  if (!hasValidEmbeddingStatsCounts(stats)) {
+    const repaired = await computeEmbeddingStatsFromSource(ctx, userId);
+    await ctx.db.patch(stats.id, repaired);
+    stats = { id: stats.id, ...repaired };
+  }
+  const nextCounts = normalizeEmbeddingStatsCounts({
+    totalBookmarks: stats.totalBookmarks + (delta.totalBookmarks ?? 0),
+    indexedBookmarks: stats.indexedBookmarks + (delta.indexedBookmarks ?? 0),
+    staleBookmarks: stats.staleBookmarks + (delta.staleBookmarks ?? 0),
+  });
   let nextLastIndexedAt = stats.lastIndexedAt;
 
   if (delta.maxLastIndexedAt !== undefined) {
@@ -137,9 +177,9 @@ async function applyEmbeddingIndexStatsDelta(
   }
 
   await ctx.db.patch(stats.id, {
-    totalBookmarks: nextTotal,
-    indexedBookmarks: nextIndexed,
-    staleBookmarks: Math.min(staleCandidate, nextIndexed),
+    totalBookmarks: nextCounts.totalBookmarks,
+    indexedBookmarks: nextCounts.indexedBookmarks,
+    staleBookmarks: nextCounts.staleBookmarks,
     lastIndexedAt: nextLastIndexedAt,
   });
 }
@@ -544,7 +584,7 @@ export const getBookmarkEmbeddingHash = query({
 async function computeEmbeddingStatsFromSource(
   ctx: Pick<QueryCtx, "db">,
   userId: string,
-) {
+): Promise<EmbeddingIndexStatsSnapshot> {
   const [bookmarks, embeddings] = await Promise.all([
     ctx.db
       .query("bookmarks")
@@ -555,25 +595,51 @@ async function computeEmbeddingStatsFromSource(
       .withIndex("by_user_id", (q) => q.eq("userId", userId))
       .collect(),
   ]);
-  const totalBookmarks = bookmarks.length;
-  const indexedBookmarks = embeddings.length;
-  const embeddingByBookmark = new Map(
-    embeddings.map((e) => [e.bookmarkId, e] as const),
+  const bookmarkById = new Map(
+    bookmarks.map((bookmark) => [bookmark._id, bookmark] as const),
   );
-  let staleBookmarks = 0;
-  for (const bookmark of bookmarks) {
-    const embedding = embeddingByBookmark.get(bookmark._id);
-    if (embedding && isEmbeddingStaleForBookmark(bookmark, embedding)) {
-      staleBookmarks += 1;
+  const latestEmbeddingByBookmark = new Map<
+    Id<"bookmarks">,
+    Doc<"bookmarkEmbeddings">
+  >();
+
+  for (const embedding of embeddings) {
+    if (!bookmarkById.has(embedding.bookmarkId)) {
+      continue;
+    }
+    const existing = latestEmbeddingByBookmark.get(embedding.bookmarkId);
+    if (!existing || embedding.updatedAt > existing.updatedAt) {
+      latestEmbeddingByBookmark.set(embedding.bookmarkId, embedding);
     }
   }
-  const lastIndexedAt = embeddings.length > 0
-    ? Math.max(...embeddings.map((e) => e.updatedAt))
-    : null;
-  return {
-    totalBookmarks,
-    indexedBookmarks,
+
+  const normalizedCounts = normalizeEmbeddingStatsCounts({
+    totalBookmarks: bookmarks.length,
+    indexedBookmarks: latestEmbeddingByBookmark.size,
+    staleBookmarks: 0,
+  });
+  let staleBookmarks = 0;
+  let lastIndexedAt: number | null = null;
+  for (const [bookmarkId, embedding] of latestEmbeddingByBookmark) {
+    const bookmark = bookmarkById.get(bookmarkId);
+    if (!bookmark) {
+      continue;
+    }
+    if (isEmbeddingStaleForBookmark(bookmark, embedding)) {
+      staleBookmarks += 1;
+    }
+    if (lastIndexedAt === null || embedding.updatedAt > lastIndexedAt) {
+      lastIndexedAt = embedding.updatedAt;
+    }
+  }
+  const finalCounts = normalizeEmbeddingStatsCounts({
+    ...normalizedCounts,
     staleBookmarks,
+  });
+  return {
+    totalBookmarks: finalCounts.totalBookmarks,
+    indexedBookmarks: finalCounts.indexedBookmarks,
+    staleBookmarks: finalCounts.staleBookmarks,
     lastIndexedAt,
   };
 }
@@ -597,7 +663,7 @@ export const getEmbeddingIndexStats = query({
     let staleBookmarks: number;
     let lastIndexedAt: number | null;
 
-    if (stats) {
+    if (stats && hasValidEmbeddingStatsCounts(stats)) {
       totalBookmarks = stats.totalBookmarks;
       indexedBookmarks = stats.indexedBookmarks;
       staleBookmarks = stats.staleBookmarks;
