@@ -1,17 +1,53 @@
 "use client";
 
-import Image from "next/image";
 import { motion, useInView } from "motion/react";
+import Image from "next/image";
 import { useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 
-const FEATURES: { image: string; title: string; description: string; badge?: string }[] = [
-  { image: "/folder-hand-drawn.png", title: "Folders & organization", description: "Organize links into nested folders. Drag and drop to keep everything tidy." },
-  { image: "/search-hand-drawn.png", title: "On-device indexing & semantic search", description: "Bookmarks are indexed on your device. Find anything with search across titles, URLs, and descriptions." },
-  { image: "/auto-metadata-descriptions-hand-drawn.png", title: "Auto metadata & descriptions", description: "Favicons, previews, and descriptions pulled directly from each page—no third-party metadata APIs." },
-  { image: "/browser-import-hand-drawn.png", title: "Browser import", description: "Import your existing bookmarks from Chrome, Firefox, or any browser export." },
-  { image: "/theme-hand-drawn.png", title: "Light & dark theme", description: "Switch between light and dark mode, or follow your system preference." },
-  { image: "/github-hand-drawn.png", title: "GitHub Sync", description: "Planned: sync your bookmarks directly to your GitHub account.", badge: "Planned" },
+const FEATURES: {
+  image: string;
+  title: string;
+  description: string;
+  badge?: string;
+}[] = [
+  {
+    image: "/folder-hand-drawn.png",
+    title: "Folders & organization",
+    description:
+      "Organize links into nested folders. Drag and drop to keep everything tidy.",
+  },
+  {
+    image: "/search-hand-drawn.png",
+    title: "On-device indexing & semantic search",
+    description:
+      "Bookmarks are indexed on your device. Find anything with search across titles, URLs, and descriptions.",
+  },
+  {
+    image: "/auto-metadata-descriptions-hand-drawn.png",
+    title: "Auto metadata & descriptions",
+    description:
+      "Favicons, previews, and descriptions pulled directly from each page—no third-party metadata APIs.",
+  },
+  {
+    image: "/browser-import-hand-drawn.png",
+    title: "Browser import",
+    description:
+      "Import your existing bookmarks from Chrome, Firefox, or any browser export.",
+  },
+  {
+    image: "/theme-hand-drawn.png",
+    title: "Light & dark theme",
+    description:
+      "Switch between light and dark mode, or follow your system preference.",
+  },
+  {
+    image: "/github-hand-drawn.png",
+    title: "GitHub Sync",
+    description:
+      "Planned: sync your bookmarks directly to your GitHub account.",
+    badge: "Planned",
+  },
 ];
 
 const EASE = [0.25, 0.46, 0.45, 0.94] as const;
@@ -20,7 +56,9 @@ interface LandingFeaturesProps {
   prefersReducedMotion?: boolean;
 }
 
-export function LandingFeatures({ prefersReducedMotion = false }: LandingFeaturesProps) {
+export function LandingFeatures({
+  prefersReducedMotion = false,
+}: LandingFeaturesProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.15 });
   const duration = prefersReducedMotion ? 0 : 0.4;
@@ -67,14 +105,14 @@ export function LandingFeatures({ prefersReducedMotion = false }: LandingFeature
                 ease: EASE,
               }}
             >
-              <div className="flex size-14 items-center justify-center mb-4 overflow-hidden shrink-0">
-                  <Image
-                    src={feature.image}
-                    alt=""
-                    width={56}
-                    height={56}
-                    className="size-14 object-contain"
-                  />
+              <div className="mb-4 flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted/40 ring-1 ring-border/60 dark:bg-transparent dark:ring-0">
+                <Image
+                  src={feature.image}
+                  alt=""
+                  width={56}
+                  height={56}
+                  className="size-14 object-contain invert dark:invert-0"
+                />
               </div>
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 <h3 className="text-sm font-medium text-foreground">
